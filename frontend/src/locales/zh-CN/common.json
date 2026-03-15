@@ -70,5 +70,20 @@
     "send": "发送",
     "contextLinked": "已关联上下文",
     "noDocument": "无文档"
+  },
+  "connectionStatus": {
+    "disconnected": "断开连接",
+    "connecting": "连接中...",
+    "connected": "已连接"
+  },
+  "companionSuggestions": {
+    "summarize": "总结关键要点",
+    "quiz": "做个快速测验",
+    "explain": "像初学者一样解释"
+  },
+  "companion": {
+    "hint": "需要快速摘要、测验或解释？询问关于当前文档的任何内容，我会保持在相关上下文中。",
+    "thinking": "思考中...",
+    "studyCompanion": "学习助手"
   }
 }

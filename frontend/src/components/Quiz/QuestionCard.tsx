@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import DOMPurify from "dompurify";
 import type { Question } from "../../pages/Quiz";
 
 export default function QuestionCard({
@@ -8,12 +9,16 @@ export default function QuestionCard({
   onSelect:(i:number)=>void; onHint:()=>void; onNext:()=>void; isLast:boolean;
 }) {
   const { t } = useTranslation();
+
+  // Sanitize HTML to prevent XSS attacks
+  const sanitizedImageHtml = q.imageHtml ? DOMPurify.sanitize(q.imageHtml) : "";
+
   return (
     <div id="quizContent" className="space-y-8">
       <div id="questionCard" className="bg-stone-950 border border-stone-900 rounded-2xl p-6">
         <div className="mb-6">
           <h2 id="questionText" className="text-xl font-semibold text-white mb-4">{q.question}</h2>
-          <div id="questionImage" className={`${q.imageHtml ? "" : "hidden"} mb-4`} dangerouslySetInnerHTML={{ __html: q.imageHtml || "" }} />
+          <div id="questionImage" className={`${q.imageHtml ? "" : "hidden"} mb-4`} dangerouslySetInnerHTML={{ __html: sanitizedImageHtml }} />
         </div>
 
         <div id="answerOptions" className="space-y-3">

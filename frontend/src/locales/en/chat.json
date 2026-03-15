@@ -2,7 +2,8 @@
   "composer": {
     "placeholder": "Ask a follow-up question or request more examples...",
     "attachFile": "Attach a file",
-    "send": "Send"
+    "send": "Send",
+    "pleaseWait": "Please wait..."
   },
   "actionRow": {
     "summarize": "Summarize",
@@ -28,6 +29,7 @@
   },
   "bag": {
     "title": "Saved Items",
+    "importantTopics": "Important Topics",
     "empty": "No saved items yet",
     "remove": "Remove"
   },

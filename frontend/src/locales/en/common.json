@@ -70,5 +70,20 @@
     "send": "Send",
     "contextLinked": "Context linked",
     "noDocument": "No document"
+  },
+  "connectionStatus": {
+    "disconnected": "Disconnected",
+    "connecting": "Connecting...",
+    "connected": "Connected"
+  },
+  "companionSuggestions": {
+    "summarize": "Summarize the key ideas",
+    "quiz": "Make a quick quiz",
+    "explain": "Explain this like I'm new"
+  },
+  "companion": {
+    "hint": "Need a quick summary, quiz, or explanation? Ask anything about the current document and I'll stick to that context.",
+    "thinking": "Thinking...",
+    "studyCompanion": "Study Companion"
   }
 }

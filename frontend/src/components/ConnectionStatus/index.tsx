@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 type Status = "disconnected" | "connecting" | "connected";
 
@@ -7,6 +8,7 @@ type Props = {
 };
 
 export default function ConnectionStatus({ ws }: Props) {
+  const { t } = useTranslation("common");
   const [status, setStatus] = useState<Status>("disconnected");
 
   useEffect(() => {
@@ -46,19 +48,19 @@ export default function ConnectionStatus({ ws }: Props) {
       case "disconnected":
         return {
           color: "bg-red-500",
-          label: "断开连接",
+          label: t("connectionStatus.disconnected"),
           pulse: false,
         };
       case "connecting":
         return {
           color: "bg-yellow-500",
-          label: "连接中...",
+          label: t("connectionStatus.connecting"),
           pulse: true,
         };
       case "connected":
         return {
           color: "bg-green-500",
-          label: "已连接",
+          label: t("connectionStatus.connected"),
           pulse: false,
         };
     }

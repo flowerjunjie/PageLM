@@ -10,6 +10,14 @@ import enQuiz from '../locales/en/quiz.json';
 import enPlanner from '../locales/en/planner.json';
 import enTools from '../locales/en/tools.json';
 import enLanding from '../locales/en/landing.json';
+import enErrors from '../locales/en/errors.json';
+import enOnboarding from '../locales/en/onboarding.json';
+import enShare from '../locales/en/share.json';
+import enShortcuts from '../locales/en/shortcuts.json';
+import enDebate from '../locales/en/debate.json';
+import enFlashcards from '../locales/en/flashcards.json';
+import enExamlab from '../locales/en/examlab.json';
+import enHelp from '../locales/en/help.json';
 
 import zhCommon from '../locales/zh-CN/common.json';
 import zhNavigation from '../locales/zh-CN/navigation.json';
@@ -18,6 +26,14 @@ import zhQuiz from '../locales/zh-CN/quiz.json';
 import zhPlanner from '../locales/zh-CN/planner.json';
 import zhTools from '../locales/zh-CN/tools.json';
 import zhLanding from '../locales/zh-CN/landing.json';
+import zhErrors from '../locales/zh-CN/errors.json';
+import zhOnboarding from '../locales/zh-CN/onboarding.json';
+import zhShare from '../locales/zh-CN/share.json';
+import zhShortcuts from '../locales/zh-CN/shortcuts.json';
+import zhDebate from '../locales/zh-CN/debate.json';
+import zhFlashcards from '../locales/zh-CN/flashcards.json';
+import zhExamlab from '../locales/zh-CN/examlab.json';
+import zhHelp from '../locales/zh-CN/help.json';
 
 // Configure i18next
 i18n
@@ -33,6 +49,14 @@ i18n
         planner: enPlanner,
         tools: enTools,
         landing: enLanding,
+        errors: enErrors,
+        onboarding: enOnboarding,
+        share: enShare,
+        shortcuts: enShortcuts,
+        debate: enDebate,
+        flashcards: enFlashcards,
+        examlab: enExamlab,
+        help: enHelp,
       },
       'zh-CN': {
         common: zhCommon,
@@ -42,11 +66,19 @@ i18n
         planner: zhPlanner,
         tools: zhTools,
         landing: zhLanding,
+        errors: zhErrors,
+        onboarding: zhOnboarding,
+        share: zhShare,
+        shortcuts: zhShortcuts,
+        debate: zhDebate,
+        flashcards: zhFlashcards,
+        examlab: zhExamlab,
+        help: zhHelp,
       },
     },
     fallbackLng: 'en', // Use English if translation is missing
     defaultNS: 'common', // Default namespace
-    ns: ['common', 'navigation', 'chat', 'quiz', 'planner', 'tools', 'landing'],
+    ns: ['common', 'navigation', 'chat', 'quiz', 'planner', 'tools', 'landing', 'errors', 'onboarding', 'share', 'shortcuts', 'debate', 'flashcards', 'examlab', 'help'],
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],

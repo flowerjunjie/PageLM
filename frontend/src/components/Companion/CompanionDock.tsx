@@ -13,12 +13,6 @@ type CompanionMessage = {
   topic?: string
 }
 
-const defaultSuggestions = [
-  "Summarize the key ideas",
-  "Make a quick quiz",
-  "Explain this like I'm new"
-]
-
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ")
 }
@@ -41,6 +35,13 @@ export default function CompanionDock() {
   const bodyRef = useRef<HTMLDivElement>(null)
 
   const hasDocument = !!document
+
+  // Get suggestions from translations
+  const defaultSuggestions = useMemo(() => [
+    t("companionSuggestions.summarize"),
+    t("companionSuggestions.quiz"),
+    t("companionSuggestions.explain")
+  ], [t])
 
   useEffect(() => {
     setMessages([])
@@ -166,7 +167,7 @@ export default function CompanionDock() {
           {hasDocument && !messages.length && (
             <div className="space-y-3">
               <div className="text-sm text-stone-300 leading-relaxed">
-                Need a quick summary, quiz, or explanation? Ask anything about the current document and I&apos;ll stick to that context.
+                {t("companion.hint")}
               </div>
               <div className="flex flex-wrap gap-2">
                 {defaultSuggestions.map(suggestion => (

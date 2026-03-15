@@ -60,7 +60,7 @@ export default function Composer({ disabled, loading = false, onSend }: Props) {
               disabled={disabled || loading}
               className="rounded-full bg-stone-800 hover:bg-stone-700 duration-300 transition-all hover:text-white p-2.5 disabled:opacity-50 flex items-center justify-center"
               aria-label={t("composer.send")}
-              title={disabled || loading ? "请稍候..." : t("composer.send")}
+              title={disabled || loading ? t("composer.pleaseWait") : t("composer.send")}
             >
               {loading ? (
                 <svg className="animate-spin size-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

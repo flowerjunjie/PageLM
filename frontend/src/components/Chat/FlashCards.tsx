@@ -14,7 +14,7 @@ export default function FlashCards({ items = [], onAdd }: Props) {
       <div className="sticky top-6 h-[calc(100vh-8rem)] flex flex-col">
         <div className="mb-5">
           <div className="rounded-2xl bg-stone-950/80 border border-zinc-900 px-4 py-3 flex items-center justify-between">
-            <h3 className="text-stone-100 font-semibold tracking-wide">Important Topics</h3>
+            <h3 className="text-stone-100 font-semibold tracking-wide">{t("bag.importantTopics")}</h3>
             <span className="text-xs text-stone-400">{items.length}</span>
           </div>
         </div>

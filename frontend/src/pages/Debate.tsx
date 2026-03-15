@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { env } from "../config/env";
 
 type DebateMessage = {
     role: "user" | "assistant";
@@ -33,6 +34,13 @@ export default function Debate() {
     const { t } = useTranslation("debate");
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+
+    // Get backend URL from environment config
+    const getBackendUrl = () => env.backend || window.location.origin;
+    const getWsUrl = (path: string) => {
+        const baseUrl = env.backend || window.location.origin;
+        return baseUrl.replace(/^http/, "ws") + path;
+    };
 
     const [topic, setTopic] = useState("");
     const [position, setPosition] = useState<"for" | "against">("for");
@@ -80,7 +88,7 @@ export default function Debate() {
 
     const fetchDebateSession = async (id: string) => {
         try {
-            const response = await fetch(`http://localhost:5000/debate/${id}`);
+            const response = await fetch(`${getBackendUrl()}/debate/${id}`);
             const data = await response.json();
             if (data.ok) {
                 setSession(data.session);
@@ -94,7 +102,7 @@ export default function Debate() {
     };
 
     const connectWebSocket = (id: string) => {
-        const ws = new WebSocket(`ws://localhost:5000/ws/debate?debateId=${id}`);
+        const ws = new WebSocket(getWsUrl(`/ws/debate?debateId=${id}`));
 
         ws.onopen = () => {
             console.log("WebSocket connected");
@@ -169,7 +177,7 @@ export default function Debate() {
         if (!topic.trim()) return;
 
         try {
-            const response = await fetch("http://localhost:5000/debate/start", {
+            const response = await fetch(`${getBackendUrl()}/debate/start`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ topic: topic.trim(), position }),
@@ -201,7 +209,7 @@ export default function Debate() {
 
         try {
             const response = await fetch(
-                `http://localhost:5000/debate/${debateId}/argue`,
+                `${getBackendUrl()}/debate/${debateId}/argue`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -238,7 +246,7 @@ export default function Debate() {
 
         try {
             const response = await fetch(
-                `http://localhost:5000/debate/${debateId}/surrender`,
+                `${getBackendUrl()}/debate/${debateId}/surrender`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -264,7 +272,7 @@ export default function Debate() {
         setAnalysisPhase(t("analyzing"));
 
         // Connect to analysis WebSocket first
-        const analysisWs = new WebSocket(`ws://localhost:5000/ws/debate/analyze?debateId=${debateId}`);
+        const analysisWs = new WebSocket(getWsUrl(`/ws/debate/analyze?debateId=${debateId}`));
 
         analysisWs.onopen = () => {
             console.log("Analysis WebSocket connected");
@@ -315,7 +323,7 @@ export default function Debate() {
         // Trigger analysis on backend
         try {
             const response = await fetch(
-                `http://localhost:5000/debate/${debateId}/analyze`,
+                `${getBackendUrl()}/debate/${debateId}/analyze`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

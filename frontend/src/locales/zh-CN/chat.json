@@ -2,7 +2,8 @@
   "composer": {
     "placeholder": "提出后续问题或请求更多示例...",
     "attachFile": "附加文件",
-    "send": "发送"
+    "send": "发送",
+    "pleaseWait": "请稍候..."
   },
   "actionRow": {
     "summarize": "总结",
@@ -28,6 +29,7 @@
   },
   "bag": {
     "title": "已保存项目",
+    "importantTopics": "重要主题",
     "empty": "暂无保存项目",
     "remove": "移除"
   },
