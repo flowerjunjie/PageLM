@@ -1,0 +1,81 @@
+{
+  "title": "Help Center",
+  "close": "Close",
+  "search": "Search help...",
+  "noResults": "No results found",
+  "tryDifferentKeywords": "Try different keywords",
+  "contactSupport": "Contact Support",
+  "quickStart": {
+    "title": "Quick Start",
+    "description": "Get started with PageLM quickly"
+  },
+  "features": {
+    "title": "Features",
+    "description": "Learn about PageLM features"
+  },
+  "faq": {
+    "title": "FAQ",
+    "description": "Find answers to common questions"
+  },
+  "sections": {
+    "gettingStarted": {
+      "title": "Getting Started",
+      "steps": {
+        "1": {
+          "title": "Enter a topic",
+          "description": "Type any topic you want to learn in the input box on the homepage, such as 'Quadratic functions', 'Photosynthesis', etc."
+        },
+        "2": {
+          "title": "Start learning",
+          "description": "Click the 'Start Learning' button and AI will generate personalized learning content for you"
+        },
+        "3": {
+          "title": "Interactive learning",
+          "description": "Deepen your learning through chat, quizzes, flashcards, and more"
+        }
+      }
+    },
+    "chat": {
+      "title": "AI Chat",
+      "description": "Chat with AI assistant for personalized learning guidance"
+    },
+    "quiz": {
+      "title": "Smart Quiz",
+      "description": "Generate quiz questions to test your learning"
+    },
+    "flashcards": {
+      "title": "Flashcards",
+      "description": "Create and review flashcards to reinforce memory"
+    },
+    "tools": {
+      "title": "Learning Tools",
+      "description": "Use smart notes, AI podcasts, and more to improve learning efficiency"
+    },
+    "planner": {
+      "title": "Homework Planner",
+      "description": "Plan learning tasks and track progress"
+    }
+  },
+  "faq": {
+    "howToStart": {
+      "question": "How to start learning?",
+      "answer": "Enter the topic you want to learn in the input box on the homepage and click 'Start Learning'."
+    },
+    "changeLanguage": {
+      "question": "How to change language?",
+      "answer": "Click the language switch button at the bottom of the sidebar to select Chinese or English."
+    },
+    "exportNotes": {
+      "question": "How to export notes?",
+      "answer": "After generating notes in the learning tools page, click the 'Download Notes' button to export."
+    },
+    "shareProgress": {
+      "question": "How to share learning progress?",
+      "answer": "Click the share button to share your learning results to WeChat or Weibo."
+    },
+    "contactSupport": {
+      "question": "How to contact support?",
+      "answer": "Click the 'Contact Support' button at the bottom of the page, or email support@pagelm.com"
+    }
+  }
+}

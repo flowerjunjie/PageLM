@@ -1,0 +1,40 @@
+{
+  "composer": {
+    "placeholder": "Ask a follow-up question or request more examples...",
+    "attachFile": "Attach a file",
+    "send": "Send"
+  },
+  "actionRow": {
+    "summarize": "Summarize",
+    "learnMore": "Learn more",
+    "startQuiz": "Start quiz",
+    "createPodcast": "Create podcast",
+    "generateNotes": "Generate notes",
+    "createFlashcards": "Create flashcards",
+    "addNote": "Add note",
+    "askDoubt": "Ask doubt"
+  },
+  "selectionPopup": {
+    "explain": "Explain",
+    "define": "Define",
+    "quiz": "Quiz this",
+    "saveToNotes": "Save to notes"
+  },
+  "loadingIndicator": {
+    "connecting": "Connecting...",
+    "thinking": "Thinking...",
+    "generating": "Generating...",
+    "analyzing": "Analyzing..."
+  },
+  "bag": {
+    "title": "Saved Items",
+    "empty": "No saved items yet",
+    "remove": "Remove"
+  },
+  "flashcards": {
+    "flip": "Flip",
+    "next": "Next",
+    "previous": "Previous",
+    "shuffle": "Shuffle"
+  }
+}

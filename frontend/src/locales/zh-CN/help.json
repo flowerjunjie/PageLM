@@ -1,0 +1,81 @@
+{
+  "title": "帮助中心",
+  "close": "关闭",
+  "search": "搜索帮助...",
+  "noResults": "未找到相关内容",
+  "tryDifferentKeywords": "请尝试不同的关键词",
+  "contactSupport": "联系客服",
+  "quickStart": {
+    "title": "快速入门",
+    "description": "快速了解如何使用 PageLM 开始学习"
+  },
+  "features": {
+    "title": "功能介绍",
+    "description": "了解 PageLM 的各种功能"
+  },
+  "faq": {
+    "title": "常见问题",
+    "description": "查找常见问题的解答"
+  },
+  "sections": {
+    "gettingStarted": {
+      "title": "开始使用",
+      "steps": {
+        "1": {
+          "title": "输入学习主题",
+          "description": "在首页输入框中输入你想学习的任何主题，例如'二次函数'、'光合作用'等"
+        },
+        "2": {
+          "title": "开始学习",
+          "description": "点击'开始学习'按钮，AI 将为你生成个性化的学习内容"
+        },
+        "3": {
+          "title": "互动学习",
+          "description": "通过聊天、测验、抽认卡等多种方式深入学习"
+        }
+      }
+    },
+    "chat": {
+      "title": "AI 聊天",
+      "description": "与 AI 助手对话，获得个性化的学习指导"
+    },
+    "quiz": {
+      "title": "智能测验",
+      "description": "生成测验题，检验学习成果"
+    },
+    "flashcards": {
+      "title": "抽认卡",
+      "description": "创建和复习抽认卡，强化记忆"
+    },
+    "tools": {
+      "title": "学习工具",
+      "description": "使用智能笔记、AI 播客等工具提升学习效率"
+    },
+    "planner": {
+      "title": "作业规划",
+      "description": "规划学习任务，跟踪学习进度"
+    }
+  },
+  "faq": {
+    "howToStart": {
+      "question": "如何开始学习？",
+      "answer": "在首页输入框中输入你想学习的主题，点击'开始学习'按钮即可。"
+    },
+    "changeLanguage": {
+      "question": "如何切换语言？",
+      "answer": "点击侧边栏底部的语言切换按钮，选择中文或英文。"
+    },
+    "exportNotes": {
+      "question": "如何导出笔记？",
+      "answer": "在学习工具页面生成笔记后，点击'下载笔记'按钮即可导出。"
+    },
+    "shareProgress": {
+      "question": "如何分享学习进度？",
+      "answer": "点击分享按钮，可以将你的学习成果分享到微信或微博。"
+    },
+    "contactSupport": {
+      "question": "如何联系客服？",
+      "answer": "点击页面底部的'联系客服'按钮，或发送邮件到 support@pagelm.com"
+    }
+  }
+}

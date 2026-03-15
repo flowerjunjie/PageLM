@@ -1,0 +1,53 @@
+{
+  "quiz": {
+    "title": "测验",
+    "enterTopic": "输入主题以生成测验",
+    "generateQuiz": "生成测验",
+    "startQuiz": "开始测验",
+    "submit": "提交",
+    "nextQuestion": "下一题",
+    "previousQuestion": "上一题",
+    "question": "问题",
+    "of": "共",
+    "generating": "生成测验中...",
+    "errorGenerating": "生成测验时出错。请重试。"
+  },
+  "header": {
+    "testYourKnowledge": "用{{count}}道题测试您的知识",
+    "question": "第{{current}}题，共{{total}}题",
+    "score": "得分：{{score}}"
+  },
+  "questionCard": {
+    "selectAnswer": "选择答案",
+    "showHint": "显示提示",
+    "hideHint": "隐藏提示",
+    "hint": "提示",
+    "skip": "跳过",
+    "submitAnswer": "提交答案"
+  },
+  "resultsPanel": {
+    "yourScore": "您的得分",
+    "correct": "正确",
+    "incorrect": "错误",
+    "skipped": "跳过",
+    "percentage": "百分比",
+    "timeTaken": "用时",
+    "reviewAnswers": "查看答案",
+    "tryAgain": "再试一次",
+    "backToHome": "返回首页",
+    "greatJob": "做得好！",
+    "keepLearning": "继续学习！",
+    "needsImprovement": "继续努力！"
+  },
+  "reviewModal": {
+    "title": "查看答案",
+    "yourAnswer": "您的答案",
+    "correctAnswer": "正确答案",
+    "explanation": "解释",
+    "close": "关闭"
+  },
+  "topicBar": {
+    "currentTopic": "当前主题",
+    "changeTopic": "更改主题"
+  }
+}

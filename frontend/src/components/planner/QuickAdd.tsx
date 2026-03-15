@@ -1,4 +1,5 @@
 import { useState, useRef } from "react"
+import { useTranslation } from "react-i18next"
 
 interface QuickAddProps {
     onAdd: (data: { text?: string; files?: File[] }) => Promise<void>
@@ -6,6 +7,7 @@ interface QuickAddProps {
 }
 
 export default function QuickAdd({ onAdd, loading }: QuickAddProps) {
+    const { t } = useTranslation('planner')
     const [text, setText] = useState("")
     const [selectedFiles, setSelectedFiles] = useState<File[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -34,7 +36,7 @@ export default function QuickAdd({ onAdd, loading }: QuickAddProps) {
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
             <div className="text-zinc-200 font-medium mb-3 flex items-center gap-2">
                 <span>⚡</span>
-                Quick Add
+                {t('quickAdd.title')}
             </div>
 
             <div className="space-y-3">
@@ -42,7 +44,7 @@ export default function QuickAdd({ onAdd, loading }: QuickAddProps) {
                     <input
                         value={text}
                         onChange={e => setText(e.target.value)}
-                        placeholder="e.g. Math homework ch 5 due tomorrow 8pm ~2h"
+                        placeholder={t('quickAdd.placeholder')}
                         className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 placeholder:text-zinc-500 outline-none focus:ring-1 focus:ring-zinc-700"
                         onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
                     />
@@ -57,7 +59,7 @@ export default function QuickAdd({ onAdd, loading }: QuickAddProps) {
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         className="px-3 py-2 rounded-lg bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700"
-                        title="Upload homework files"
+                        title={t('quickAdd.uploadFiles')}
                     >
                         📎
                     </button>
@@ -66,7 +68,7 @@ export default function QuickAdd({ onAdd, loading }: QuickAddProps) {
                         disabled={loading || (!text.trim() && selectedFiles.length === 0)}
                         className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-60 hover:bg-blue-700"
                     >
-                        {loading ? "Adding..." : "Add"}
+                        {loading ? t('quickAdd.adding') : t('quickAdd.add')}
                     </button>
                 </div>
 
@@ -88,24 +90,24 @@ export default function QuickAdd({ onAdd, loading }: QuickAddProps) {
 
                 {/* Quick Templates */}
                 <div className="flex flex-wrap gap-2">
-                    <div className="text-zinc-400 text-xs">Quick templates:</div>
+                    <div className="text-zinc-400 text-xs">{t('quickAdd.quickTemplates')}:</div>
                     <button
-                        onClick={() => setText("Math homework due tomorrow 8pm ~1.5h")}
+                        onClick={() => setText(t('quickAdd.templates.mathHW'))}
                         className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                     >
-                        Math HW
+                        {t('quickAdd.templateNames.mathHW')}
                     </button>
                     <button
-                        onClick={() => setText("Read chapter for English class due Friday ~30m")}
+                        onClick={() => setText(t('quickAdd.templates.reading'))}
                         className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                     >
-                        Reading
+                        {t('quickAdd.templateNames.reading')}
                     </button>
                     <button
-                        onClick={() => setText("Study for quiz next week ~2h")}
+                        onClick={() => setText(t('quickAdd.templates.study'))}
                         className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                     >
-                        Study
+                        {t('quickAdd.templateNames.study')}
                     </button>
                 </div>
             </div>

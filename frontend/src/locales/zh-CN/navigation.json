@@ -1,0 +1,16 @@
+{
+  "home": "首页",
+  "chat": "聊天",
+  "tools": "工具",
+  "exam": "考试",
+  "quiz": "测验",
+  "planner": "作业规划",
+  "debate": "辩论",
+  "cards": "抽认卡",
+  "help": "帮助",
+  "chats": "聊天记录",
+  "newChat": "新建聊天",
+  "untitledChat": "未命名聊天",
+  "recentChats": "最近聊天",
+  "toggleChats": "切换聊天列表"
+}

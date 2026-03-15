@@ -1,0 +1,83 @@
+{
+  "hero": {
+    "title": "今天想学习什么？",
+    "subtitle": "您的AI学习助手",
+    "placeholder": "输入你想学习的任何主题..."
+  },
+  "promptRail": {
+    "send": "发送",
+    "starting": "启动中...",
+    "examples": [
+      "二次函数的性质",
+      "光合作用的过程",
+      "中国古代历史",
+      "古诗词赏析",
+      "中国地理",
+      "中国传统文化"
+    ]
+  },
+  "promptBox": {
+    "promptMode": "提示模式",
+    "responseLength": "回答长度",
+    "addFiles": "添加文件",
+    "send": "发送",
+    "short": "简短",
+    "medium": "中等",
+    "long": "详细",
+    "mode": {
+      "chat": "聊天",
+      "quiz": "测验"
+    },
+    "fileSelected": "已选择文件"
+  },
+  "exploreTopics": {
+    "title": "探索主题",
+    "mathematics": "数学",
+    "algebra": "代数",
+    "geometry": "几何",
+    "science": "科学",
+    "physics": "物理",
+    "chemistry": "化学",
+    "biology": "生物",
+    "history": "历史",
+    "chineseHistory": "中国历史",
+    "worldHistory": "世界历史",
+    "literature": "文学",
+    "classicalPoetry": "古诗词",
+    "geography": "地理",
+    "chineseGeography": "中国地理",
+    "computerScience": "计算机科学",
+    "economics": "经济学",
+    "music": "音乐",
+    "art": "艺术",
+    "technology": "科技",
+    "philosophy": "哲学",
+    "traditionalCulture": "传统文化"
+  },
+  "features": {
+    "smartNotes": {
+      "title": "智能笔记",
+      "description": "从任何主题生成全面的笔记"
+    },
+    "podcast": {
+      "title": "AI播客",
+      "description": "将文本转换为生动的音频讨论"
+    },
+    "flashcards": {
+      "title": "抽认卡",
+      "description": "创建交互式学习卡片"
+    },
+    "quiz": {
+      "title": "测验",
+      "description": "使用AI生成的问题测试您的知识"
+    },
+    "planner": {
+      "title": "作业规划器",
+      "description": "组织您的作业和截止日期"
+    },
+    "debate": {
+      "title": "辩论",
+      "description": "探索任何主题的多个观点"
+    }
+  }
+}

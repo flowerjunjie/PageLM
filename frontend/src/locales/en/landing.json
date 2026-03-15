@@ -1,0 +1,83 @@
+{
+  "hero": {
+    "title": "What'd you like to learn today?",
+    "subtitle": "Your AI companion for education",
+    "placeholder": "Ask me to teach you anything..."
+  },
+  "promptRail": {
+    "send": "Send",
+    "starting": "Starting...",
+    "examples": [
+      "Quadratic functions",
+      "Photosynthesis process",
+      "Ancient Chinese history",
+      "Classical poetry",
+      "Chinese geography",
+      "Traditional Chinese culture"
+    ]
+  },
+  "promptBox": {
+    "promptMode": "Prompt Mode",
+    "responseLength": "Response Length",
+    "addFiles": "Add files",
+    "send": "Send",
+    "short": "Short",
+    "medium": "Medium",
+    "long": "Long",
+    "mode": {
+      "chat": "Chat",
+      "quiz": "Quiz"
+    },
+    "fileSelected": "File selected"
+  },
+  "exploreTopics": {
+    "title": "Explore Topics",
+    "mathematics": "Mathematics",
+    "algebra": "Algebra",
+    "geometry": "Geometry",
+    "science": "Science",
+    "physics": "Physics",
+    "chemistry": "Chemistry",
+    "biology": "Biology",
+    "history": "History",
+    "chineseHistory": "Chinese History",
+    "worldHistory": "World History",
+    "literature": "Literature",
+    "classicalPoetry": "Classical Poetry",
+    "geography": "Geography",
+    "chineseGeography": "Chinese Geography",
+    "computerScience": "Computer Science",
+    "economics": "Economics",
+    "music": "Music",
+    "art": "Art",
+    "technology": "Technology",
+    "philosophy": "Philosophy",
+    "traditionalCulture": "Traditional Culture"
+  },
+  "features": {
+    "smartNotes": {
+      "title": "Smart Notes",
+      "description": "Generate comprehensive notes from any topic"
+    },
+    "podcast": {
+      "title": "AI Podcast",
+      "description": "Convert text to engaging audio discussions"
+    },
+    "flashcards": {
+      "title": "Flashcards",
+      "description": "Create interactive study cards"
+    },
+    "quiz": {
+      "title": "Quiz",
+      "description": "Test your knowledge with AI-generated questions"
+    },
+    "planner": {
+      "title": "Homework Planner",
+      "description": "Organize your assignments and deadlines"
+    },
+    "debate": {
+      "title": "Debate",
+      "description": "Explore multiple perspectives on any topic"
+    }
+  }
+}

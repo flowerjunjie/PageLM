@@ -1,16 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { chatJSON } from "../../lib/api";
 
-const PROMPTS = [
-  "Teach me a lesson on Quadratic Equations. Assume I absolutely know nothing.",
-  "Explain the basics of Photosynthesis.",
-  "How do I write a compelling short story?",
-  "What is Machine Learning and how does it work?",
-  "Teach me the fundamentals of cooking.",
-  "Help me understand the French Revolution.",
-  "Explain programming concepts.",
-  "How do I manage my personal finances?",
+const PROMPTS_EN = [
+  "Explain quadratic functions and their properties",
+  "Describe the process of photosynthesis",
+  "Teach me about ancient Chinese history",
+  "Analyze classical Chinese poetry",
+  "What are the main regions of China?",
+  "Introduction to traditional Chinese culture",
+];
+
+const PROMPTS_ZH = [
+  "解释二次函数的性质",
+  "描述光合作用的过程",
+  "教我中国古代历史",
+  "分析古诗词",
+  "中国的主要地理区域有哪些？",
+  "中国传统文化介绍",
 ];
 
 const ITEM_H = 32;
@@ -29,11 +37,14 @@ function useReducedMotion() {
 }
 
 export default function PromptRail({ onSend }: { onSend?: (prompt: string) => void }) {
+  const { t, i18n } = useTranslation('landing');
   const reduced = useReducedMotion();
   const [index, setIndex] = useState(2);
   const [busy, setBusy] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  const PROMPTS = i18n.language === 'zh-CN' ? PROMPTS_ZH : PROMPTS_EN;
 
   useEffect(() => {
     if (reduced) return;
@@ -115,7 +126,7 @@ export default function PromptRail({ onSend }: { onSend?: (prompt: string) => vo
         disabled={busy}
         className="h-full w-fit px-3 flex items-center justify-center bg-stone-900/50 border border-stone-900 border-l-0 rounded-r-2xl relative z-10 pointer-events-auto"
         aria-label="Send suggested prompt"
-        title={busy ? "Starting..." : "Send"}
+        title={busy ? t('promptRail.starting') : t('promptRail.send')}
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />

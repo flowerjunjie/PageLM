@@ -164,7 +164,7 @@ export default function ExamLabs() {
         </div>
       </div>
 
-      {loadingExams && <LoadingIndicator label="Loading exams…" />}
+      {loadingExams && <LoadingIndicator status="connecting" />}
 
       <div className="grid gap-6">
         {exams.map((ex) => (
@@ -204,7 +204,7 @@ export default function ExamLabs() {
       <div className="w-full max-w-4xl mx-auto p-4 pt-8 pb-24 my-auto">
         {connecting && (
           <div className="mt-10">
-            <LoadingIndicator label="Building your exam…" />
+            <LoadingIndicator status="generating" />
           </div>
         )}
 

@@ -1,0 +1,129 @@
+{
+  "tools": {
+    "title": "工具",
+    "smartNotes": "智能笔记",
+    "podcastGenerator": "AI播客",
+    "transcriber": "转录工具",
+    "beta": "测试版",
+    "back": "返回"
+  },
+  "smartNotes": {
+    "tag": "笔记生成器",
+    "title": "智能笔记",
+    "description": "从任何主题或文本生成全面的笔记",
+    "topicPlaceholder": "输入主题或粘贴文本...",
+    "generate": "生成笔记",
+    "download": "下载笔记",
+    "generating": "生成笔记中...",
+    "copyNotes": "复制到剪贴板",
+    "copied": "已复制！",
+    "status": {
+      "starting": "启动中...",
+      "status": "状态",
+      "ready": "就绪",
+      "done": "完成",
+      "error": "错误",
+      "failed": "失败"
+    }
+  },
+  "podcastGenerator": {
+    "tag": "播客生成器",
+    "title": "AI播客",
+    "description": "将您的文本转换为生动的音频讨论",
+    "topicPlaceholder": "输入主题或粘贴文本...",
+    "generate": "生成播客",
+    "play": "播放",
+    "pause": "暂停",
+    "stop": "停止",
+    "download": "下载音频",
+    "generating": "生成播客中...",
+    "duration": "时长",
+    "speakers": "演讲者",
+    "status": {
+      "connecting": "正在连接播客生成...",
+      "connected": "已连接，正在生成...",
+      "status": "状态",
+      "scriptGenerated": "脚本已生成，正在创建音频...",
+      "audioReady": "就绪 - 音频文件已准备好！",
+      "done": "完成",
+      "error": "错误",
+      "timeout": "错误：超时 - 生成时间过长",
+      "starting": "启动中...",
+      "failed": "失败"
+    },
+    "debug": {
+      "audioFile": "音频文件",
+      "set": "已设置",
+      "notSet": "未设置",
+      "busy": "忙碌",
+      "yes": "是",
+      "no": "否"
+    },
+    "noAudioSupport": "您的浏览器不支持音频元素。",
+    "clickToGenerate": "点击生成按钮创建播客"
+  },
+  "transcriber": {
+    "tag": "语音转录",
+    "title": "转录工具",
+    "description": "使用AI将音频文件转换为文本",
+    "uploadAudio": "上传音频文件",
+    "recordVoice": "录音",
+    "recording": "录音中...",
+    "stopRecording": "停止录音",
+    "transcribe": "转录",
+    "transcribing": "转录中...",
+    "copyText": "复制文本",
+    "downloadText": "下载文本",
+    "supportedFormats": "支持的格式：MP3、WAV、M4A、OGG",
+    "status": {
+      "transcribing": "正在转录音频...",
+      "studyReady": "学习材料已准备好！",
+      "error": "错误",
+      "transcriptionFailed": "转录失败",
+      "failed": "转录音频失败",
+      "listening": "正在聆听...",
+      "microphoneError": "错误：无法访问麦克风",
+      "processing": "处理中...",
+      "recordingCancelled": "录音已取消",
+      "copied": "已复制到剪贴板！"
+    },
+    "ui": {
+      "processing": "处理中",
+      "convertingSpeech": "正在将语音转换为文本"
+    },
+    "confidence": "置信度",
+    "studyMaterials": {
+      "title": "学习材料已生成",
+      "keyPoints": "关键要点",
+      "topicsCategories": "主题和分类",
+      "topics": "主题",
+      "categories": "分类",
+      "studyGuide": "学习指南",
+      "mainConcepts": "主要概念",
+      "studyQuestions": "学习问题"
+    },
+    "originalTranscription": "原始转录"
+  },
+  "comingSoon": {
+    "title": "即将推出",
+    "description": "此工具正在开发中，敬请期待！",
+    "moreToolsComingSoon": "更多工具即将推出",
+    "inDevelopment": "开发中",
+    "newToolsWeekly": "每周推出新工具",
+    "studyPlanner": {
+      "tag": "学习规划",
+      "title": "AI学习规划器",
+      "description": "创建个性化学习计划，具有AI优化的间隔重复和截止日期管理。"
+    },
+    "mindMap": {
+      "tag": "视觉学习",
+      "title": "思维导图生成器",
+      "description": "将复杂主题转换为交互式视觉思维导图，具有AI生成的连接和见解。"
+    },
+    "slideBuilder": {
+      "tag": "演示制作",
+      "title": "幻灯片构建专家",
+      "description": "生成专业演示文稿，具有AI设计的幻灯片、动画和演讲者备注。"
+    }
+  }
+}

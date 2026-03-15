@@ -1,0 +1,36 @@
+{
+  "title": "快捷键",
+  "close": "按 ESC 或点击外部关闭",
+  "shortcuts": {
+    "openHelp": {
+      "key": "?",
+      "description": "打开快捷键帮助"
+    },
+    "focusInput": {
+      "key": "⌘/Ctrl + K",
+      "description": "聚焦输入框"
+    },
+    "sendMessage": {
+      "key": "Enter",
+      "description": "发送消息"
+    },
+    "newLine": {
+      "key": "Shift + Enter",
+      "description": "换行"
+    },
+    "closeModal": {
+      "key": "ESC",
+      "description": "关闭对话框"
+    },
+    "navigateUp": {
+      "key": "↑ / K",
+      "description": "上一条消息"
+    },
+    "navigateDown": {
+      "key": "↓ / J",
+      "description": "下一条消息"
+    }
+  },
+  "pressKey": "按",
+  "toOpen": "键打开快捷键帮助"
+}

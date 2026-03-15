@@ -1,4 +1,5 @@
 import type { FlashCard } from "../../lib/api";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   items?: FlashCard[];
@@ -6,6 +7,8 @@ type Props = {
 };
 
 export default function FlashCards({ items = [], onAdd }: Props) {
+  const { t } = useTranslation("chat");
+
   return (
     <div className="hidden lg:block">
       <div className="sticky top-6 h-[calc(100vh-8rem)] flex flex-col">
@@ -19,7 +22,7 @@ export default function FlashCards({ items = [], onAdd }: Props) {
         <div className="flex-1 overflow-y-auto pr-1 custom-scroll space-y-4 mb-8">
           {items.length === 0 ? (
             <div className="text-stone-400 text-sm bg-stone-950/60 border border-zinc-900 rounded-2xl p-6 text-center">
-              No flashcards yet
+              {t("bag.empty")}
             </div>
           ) : (
             items.map((c, i) => {

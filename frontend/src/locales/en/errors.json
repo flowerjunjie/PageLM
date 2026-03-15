@@ -1,0 +1,67 @@
+{
+  "network": {
+    "title": "Network Error",
+    "message": "Please check your network connection",
+    "retry": "Retry",
+    "contactSupport": "Contact Support"
+  },
+  "server": {
+    "title": "Server Error",
+    "message": "Server is busy, please try again later",
+    "retry": "Retry",
+    "contactSupport": "Contact Support"
+  },
+  "validation": {
+    "title": "Validation Error",
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email address",
+    "invalidUrl": "Please enter a valid URL",
+    "tooShort": "Minimum {{min}} characters required",
+    "tooLong": "Maximum {{max}} characters allowed",
+    "invalidFormat": "Invalid format"
+  },
+  "upload": {
+    "title": "Upload Failed",
+    "fileTooLarge": "File too large, maximum {{size}}MB allowed",
+    "invalidType": "Unsupported file type",
+    "uploadFailed": "Upload failed, please try again"
+  },
+  "auth": {
+    "title": "Authentication Error",
+    "unauthorized": "Unauthorized access",
+    "sessionExpired": "Session expired, please login again",
+    "loginFailed": "Login failed, please check your credentials"
+  },
+  "notFound": {
+    "title": "Not Found",
+    "resource": "Requested resource not found",
+    "page": "Page not found"
+  },
+  "rateLimit": {
+    "title": "Too Many Requests",
+    "message": "Please try again later",
+    "retryAfter": "Retry after {{seconds}} seconds"
+  },
+  "unknown": {
+    "title": "Unknown Error",
+    "message": "An error occurred, please try again",
+    "contactSupport": "If the problem persists, please contact support"
+  },
+  "chat": {
+    "generationFailed": "Generation failed, please try again",
+    "connectionLost": "Connection lost",
+    "reconnecting": "Reconnecting...",
+    "emptyInput": "Please enter a question"
+  },
+  "quiz": {
+    "generationFailed": "Quiz generation failed, please try again",
+    "noQuestions": "Failed to generate questions, please try a different topic",
+    "submitFailed": "Submission failed, please try again"
+  },
+  "tools": {
+    "notesGenerationFailed": "Notes generation failed",
+    "podcastGenerationFailed": "Podcast generation failed",
+    "transcriptionFailed": "Transcription failed",
+    "processingTimeout": "Processing timeout, please try again"
+  }
+}

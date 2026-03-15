@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { transcribeAudio, type StudyMaterials } from "../../lib/api";
 
 export default function Transcriber() {
+  const { t } = useTranslation('tools');
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
   const [showSiriUI, setShowSiriUI] = useState(false);
@@ -11,7 +13,7 @@ export default function Transcriber() {
   const [confidence, setConfidence] = useState<number | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [processing, setProcessing] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -24,24 +26,24 @@ export default function Transcriber() {
 
     setBusy(true);
     setProcessing(true);
-    setStatus("Transcribing audio...");
+    setStatus(t('transcriber.status.transcribing'));
     setTranscription(null);
     setStudyMaterials(null);
     setConfidence(null);
 
     try {
       const result = await transcribeAudio(file);
-      
+
       if (result.ok && result.transcription) {
         setTranscription(result.transcription);
         setStudyMaterials(result.studyMaterials || null);
         setConfidence(result.confidence || null);
-        setStatus("Study materials ready!");
+        setStatus(t('transcriber.status.studyReady'));
       } else {
-        setStatus(`Error: ${result.error || 'Transcription failed'}`);
+        setStatus(`${t('transcriber.status.error')}: ${result.error || t('transcriber.status.transcriptionFailed')}`);
       }
     } catch (error: any) {
-      setStatus(`Error: ${error.message || 'Failed to transcribe audio'}`);
+      setStatus(`${t('transcriber.status.error')}: ${error.message || t('transcriber.status.failed')}`);
     } finally {
       setBusy(false);
       setProcessing(false);
@@ -115,9 +117,9 @@ export default function Transcriber() {
 
       mediaRecorder.start();
       setRecording(true);
-      setStatus("Listening...");
+      setStatus(t('transcriber.status.listening'));
     } catch (error) {
-      setStatus("Error: Could not access microphone");
+      setStatus(t('transcriber.status.microphoneError'));
       setShowSiriUI(false);
     }
   };
@@ -128,7 +130,7 @@ export default function Transcriber() {
       setRecording(false);
       setAudioLevel(0);
       setProcessing(true);
-      setStatus("Processing...");
+      setStatus(t('transcriber.status.processing'));
     }
   };
 
@@ -137,26 +139,26 @@ export default function Transcriber() {
       mediaRecorderRef.current.stop();
       setRecording(false);
       setAudioLevel(0);
-      
+
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
-      
+
       if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
         mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       }
     }
     setShowSiriUI(false);
-    setStatus("Recording cancelled");
+    setStatus(t('transcriber.status.recordingCancelled'));
   };
 
   const copyToClipboard = () => {
     if (transcription) {
       navigator.clipboard.writeText(transcription);
-      setStatus("Copied to clipboard!");
+      setStatus(t('transcriber.status.copied'));
     }
   };
 
@@ -233,8 +235,8 @@ export default function Transcriber() {
 
           {processing && (
             <div className="absolute bottom-4 sm:bottom-6 text-center">
-              <div className="text-white/90 text-base sm:text-lg font-light tracking-wide">Processing</div>
-              <div className="text-white/60 text-xs sm:text-sm mt-1">Converting speech to text</div>
+              <div className="text-white/90 text-base sm:text-lg font-light tracking-wide">{t('transcriber.ui.processing')}</div>
+              <div className="text-white/60 text-xs sm:text-sm mt-1">{t('transcriber.ui.convertingSpeech')}</div>
             </div>
           )}
         </div>
@@ -247,12 +249,12 @@ export default function Transcriber() {
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <div className="text-xs uppercase tracking-wide text-orange-400 font-semibold">voice transcriber</div>
+            <div className="text-xs uppercase tracking-wide text-orange-400 font-semibold">{t('transcriber.tag')}</div>
             <div className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-400 to-red-400 animate-pulse"></div>
           </div>
-          <div className="text-white font-semibold text-xl mb-2">Audio to Text</div>
+          <div className="text-white font-semibold text-xl mb-2">{t('transcriber.title')}</div>
           <div className="text-stone-300 text-sm leading-relaxed">
-            Convert lecture recordings and voice notes into organized, searchable study materials instantly.
+            {t('transcriber.description')}
           </div>
         </div>
       </div>
@@ -267,18 +269,18 @@ export default function Transcriber() {
             {busy ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                Processing...
+                {t('transcriber.transcribing')}
               </>
             ) : (
               <>
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M7 4a3 3 0 616 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 715 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
                 </svg>
-                Record Voice
+                {t('transcriber.recordVoice')}
               </>
             )}
           </button>
-          
+
           <input
             ref={fileInputRef}
             type="file"
@@ -287,7 +289,7 @@ export default function Transcriber() {
             disabled={busy}
             className="hidden"
           />
-          
+
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={busy}
@@ -296,7 +298,7 @@ export default function Transcriber() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            Upload
+            {t('transcriber.uploadAudio')}
           </button>
         </div>
 
@@ -309,7 +311,7 @@ export default function Transcriber() {
             {status}
             {confidence && (
               <span className="block text-sm mt-1 opacity-75">
-                Confidence: {Math.round(confidence * 100)}%
+                {t('transcriber.confidence')}: {Math.round(confidence * 100)}%
               </span>
             )}
           </div>
@@ -324,7 +326,7 @@ export default function Transcriber() {
                     <svg className="w-5 h-5 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
-                    <h3 className="text-orange-400 font-semibold">Study Materials Generated</h3>
+                    <h3 className="text-orange-400 font-semibold">{t('transcriber.studyMaterials.title')}</h3>
                   </div>
                   <p className="text-orange-200 text-sm">{studyMaterials.summary}</p>
                 </div>
@@ -335,7 +337,7 @@ export default function Transcriber() {
                       <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
                       </svg>
-                      Key Points
+                      {t('transcriber.studyMaterials.keyPoints')}
                     </h4>
                     <ul className="space-y-2">
                       {studyMaterials.keyPoints.map((point, i) => (
@@ -352,11 +354,11 @@ export default function Transcriber() {
                       <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
                       </svg>
-                      Topics & Categories
+                      {t('transcriber.studyMaterials.topicsCategories')}
                     </h4>
                     <div className="space-y-3">
                       <div>
-                        <span className="text-xs text-stone-400 uppercase tracking-wider">Topics</span>
+                        <span className="text-xs text-stone-400 uppercase tracking-wider">{t('transcriber.studyMaterials.topics')}</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {studyMaterials.topics.map((topic, i) => (
                             <span key={i} className="px-2 py-1 bg-green-900/30 text-green-300 text-xs rounded-md">
@@ -366,7 +368,7 @@ export default function Transcriber() {
                         </div>
                       </div>
                       <div>
-                        <span className="text-xs text-stone-400 uppercase tracking-wider">Categories</span>
+                        <span className="text-xs text-stone-400 uppercase tracking-wider">{t('transcriber.studyMaterials.categories')}</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {studyMaterials.categories.map((cat, i) => (
                             <span key={i} className="px-2 py-1 bg-purple-900/30 text-purple-300 text-xs rounded-md">
@@ -385,11 +387,11 @@ export default function Transcriber() {
                       <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                       </svg>
-                      Study Guide
+                      {t('transcriber.studyMaterials.studyGuide')}
                     </h4>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
-                        <h5 className="text-stone-300 font-medium mb-2">Main Concepts</h5>
+                        <h5 className="text-stone-300 font-medium mb-2">{t('transcriber.studyMaterials.mainConcepts')}</h5>
                         <ul className="space-y-1">
                           {studyMaterials.studyGuide.mainConcepts.map((concept, i) => (
                             <li key={i} className="text-stone-400 text-sm">• {concept}</li>
@@ -398,7 +400,7 @@ export default function Transcriber() {
                       </div>
                       {studyMaterials.studyGuide.questions.length > 0 && (
                         <div>
-                          <h5 className="text-stone-300 font-medium mb-2">Study Questions</h5>
+                          <h5 className="text-stone-300 font-medium mb-2">{t('transcriber.studyMaterials.studyQuestions')}</h5>
                           <ul className="space-y-1">
                             {studyMaterials.studyGuide.questions.map((question, i) => (
                               <li key={i} className="text-stone-400 text-sm">• {question}</li>
@@ -414,7 +416,7 @@ export default function Transcriber() {
 
             <div className="p-4 rounded-xl bg-stone-900/50 border border-zinc-700">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-sm font-medium text-stone-300">Original Transcription</label>
+                <label className="text-sm font-medium text-stone-300">{t('transcriber.originalTranscription')}</label>
                 <button
                   onClick={copyToClipboard}
                   className="text-xs px-3 py-1.5 rounded-lg bg-orange-600 text-white hover:bg-orange-700 transition-colors flex items-center gap-1"
@@ -422,7 +424,7 @@ export default function Transcriber() {
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
-                  Copy
+                  {t('transcriber.copyText')}
                 </button>
               </div>
               <div className="text-white text-sm leading-relaxed max-h-48 overflow-y-auto bg-stone-800/30 p-3 rounded-lg">

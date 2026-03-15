@@ -1,0 +1,74 @@
+{
+  "planner": {
+    "title": "Homework Planner",
+    "todayFocus": "Today's Focus",
+    "upcoming": "Upcoming",
+    "completed": "Completed",
+    "quickAdd": "Quick Add",
+    "addTask": "Add Task",
+    "noTasks": "No tasks for today",
+    "allCaughtUp": "You're all caught up!"
+  },
+  "todayFocus": {
+    "title": "Today's Focus",
+    "tasksRemaining": "{{count}} task remaining",
+    "tasksRemaining_plural": "{{count}} tasks remaining",
+    "noTasks": "No tasks scheduled for today",
+    "addFirstTask": "Add your first task",
+    "currentlyWorkingOn": "Currently Working On",
+    "complete": "Complete",
+    "dueToday": "Due Today",
+    "moreTasksDueToday": "more tasks due today",
+    "urgent": "Urgent",
+    "dueIn": "Due in {{hours}}h",
+    "nothingUrgentToday": "Nothing urgent today!",
+    "greatJobStayingOnTop": "Great job staying on top of your work."
+  },
+  "quickAdd": {
+    "title": "Quick Add",
+    "taskName": "Task name",
+    "subject": "Subject",
+    "dueDate": "Due date",
+    "priority": "Priority",
+    "add": "Add",
+    "adding": "Adding...",
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "nextWeek": "Next Week",
+    "placeholder": "e.g. Math homework ch 5 due tomorrow 8pm ~2h",
+    "uploadFiles": "Upload homework files",
+    "quickTemplates": "Quick templates",
+    "templates": {
+      "mathHW": "Math homework due tomorrow 8pm ~1.5h",
+      "reading": "Read chapter for English class due Friday ~30m",
+      "study": "Study for quiz next week ~2h"
+    },
+    "templateNames": {
+      "mathHW": "Math HW",
+      "reading": "Reading",
+      "study": "Study"
+    }
+  },
+  "task": {
+    "markComplete": "Mark as complete",
+    "markIncomplete": "Mark as incomplete",
+    "delete": "Delete task",
+    "deleteFile": "Delete file",
+    "edit": "Edit task",
+    "due": "Due",
+    "overdue": "Overdue",
+    "completed": "Completed",
+    "attachedFiles": "Attached Files",
+    "weeklyPlan": "Weekly Plan",
+    "noPlanYet": "No plan yet"
+  },
+  "mindmap": {
+    "title": "Mind Map",
+    "viewMindMap": "View Mind Map",
+    "expandAll": "Expand All",
+    "collapseAll": "Collapse All"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "quiz": {
+    "title": "Quiz",
+    "enterTopic": "Enter a topic to generate a quiz",
+    "generateQuiz": "Generate Quiz",
+    "startQuiz": "Start Quiz",
+    "submit": "Submit",
+    "nextQuestion": "Next Question",
+    "previousQuestion": "Previous Question",
+    "question": "Question",
+    "of": "of",
+    "generating": "Generating quiz...",
+    "errorGenerating": "Error generating quiz. Please try again."
+  },
+  "header": {
+    "testYourKnowledge": "Test your knowledge with {{count}} questions",
+    "question": "Question {{current}} of {{total}}",
+    "score": "Score: {{score}}"
+  },
+  "questionCard": {
+    "selectAnswer": "Select an answer",
+    "showHint": "Show Hint",
+    "hideHint": "Hide Hint",
+    "hint": "Hint",
+    "skip": "Skip",
+    "submitAnswer": "Submit Answer"
+  },
+  "resultsPanel": {
+    "yourScore": "Your Score",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "skipped": "Skipped",
+    "percentage": "Percentage",
+    "timeTaken": "Time Taken",
+    "reviewAnswers": "Review Answers",
+    "tryAgain": "Try Again",
+    "backToHome": "Back to Home",
+    "greatJob": "Great Job!",
+    "keepLearning": "Keep Learning!",
+    "needsImprovement": "Keep Practicing!"
+  },
+  "reviewModal": {
+    "title": "Review Answers",
+    "yourAnswer": "Your Answer",
+    "correctAnswer": "Correct Answer",
+    "explanation": "Explanation",
+    "close": "Close"
+  },
+  "topicBar": {
+    "currentTopic": "Current Topic",
+    "changeTopic": "Change Topic"
+  }
+}

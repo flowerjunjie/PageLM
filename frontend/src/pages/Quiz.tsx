@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { quizStart, connectQuizStream, type QuizEvent } from "../lib/api";
 import LoadingIndicator from "../components/Chat/LoadingIndicator";
@@ -18,6 +19,7 @@ function takeQuizArray(a: unknown): Question[] {
 }
 
 export default function Quiz() {
+  const { t } = useTranslation();
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation() as any;
@@ -44,7 +46,12 @@ export default function Quiz() {
   const q = qs[idx];
 
   const percentage = useMemo(() => (total ? Math.round((score / total) * 100) : 0), [score, total]);
-  const resultVisual = useMemo(() => { if (percentage >= 90) return { msg: "Excellent! You have mastered this topic!", cls: "bg-green-900/20 border border-green-700 text-green-200", icon: "🏆" }; if (percentage >= 70) return { msg: "Great job! You have a solid understanding.", cls: "bg-blue-900/20 border border-blue-700 text-blue-200", icon: "🎉" }; if (percentage >= 50) return { msg: "Good effort! Review the concepts and try again.", cls: "bg-yellow-900/20 border border-yellow-700 text-yellow-200", icon: "📚" }; return { msg: "Keep studying! Practice makes perfect.", cls: "bg-red-900/20 border border-red-700 text-red-200", icon: "💪" }; }, [percentage]);
+  const resultVisual = useMemo(() => {
+    if (percentage >= 90) return { msg: t("resultsPanel.greatJob"), cls: "bg-green-900/20 border border-green-700 text-green-200", icon: "🏆" };
+    if (percentage >= 70) return { msg: t("resultsPanel.keepLearning"), cls: "bg-blue-900/20 border border-blue-700 text-blue-200", icon: "🎉" };
+    if (percentage >= 50) return { msg: t("resultsPanel.keepLearning"), cls: "bg-yellow-900/20 border border-yellow-700 text-yellow-200", icon: "📚" };
+    return { msg: t("resultsPanel.needsImprovement"), cls: "bg-red-900/20 border border-red-700 text-red-200", icon: "💪" };
+  }, [percentage, t]);
 
   useEffect(() => () => { if (closeRef.current) closeRef.current(); }, []);
   useEffect(() => { if (!initialTopic) return; start(initialTopic); }, [initialTopic]);
@@ -140,7 +147,7 @@ export default function Quiz() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
               </svg>
             </Link>
-            <h1 className="text-2xl font-semibold text-white flex items-center gap-3">Quiz</h1>
+            <h1 className="text-2xl font-semibold text-white flex items-center gap-3">{t("quiz.title")}</h1>
           </div>
           <div className="px-3 py-1 rounded-full bg-gradient-to-r from-sky-500/20 to-blue-500/20 border border-sky-500/30 text-sky-300 text-xs font-medium">
             BETA
@@ -156,12 +163,12 @@ export default function Quiz() {
         )}
 
         {connecting && (
-          <div className="mt-10"><LoadingIndicator label="Building a quiz for you…" /></div>
+          <div className="mt-10"><LoadingIndicator status="generating" /></div>
         )}
 
         {qs.length > 0 && !done && q && (
           <>
-            <QuizHeader topic={topic || "Quiz"} idx={idx} total={total} score={score} />
+            <QuizHeader topic={topic || t("quiz.title")} idx={idx} total={total} score={score} />
             <QuestionCard
               q={q}
               selected={selected}

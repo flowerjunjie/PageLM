@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import PlannerMindmap from "./PlannerMindmap"
 import TodayFocus from "./TodayFocus"
 import QuickAdd from "./QuickAdd"
@@ -30,6 +31,7 @@ function DaySlots({ date, slots, tasks }: { date: string; slots: PlannerSlot[]; 
 }
 
 export default function Planner() {
+    const { t: translate } = useTranslation('planner')
     const [text, setText] = useState("")
     const [loading, setLoading] = useState(false)
     const [tasks, setTasks] = useState<PlannerTask[]>([])
@@ -268,14 +270,14 @@ export default function Planner() {
     return (
         <div className="rounded-2xl border border-zinc-800 bg-stone-950">
             <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-                <div className="text-stone-200 font-medium">Homework Planner</div>
+                <div className="text-stone-200 font-medium">{translate('planner.title')}</div>
                 <div className="flex items-center gap-2">
                     <div className="text-xs bg-zinc-900 border border-zinc-800 rounded overflow-hidden">
-                        <button onClick={() => setView("today")} className={`px-2 py-1 ${view === 'today' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}`}>Today</button>
-                        <button onClick={() => setView("list")} className={`px-2 py-1 ${view === 'list' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}`}>List</button>
-                        <button onClick={() => setView("mindmap")} className={`px-2 py-1 ${view === 'mindmap' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}`}>Mindmap</button>
+                        <button onClick={() => setView("today")} className={`px-2 py-1 ${view === 'today' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}`}>{translate('planner.todayFocus')}</button>
+                        <button onClick={() => setView("list")} className={`px-2 py-1 ${view === 'list' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}`}>{translate('planner.upcoming')}</button>
+                        <button onClick={() => setView("mindmap")} className={`px-2 py-1 ${view === 'mindmap' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}`}>{translate('mindmap.title')}</button>
                     </div>
-                    <button onClick={reload} className="text-xs px-2 py-1 rounded bg-stone-800 text-stone-200">Refresh</button>
+                    <button onClick={reload} className="text-xs px-2 py-1 rounded bg-stone-800 text-stone-200">{translate('common.refresh', { ns: 'common' })}</button>
                 </div>
             </div>
 
@@ -331,7 +333,7 @@ export default function Planner() {
                                     <div className="min-w-0">
                                         <div className="text-zinc-100 font-medium truncate">{t.title}</div>
                                         <div className="text-zinc-400 text-xs">
-                                            Due {fmtTime(t.dueAt)} · {t.estMins} mins · P{t.priority}
+                                            {translate('task.due')} {fmtTime(t.dueAt)} · {t.estMins} mins · P{t.priority}
                                             {t.files && t.files.length > 0 && ` · ${t.files.length} file(s)`}
                                         </div>
                                     </div>
@@ -345,14 +347,14 @@ export default function Planner() {
                                         <button onClick={() => planTask(t.id)} className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-200">Plan</button>
                                         <button onClick={() => gen(t.id, "summary")} className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-200">Summary</button>
                                         <button onClick={() => gen(t.id, "flashcards")} className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-200">Flashcards</button>
-                                        <button onClick={() => del(t.id)} className="text-xs px-2 py-1 rounded bg-red-600 text-white">Delete</button>
+                                        <button onClick={() => del(t.id)} className="text-xs px-2 py-1 rounded bg-red-600 text-white">{translate('task.delete')}</button>
                                     </div>
                                 </div>
 
                                 {/* Task Files */}
                                 {t.files && t.files.length > 0 && (
                                     <div className="mt-3 border-t border-zinc-800 pt-3">
-                                        <div className="text-zinc-300 text-xs mb-2">Attached Files:</div>
+                                        <div className="text-zinc-300 text-xs mb-2">{translate('task.attachedFiles')}:</div>
                                         <div className="flex flex-wrap gap-2">
                                             {t.files.map(file => (
                                                 <div key={file.id} className="flex items-center gap-1 px-2 py-1 bg-zinc-800 rounded text-xs text-zinc-200">
@@ -361,7 +363,7 @@ export default function Planner() {
                                                     <button
                                                         onClick={() => deleteFile(t.id, file.id)}
                                                         className="text-zinc-400 hover:text-red-400 ml-1"
-                                                        title="Delete file"
+                                                        title={translate('task.deleteFile')}
                                                     >×</button>
                                                 </div>
                                             ))}
@@ -388,7 +390,7 @@ export default function Planner() {
                 )}
                 {view === 'list' && (
                     <div>
-                        <div className="text-stone-300 text-sm mb-2">Weekly Plan</div>
+                        <div className="text-stone-300 text-sm mb-2">{translate('task.weeklyPlan')}</div>
                         {plan ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {plan.days.map(d => (
@@ -396,7 +398,7 @@ export default function Planner() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-stone-500 text-sm">No plan yet</div>
+                            <div className="text-stone-500 text-sm">{translate('task.noPlanYet')}</div>
                         )}
                     </div>
                 )}

@@ -1,19 +1,29 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { chatJSON } from "../../lib/api";
+import { useTranslation } from "react-i18next";
 
-export default function ExploreTopics() {
+export default function ExploreTopics({ busy: externalBusy = false }: { busy?: boolean }) {
+  const { t } = useTranslation('landing');
   const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [internalBusy, setInternalBusy] = useState(false);
   const navigate = useNavigate();
+
+  const busy = externalBusy || internalBusy;
 
   const moreRows = useMemo(
     () => [
-      ["History", "Geography", "Music"],
-      ["Art", "Technology", "Philosophy"],
+      [{ key: "history", name: "History" }, { key: "geography", name: "Geography" }, { key: "music", name: "Music" }],
+      [{ key: "art", name: "Art" }, { key: "technology", name: "Technology" }, { key: "philosophy", name: "Philosophy" }],
     ],
     []
   );
+
+  const mainTopics = [
+    { key: "mathematics", name: "Mathematics" },
+    { key: "literature", name: "English" },
+    { key: "science", name: "Science" },
+  ];
 
   const imgSrc = (title: string) => `/pictures/${encodeURIComponent(title.toLocaleLowerCase())}.png`;
 
@@ -23,32 +33,35 @@ export default function ExploreTopics() {
   const startTopic = async (title: string) => {
     if (busy) return;
     try {
-      setBusy(true);
+      setInternalBusy(true);
       const q = promptFor(title);
       const r = await chatJSON({ q });
       navigate(`/chat?chatId=${encodeURIComponent(r.chatId)}&q=${encodeURIComponent(q)}`, {
         state: { chatId: r.chatId, q },
       });
     } finally {
-      setBusy(false);
+      setInternalBusy(false);
     }
   };
 
-  const Card = ({ title, extra }: { title: string; extra?: string }) => (
-    <button
-      type="button"
-      onClick={() => startTopic(title)}
-      disabled={busy}
-      className={`w-full h-48 relative rounded-3xl border border-stone-900 bg-stone-950 
-                  hover:scale-105 transition-transform duration-200 ease-out 
-                  focus:outline-none focus:ring-2 focus:ring-stone-700 disabled:opacity-60 ${extra || ""}`}
-      title={busy ? "Starting…" : `Learn ${title}`}
-    >
-      <img src={imgSrc(title)} alt={title} className="w-full h-full rounded-3xl object-cover" draggable={false} />
-      <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-transparent to-black" />
-      <div className="absolute right-0 bottom-0 pr-4 pb-4 text-stone-200 text-xl sm:text-2xl">{title}</div>
-    </button>
-  );
+  const Card = ({ keyProp: titleKey, name: titleName, extra }: { keyProp: string; name: string; extra?: string }) => {
+    const title = t(`exploreTopics.${titleKey}`);
+    return (
+      <button
+        type="button"
+        onClick={() => startTopic(titleName)}
+        disabled={busy}
+        className={`w-full h-48 relative rounded-3xl border border-stone-900 bg-stone-950
+                    hover:scale-105 transition-transform duration-200 ease-out
+                    focus:outline-none focus:ring-2 focus:ring-stone-700 disabled:opacity-60 ${extra || ""}`}
+        title={busy ? "Starting…" : `Learn ${title}`}
+      >
+        <img src={imgSrc(titleName)} alt={title} className="w-full h-full rounded-3xl object-cover" draggable={false} />
+        <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-transparent to-black" />
+        <div className="absolute right-0 bottom-0 pr-4 pb-4 text-stone-200 text-xl sm:text-2xl">{title}</div>
+      </button>
+    );
+  };
 
   return (
     <div className="mt-auto pb-4 pt-4 relative">
@@ -69,14 +82,14 @@ export default function ExploreTopics() {
             clipRule="evenodd"
           />
         </svg>
-        <span className="text-sm">{busy ? "Starting…" : "EXPLORE TOPICS"}</span>
+        <span className="text-sm">{busy ? "Starting…" : t('exploreTopics.title').toUpperCase()}</span>
       </div>
 
       <div className="w-full max-w-4xl mx-auto overflow-hidden">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-          <Card title="Mathematics" />
-          <Card title="English" />
-          <Card title="Science" extra="col-span-1 sm:col-span-2 lg:col-span-1" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+          <Card keyProp={mainTopics[0].key} name={mainTopics[0].name} />
+          <Card keyProp={mainTopics[1].key} name={mainTopics[1].name} />
+          <Card keyProp={mainTopics[2].key} name={mainTopics[2].name} extra="col-span-1 sm:col-span-2 lg:col-span-1" />
         </div>
 
         <div
@@ -87,9 +100,9 @@ export default function ExploreTopics() {
           }}
         >
           {moreRows.map((row, i) => (
-            <div key={i} className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-              {row.map((title, j) => (
-                <Card key={title} title={title} extra={j === 2 ? "col-span-1 sm:col-span-2 lg:col-span-1" : ""} />
+            <div key={i} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+              {row.map((topic) => (
+                <Card key={topic.key} keyProp={topic.key} name={topic.name} extra={topic === row[2] ? "col-span-1 sm:col-span-2 lg:col-span-1" : ""} />
               ))}
             </div>
           ))}

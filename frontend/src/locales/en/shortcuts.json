@@ -1,0 +1,36 @@
+{
+  "title": "Keyboard Shortcuts",
+  "close": "Press ESC or click outside to close",
+  "shortcuts": {
+    "openHelp": {
+      "key": "?",
+      "description": "Open shortcut help"
+    },
+    "focusInput": {
+      "key": "⌘/Ctrl + K",
+      "description": "Focus input field"
+    },
+    "sendMessage": {
+      "key": "Enter",
+      "description": "Send message"
+    },
+    "newLine": {
+      "key": "Shift + Enter",
+      "description": "New line"
+    },
+    "closeModal": {
+      "key": "ESC",
+      "description": "Close dialog"
+    },
+    "navigateUp": {
+      "key": "↑ / K",
+      "description": "Previous message"
+    },
+    "navigateDown": {
+      "key": "↓ / J",
+      "description": "Next message"
+    }
+  },
+  "pressKey": "Press",
+  "toOpen": "to open shortcut help"
+}

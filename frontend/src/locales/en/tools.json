@@ -1,0 +1,129 @@
+{
+  "tools": {
+    "title": "Tools",
+    "smartNotes": "Smart Notes",
+    "podcastGenerator": "AI Podcast",
+    "transcriber": "Transcriber",
+    "beta": "BETA",
+    "back": "Back"
+  },
+  "smartNotes": {
+    "tag": "notes generator",
+    "title": "Smart Notes",
+    "description": "Generate comprehensive notes from any topic or text",
+    "topicPlaceholder": "Enter a topic or paste text...",
+    "generate": "Generate Notes",
+    "download": "Download Notes",
+    "generating": "Generating notes...",
+    "copyNotes": "Copy to Clipboard",
+    "copied": "Copied!",
+    "status": {
+      "starting": "Starting…",
+      "status": "Status",
+      "ready": "Ready",
+      "done": "Done",
+      "error": "Error",
+      "failed": "Failed"
+    }
+  },
+  "podcastGenerator": {
+    "tag": "podcast generator",
+    "title": "AI Podcast",
+    "description": "Convert your text into engaging audio discussions",
+    "topicPlaceholder": "Enter a topic or paste text...",
+    "generate": "Generate Podcast",
+    "play": "Play",
+    "pause": "Pause",
+    "stop": "Stop",
+    "download": "Download Audio",
+    "generating": "Generating podcast...",
+    "duration": "Duration",
+    "speakers": "Speakers",
+    "status": {
+      "connecting": "Connecting to podcast generation...",
+      "connected": "Connected, generating...",
+      "status": "Status",
+      "scriptGenerated": "Script generated, creating audio...",
+      "audioReady": "Ready - Audio file is ready!",
+      "done": "Done",
+      "error": "Error",
+      "timeout": "Error: Timeout - generation took too long",
+      "starting": "Starting…",
+      "failed": "Failed"
+    },
+    "debug": {
+      "audioFile": "Audio file",
+      "set": "Set",
+      "notSet": "Not set",
+      "busy": "Busy",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "noAudioSupport": "Your browser does not support the audio element.",
+    "clickToGenerate": "Click Generate to create a podcast"
+  },
+  "transcriber": {
+    "tag": "voice transcriber",
+    "title": "Transcriber",
+    "description": "Convert audio files to text with AI",
+    "uploadAudio": "Upload Audio File",
+    "recordVoice": "Record Voice",
+    "recording": "Recording...",
+    "stopRecording": "Stop Recording",
+    "transcribe": "Transcribe",
+    "transcribing": "Transcribing...",
+    "copyText": "Copy Text",
+    "downloadText": "Download Text",
+    "supportedFormats": "Supported formats: MP3, WAV, M4A, OGG",
+    "status": {
+      "transcribing": "Transcribing audio...",
+      "studyReady": "Study materials ready!",
+      "error": "Error",
+      "transcriptionFailed": "Transcription failed",
+      "failed": "Failed to transcribe audio",
+      "listening": "Listening...",
+      "microphoneError": "Error: Could not access microphone",
+      "processing": "Processing...",
+      "recordingCancelled": "Recording cancelled",
+      "copied": "Copied to clipboard!"
+    },
+    "ui": {
+      "processing": "Processing",
+      "convertingSpeech": "Converting speech to text"
+    },
+    "confidence": "Confidence",
+    "studyMaterials": {
+      "title": "Study Materials Generated",
+      "keyPoints": "Key Points",
+      "topicsCategories": "Topics & Categories",
+      "topics": "Topics",
+      "categories": "Categories",
+      "studyGuide": "Study Guide",
+      "mainConcepts": "Main Concepts",
+      "studyQuestions": "Study Questions"
+    },
+    "originalTranscription": "Original Transcription"
+  },
+  "comingSoon": {
+    "title": "Coming Soon",
+    "description": "This tool is under development. Stay tuned!",
+    "moreToolsComingSoon": "More Tools Coming Soon",
+    "inDevelopment": "IN DEVELOPMENT",
+    "newToolsWeekly": "New tools launching every week",
+    "studyPlanner": {
+      "tag": "study planner",
+      "title": "AI Study Planner",
+      "description": "Create personalized study schedules with AI-optimized spaced repetition and deadline management."
+    },
+    "mindMap": {
+      "tag": "visual learning",
+      "title": "Mind Map Generator",
+      "description": "Convert complex topics into interactive visual mind maps with AI-generated connections and insights."
+    },
+    "slideBuilder": {
+      "tag": "presentation maker",
+      "title": "Slide Builder Pro",
+      "description": "Generate professional presentations with AI-designed slides, animations, and speaker notes."
+    }
+  }
+}

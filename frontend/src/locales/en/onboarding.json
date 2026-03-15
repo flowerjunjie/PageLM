@@ -1,0 +1,24 @@
+{
+  "skip": "Skip",
+  "previous": "Previous",
+  "next": "Next",
+  "getStarted": "Get Started",
+  "steps": {
+    "welcome": {
+      "title": "Welcome to PageLM",
+      "description": "Your AI-powered learning companion. Ask questions, generate quizzes, create notes, and explore new topics with personalized assistance."
+    },
+    "ask": {
+      "title": "Ask Anything",
+      "description": "Simply type your question or topic in the search box. Our AI will provide clear, detailed explanations tailored to your learning needs."
+    },
+    "tools": {
+      "title": "Powerful Tools",
+      "description": "Access Smart Notes, AI Podcasts, Flashcards, Quizzes, and more. Each tool is designed to make learning more effective and enjoyable."
+    },
+    "ready": {
+      "title": "You're All Set!",
+      "description": "Start your learning journey now. Enter a topic below or explore the featured topics to begin discovering new knowledge."
+    }
+  }
+}

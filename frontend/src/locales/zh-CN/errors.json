@@ -1,0 +1,67 @@
+{
+  "network": {
+    "title": "网络错误",
+    "message": "请检查您的网络连接",
+    "retry": "重试",
+    "contactSupport": "联系客服"
+  },
+  "server": {
+    "title": "服务器错误",
+    "message": "服务器繁忙，请稍后重试",
+    "retry": "重试",
+    "contactSupport": "联系客服"
+  },
+  "validation": {
+    "title": "输入错误",
+    "required": "此字段为必填项",
+    "invalidEmail": "请输入有效的邮箱地址",
+    "invalidUrl": "请输入有效的网址",
+    "tooShort": "至少需要 {{min}} 个字符",
+    "tooLong": "最多允许 {{max}} 个字符",
+    "invalidFormat": "格式不正确"
+  },
+  "upload": {
+    "title": "上传失败",
+    "fileTooLarge": "文件过大，最大允许 {{size}}MB",
+    "invalidType": "不支持的文件类型",
+    "uploadFailed": "上传失败，请重试"
+  },
+  "auth": {
+    "title": "认证错误",
+    "unauthorized": "未授权访问",
+    "sessionExpired": "会话已过期，请重新登录",
+    "loginFailed": "登录失败，请检查用户名和密码"
+  },
+  "notFound": {
+    "title": "未找到",
+    "resource": "请求的资源不存在",
+    "page": "页面不存在"
+  },
+  "rateLimit": {
+    "title": "请求过于频繁",
+    "message": "请稍后再试",
+    "retryAfter": "{{seconds}} 秒后可重试"
+  },
+  "unknown": {
+    "title": "未知错误",
+    "message": "发生错误，请重试",
+    "contactSupport": "如果问题持续存在，请联系客服"
+  },
+  "chat": {
+    "generationFailed": "生成失败，请重试",
+    "connectionLost": "连接已断开",
+    "reconnecting": "重新连接中...",
+    "emptyInput": "请输入问题"
+  },
+  "quiz": {
+    "generationFailed": "测验生成失败，请重试",
+    "noQuestions": "未能生成问题，请更换主题",
+    "submitFailed": "提交失败，请重试"
+  },
+  "tools": {
+    "notesGenerationFailed": "笔记生成失败",
+    "podcastGenerationFailed": "播客生成失败",
+    "transcriptionFailed": "转录失败",
+    "processingTimeout": "处理超时，请重试"
+  }
+}

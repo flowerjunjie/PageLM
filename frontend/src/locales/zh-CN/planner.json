@@ -1,0 +1,74 @@
+{
+  "planner": {
+    "title": "作业规划器",
+    "todayFocus": "今日重点",
+    "upcoming": "即将到期",
+    "completed": "已完成",
+    "quickAdd": "快速添加",
+    "addTask": "添加任务",
+    "noTasks": "今天没有任务",
+    "allCaughtUp": "您已经完成了所有任务！"
+  },
+  "todayFocus": {
+    "title": "今日重点",
+    "tasksRemaining": "还有 {{count}} 个任务",
+    "tasksRemaining_plural": "还有 {{count}} 个任务",
+    "noTasks": "今天没有安排任务",
+    "addFirstTask": "添加您的第一个任务",
+    "currentlyWorkingOn": "正在进行中",
+    "complete": "完成",
+    "dueToday": "今天到期",
+    "moreTasksDueToday": "更多任务今天到期",
+    "urgent": "紧急",
+    "dueIn": "{{hours}}小时后到期",
+    "nothingUrgentToday": "今天没有紧急任务！",
+    "greatJobStayingOnTop": "做得很好，继续保持。"
+  },
+  "quickAdd": {
+    "title": "快速添加",
+    "taskName": "任务名称",
+    "subject": "科目",
+    "dueDate": "到期日期",
+    "priority": "优先级",
+    "add": "添加",
+    "adding": "添加中...",
+    "low": "低",
+    "medium": "中",
+    "high": "高",
+    "today": "今天",
+    "tomorrow": "明天",
+    "nextWeek": "下周",
+    "placeholder": "例如：数学作业第5章明天8点到期约2小时",
+    "uploadFiles": "上传作业文件",
+    "quickTemplates": "快速模板",
+    "templates": {
+      "mathHW": "数学作业明天8点到期约1.5小时",
+      "reading": "阅读英语课章节周五到期约30分钟",
+      "study": "下周复习测验约2小时"
+    },
+    "templateNames": {
+      "mathHW": "数学作业",
+      "reading": "阅读",
+      "study": "复习"
+    }
+  },
+  "task": {
+    "markComplete": "标记为完成",
+    "markIncomplete": "标记为未完成",
+    "delete": "删除任务",
+    "deleteFile": "删除文件",
+    "edit": "编辑任务",
+    "due": "到期",
+    "overdue": "已过期",
+    "completed": "已完成",
+    "attachedFiles": "附件",
+    "weeklyPlan": "每周计划",
+    "noPlanYet": "暂无计划"
+  },
+  "mindmap": {
+    "title": "思维导图",
+    "viewMindMap": "查看思维导图",
+    "expandAll": "全部展开",
+    "collapseAll": "全部收起"
+  }
+}

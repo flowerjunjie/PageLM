@@ -10,6 +10,7 @@ import Composer from "../components/Chat/Composer";
 import BagFab from "../components/Chat/BagFab";
 import BagDrawer from "../components/Chat/BagDrawer";
 import LoadingIndicator from "../components/Chat/LoadingIndicator";
+import ConnectionStatus from "../components/ConnectionStatus";
 import { useCompanion } from "../components/Companion/CompanionProvider";
 
 type BagItem = { id: string; kind: "flashcard" | "note"; title: string; content: string };
@@ -294,6 +295,9 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col min-h-screen w-full px-4 lg:pl-28 lg:pr-4">
+      <div className="fixed top-4 right-4 z-50">
+        <ConnectionStatus ws={wsRef.current} />
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 mt-20 lg:mt-6 mb-16">
         <div className="flex-1 pr-6">
           <div className="w-full max-w-5xl mx-auto p-4 pt-2 pb-28">
@@ -321,7 +325,7 @@ export default function Chat() {
               })}
               {(connecting || awaitingAnswer) && (
                 <div className="w-full flex justify-start">
-                  <LoadingIndicator label={connecting ? "Connecting…" : "Thinking…"} />
+                  <LoadingIndicator status={connecting ? "connecting" : "thinking"} />
                 </div>
               )}
               <div ref={scrollRef} />
@@ -360,7 +364,7 @@ export default function Chat() {
         askDoubt={(text) => { const v = text.trim(); if (v) sendFollowup(v); setSelected(null); }}
       />
 
-      <Composer disabled={busy} onSend={sendFollowup} />
+      <Composer disabled={busy} loading={busy} onSend={sendFollowup} />
       <BagFab count={bag.length} onClick={() => setBagOpen(true)} />
       <BagDrawer open={bagOpen} items={bag} onClose={() => setBagOpen(false)} onClear={clearBag} />
     </div>

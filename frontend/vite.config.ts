@@ -7,12 +7,12 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
-      host: env.VITE_FRONTEND_HOST || "localhost",
-      port: Number(env.VITE_FRONTEND_PORT) || 5173,
+      host: env.VITE_FRONTEND_HOST || "0.0.0.0",
+      port: Number(env.VITE_FRONTEND_PORT) || 8080,
     },
     preview: {
-      host: env.VITE_FRONTEND_HOST || "localhost",
-      port: Number(env.VITE_FRONTEND_PORT) || 4173,
+      host: env.VITE_FRONTEND_HOST || "0.0.0.0",
+      port: Number(env.VITE_FRONTEND_PORT) || 8080,
     },
     envDir: path.resolve(__dirname, ".."),
   };
