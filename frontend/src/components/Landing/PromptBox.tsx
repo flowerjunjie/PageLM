@@ -14,7 +14,7 @@ export default function PromptBox({
   onSend,
   busy,
 }: Props) {
-  const { t } = useTranslation('landing');
+  const { t } = useTranslation(['landing', 'common']);
 
   return (
     <div
@@ -34,7 +34,7 @@ export default function PromptBox({
             }
           }}
           disabled={busy}
-          aria-label="Main prompt"
+          aria-label={t("ariaLabels.mainPrompt")}
         />
       </div>
 
@@ -43,7 +43,7 @@ export default function PromptBox({
           onClick={onSend}
           disabled={busy || !value.trim()}
           className="rounded-full bg-stone-900 hover:bg-stone-800 duration-300 transition-all hover:text-white p-2.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          aria-label="Send"
+          aria-label={t("ariaLabels.send")}
           title={busy ? t('promptRail.starting') : t('promptBox.send')}
         >
           {busy ? (

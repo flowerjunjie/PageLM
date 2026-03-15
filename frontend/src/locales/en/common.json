@@ -50,5 +50,25 @@
   "enabled": "Enabled",
   "disabled": "Disabled",
   "optional": "Optional",
-  "required": "Required"
+  "required": "Required",
+  "ariaLabels": {
+    "menu": "Menu",
+    "back": "Back",
+    "close": "Close",
+    "delete": "Delete",
+    "send": "Send",
+    "mainPrompt": "Main prompt",
+    "sendSuggested": "Send suggested prompt",
+    "addToBag": "Add to bag",
+    "deleteBubble": "Delete bubble",
+    "toggleMenu": "Toggle menu",
+    "closeCompanion": "Close companion"
+  },
+  "companion": {
+    "askAboutDocument": "Ask about this document...",
+    "openDocumentToStart": "Open a document to start",
+    "send": "Send",
+    "contextLinked": "Context linked",
+    "noDocument": "No document"
+  }
 }

@@ -125,7 +125,7 @@ export default function PromptRail({ onSend }: { onSend?: (prompt: string) => vo
         onClick={sendNow}
         disabled={busy}
         className="h-full w-fit px-3 flex items-center justify-center bg-stone-900/50 border border-stone-900 border-l-0 rounded-r-2xl relative z-10 pointer-events-auto"
-        aria-label="Send suggested prompt"
+        aria-label={t("ariaLabels.sendSuggested")}
         title={busy ? t('promptRail.starting') : t('promptRail.send')}
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-5">

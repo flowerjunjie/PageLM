@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { getExams, startExam, connectExamStream, type ExamEvent } from "../lib/api"
 import LoadingIndicator from "../components/Chat/LoadingIndicator"
 import QuizHeader from "../components/Quiz/QuizHeader"
@@ -28,6 +29,7 @@ export type UA = {
 }
 
 export default function ExamLabs() {
+  const { t } = useTranslation("examlab")
   const [exams, setExams] = useState<any[]>([])
   const [loadingExams, setLoadingExams] = useState(true)
 
@@ -56,11 +58,11 @@ export default function ExamLabs() {
   )
 
   const resultVisual = useMemo(() => {
-    if (percentage >= 90) return { msg: "Excellent!", cls: "bg-green-900/20 border border-green-700 text-green-200", icon: "🏆" }
-    if (percentage >= 70) return { msg: "Great job!", cls: "bg-blue-900/20 border border-blue-700 text-blue-200", icon: "🎉" }
-    if (percentage >= 50) return { msg: "Good effort!", cls: "bg-yellow-900/20 border border-yellow-700 text-yellow-200", icon: "📚" }
-    return { msg: "Keep studying!", cls: "bg-red-900/20 border border-red-700 text-red-200", icon: "💪" }
-  }, [percentage])
+    if (percentage >= 90) return { msg: t("results.excellent"), cls: "bg-green-900/20 border border-green-700 text-green-200", icon: "🏆" }
+    if (percentage >= 70) return { msg: t("results.great"), cls: "bg-blue-900/20 border border-blue-700 text-blue-200", icon: "🎉" }
+    if (percentage >= 50) return { msg: t("results.good"), cls: "bg-yellow-900/20 border border-yellow-700 text-yellow-200", icon: "📚" }
+    return { msg: t("results.keepStudying"), cls: "bg-red-900/20 border border-red-700 text-red-200", icon: "💪" }
+  }, [percentage, t])
 
   useEffect(() => {
     (async () => {
@@ -141,7 +143,7 @@ export default function ExamLabs() {
           <button
             onClick={() => navigate(-1)}
             className="p-2 rounded-xl bg-stone-950 border border-zinc-800 hover:bg-stone-900 transition-colors"
-            aria-label="Back"
+            aria-label={t("ariaLabels.back")}
           >
             <svg
               viewBox="0 0 24 24"
@@ -157,10 +159,10 @@ export default function ExamLabs() {
               />
             </svg>
           </button>
-          <h1 className="text-2xl font-semibold text-white">Exam Labs</h1>
+          <h1 className="text-2xl font-semibold text-white">{t("title")}</h1>
         </div>
         <div className="px-3 py-1 rounded-full bg-gradient-to-r from-sky-500/20 to-blue-500/20 border border-sky-500/30 text-sky-300 text-xs font-medium">
-          BETA
+          {t("beta")}
         </div>
       </div>
 
@@ -178,11 +180,11 @@ export default function ExamLabs() {
                 {ex.name}
               </div>
               <div className="px-3 py-1 rounded-full bg-sky-900/30 text-sky-300 text-xs font-medium">
-                {ex.sections.length} sections
+                {ex.sections.length} {t("sections")}
               </div>
             </div>
             <div className="text-sm text-stone-400">
-              Click to start this exam
+              {t("clickStart")}
             </div>
           </div>
         ))}
@@ -190,7 +192,7 @@ export default function ExamLabs() {
 
       {!loadingExams && !exams.length && (
         <div className="mt-16 text-center text-stone-400">
-          No exams available.
+          {t("noExams")}
         </div>
       )}
     </div>
@@ -210,7 +212,7 @@ export default function ExamLabs() {
 
         {qs.length > 0 && !done && q && (
           <>
-            <QuizHeader topic={activeExam || "Exam"} idx={idx} total={total} score={score} />
+            <QuizHeader topic={activeExam || t("exam")} idx={idx} total={total} score={score} />
             <QuestionCard
               q={q}
               selected={selected}

@@ -15,7 +15,7 @@ interface ChatsResponse {
 }
 
 export default function Sidebar() {
-  const { t } = useTranslation('navigation');
+  const { t } = useTranslation(['navigation', 'common']);
   const p = useLocation().pathname
   const [isToggled, setIsToggled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -56,7 +56,7 @@ export default function Sidebar() {
       <button
         onClick={toggleMobileMenu}
         className="md:hidden fixed top-4 left-4 z-50 min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl bg-stone-950/80 backdrop-blur-xl border border-stone-900 text-stone-400 active:scale-95 transition-all"
-        aria-label="Toggle menu"
+        aria-label={t("ariaLabels.toggleMenu")}
       >
         <svg className="size-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
           {isMobileMenuOpen ? (

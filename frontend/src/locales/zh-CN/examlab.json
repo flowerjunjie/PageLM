@@ -1,0 +1,14 @@
+{
+  "title": "考试实验室",
+  "beta": "测试版",
+  "sections": "个部分",
+  "clickStart": "点击开始此考试",
+  "noExams": "暂无考试。",
+  "exam": "考试",
+  "results": {
+    "excellent": "优秀！",
+    "great": "做得好！",
+    "good": "继续努力！",
+    "keepStudying": "继续学习！"
+  }
+}

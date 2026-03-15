@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { companionAsk, type FlashCard } from "../../lib/api"
 import MarkdownView from "../Chat/MarkdownView"
 import { useCompanion } from "./CompanionProvider"
@@ -31,6 +32,7 @@ function toHistoryPayload(messages: CompanionMessage[]) {
 }
 
 export default function CompanionDock() {
+  const { t } = useTranslation("common")
   const { document, open, setOpen } = useCompanion()
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<CompanionMessage[]>([])
@@ -139,13 +141,13 @@ export default function CompanionDock() {
           <div className="flex items-center gap-2">
             <span className={cx("inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px]", hasDocument ? "bg-emerald-500/10 text-emerald-300" : "bg-stone-800 text-stone-400")}>
               <span className="w-2 h-2 rounded-full bg-current" />
-              {hasDocument ? "Context linked" : "No document"}
+              {hasDocument ? t("companion.contextLinked") : t("companion.noDocument")}
             </span>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="p-2 rounded-full hover:bg-white/10 text-stone-300 transition-colors"
-              aria-label="Close companion"
+              aria-label={t("ariaLabels.closeCompanion")}
             >
               <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 7l6 6m0-6-6 6" />
@@ -247,7 +249,7 @@ export default function CompanionDock() {
                   send()
                 }
               }}
-              placeholder={hasDocument ? "Ask about this document..." : "Open a document to start"}
+              placeholder={hasDocument ? t("companion.askAboutDocument") : t("companion.openDocumentToStart")}
               disabled={disabled && !hasDocument}
               className="flex-1 px-4 py-2.5 rounded-2xl bg-stone-900/80 border border-stone-700 text-sm text-white placeholder-stone-500 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 disabled:opacity-50"
             />
@@ -257,7 +259,7 @@ export default function CompanionDock() {
               disabled={disabled || !input.trim()}
               className="px-4 py-2.5 rounded-2xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-medium transition-colors disabled:opacity-50"
             >
-              Send
+              {t("companion.send")}
             </button>
           </div>
         </div>

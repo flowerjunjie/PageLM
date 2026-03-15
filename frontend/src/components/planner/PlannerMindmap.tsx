@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { forceSimulation, forceManyBody, forceCollide, forceRadial, type Simulation } from "d3-force"
 import { anchorLine } from "./mindmap/geometry"
 import { plannerMaterials } from "../../lib/api"
@@ -20,6 +21,7 @@ type Pt = { x: number; y: number }
 type CustomNode = { id: string; x: number; y: number; label: string; color: string }
 
 export default function PlannerMindmap({ tasks, plan, onPlan, onAssist, onUpdateStatus, onUpload, onDelete, onStartNow, onUpdateNotes }: Props) {
+    const { t: tr } = useTranslation("common")
     const wrapRef = useRef<HTMLDivElement>(null)
     const [positions, setPositions] = useState<Record<string, Pt>>({})
     const [selected, setSelected] = useState<string | null>(null)
@@ -614,7 +616,7 @@ export default function PlannerMindmap({ tasks, plan, onPlan, onAssist, onUpdate
                                                 })
                                             }}
                                             className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-stone-800 text-stone-100 hover:bg-red-600 hover:text-white flex items-center justify-center z-20"
-                                            aria-label="Delete bubble"
+                                            aria-label={tr("ariaLabels.deleteBubble")}
                                         >×</button>
                                         <span className="relative px-2">{label}{cnt ? ` (${cnt})` : ''}</span>
                                     </div>

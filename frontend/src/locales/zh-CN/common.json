@@ -50,5 +50,25 @@
   "enabled": "已启用",
   "disabled": "已禁用",
   "optional": "可选",
-  "required": "必填"
+  "required": "必填",
+  "ariaLabels": {
+    "menu": "菜单",
+    "back": "返回",
+    "close": "关闭",
+    "delete": "删除",
+    "send": "发送",
+    "mainPrompt": "主输入框",
+    "sendSuggested": "发送建议提示",
+    "addToBag": "添加到学习包",
+    "deleteBubble": "删除气泡",
+    "toggleMenu": "切换菜单",
+    "closeCompanion": "关闭助手"
+  },
+  "companion": {
+    "askAboutDocument": "询问关于此文档...",
+    "openDocumentToStart": "打开文档以开始",
+    "send": "发送",
+    "contextLinked": "已关联上下文",
+    "noDocument": "无文档"
+  }
 }

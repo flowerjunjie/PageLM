@@ -1,0 +1,14 @@
+{
+  "title": "Exam Labs",
+  "beta": "BETA",
+  "sections": "sections",
+  "clickStart": "Click to start this exam",
+  "noExams": "No exams available.",
+  "exam": "Exam",
+  "results": {
+    "excellent": "Excellent!",
+    "great": "Great job!",
+    "good": "Good effort!",
+    "keepStudying": "Keep studying!"
+  }
+}

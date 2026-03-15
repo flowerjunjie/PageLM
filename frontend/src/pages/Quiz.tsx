@@ -142,7 +142,7 @@ export default function Quiz() {
           <div className="flex items-center gap-3">
             <Link to='/'
               className="p-2 rounded-xl bg-stone-950 border border-zinc-800 hover:bg-stone-900 transition-colors"
-              aria-label="Back">
+              aria-label={t("ariaLabels.back")}>
               <svg viewBox="0 0 24 24" className="size-5 text-stone-300" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
               </svg>
