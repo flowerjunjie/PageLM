@@ -85,5 +85,13 @@
     "hint": "需要快速摘要、测验或解释？询问关于当前文档的任何内容，我会保持在相关上下文中。",
     "thinking": "思考中...",
     "studyCompanion": "学习助手"
+  },
+  "page404": {
+    "heading": "抱歉！学习会话已中断",
+    "description": "您查找的页面正在休息。让我们回到学习状态吧！",
+    "backToDashboard": "返回首页",
+    "chatLink": "聊天",
+    "quizLink": "测验",
+    "quote": "每个错误都是学习的机会"
   }
 }

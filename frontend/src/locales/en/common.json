@@ -85,5 +85,13 @@
     "hint": "Need a quick summary, quiz, or explanation? Ask anything about the current document and I'll stick to that context.",
     "thinking": "Thinking...",
     "studyCompanion": "Study Companion"
+  },
+  "page404": {
+    "heading": "Oops! Study session interrupted",
+    "description": "The page you're looking for took a study break. Let's get you back to learning something amazing!",
+    "backToDashboard": "Back to Dashboard",
+    "chatLink": "Chat",
+    "quizLink": "Take Quiz",
+    "quote": "Every mistake is a learning opportunity"
   }
 }
