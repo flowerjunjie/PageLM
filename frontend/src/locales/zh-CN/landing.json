@@ -32,6 +32,7 @@
   },
   "exploreTopics": {
     "title": "探索主题",
+    "starting": "学习{{title}}",
     "mathematics": "数学",
     "algebra": "代数",
     "geometry": "几何",

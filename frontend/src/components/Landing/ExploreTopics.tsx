@@ -13,28 +13,31 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
 
   const moreRows = useMemo(
     () => [
-      [{ key: "history", name: "History" }, { key: "geography", name: "Geography" }, { key: "music", name: "Music" }],
-      [{ key: "art", name: "Art" }, { key: "technology", name: "Technology" }, { key: "philosophy", name: "Philosophy" }],
+      [{ key: "history" }, { key: "geography" }, { key: "music" }],
+      [{ key: "art" }, { key: "technology" }, { key: "philosophy" }],
     ],
     []
   );
 
   const mainTopics = [
-    { key: "mathematics", name: "Mathematics" },
-    { key: "literature", name: "English" },
-    { key: "science", name: "Science" },
+    { key: "mathematics" },
+    { key: "literature" },
+    { key: "science" },
   ];
 
-  const imgSrc = (title: string) => `/pictures/${encodeURIComponent(title.toLocaleLowerCase())}.png`;
+  const imgSrc = (key: string) => `/pictures/${encodeURIComponent(key.toLocaleLowerCase())}.png`;
 
-  const promptFor = (topic: string) =>
-    `Give me a clear, beginner-friendly lesson on ${topic}`;
+  const promptFor = (topicKey: string, topicName: string) => {
+    // Use a default English prompt template that will be sent to the AI
+    return `Give me a clear, beginner-friendly lesson on ${topicName}`;
+  };
 
-  const startTopic = async (title: string) => {
+  const startTopic = async (topicKey: string) => {
     if (busy) return;
     try {
       setInternalBusy(true);
-      const q = promptFor(title);
+      const topicName = t(`exploreTopics.${topicKey}`);
+      const q = promptFor(topicKey, topicName);
       const r = await chatJSON({ q });
       navigate(`/chat?chatId=${encodeURIComponent(r.chatId)}&q=${encodeURIComponent(q)}`, {
         state: { chatId: r.chatId, q },
@@ -44,19 +47,20 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
     }
   };
 
-  const Card = ({ keyProp: titleKey, name: titleName, extra }: { keyProp: string; name: string; extra?: string }) => {
-    const title = t(`exploreTopics.${titleKey}`);
+  const Card = ({ topicKey, extra }: { topicKey: string; extra?: string }) => {
+    const title = t(`exploreTopics.${topicKey}`);
+    const startLabel = busy ? t('promptRail.starting') : t('exploreTopics.starting', { title });
     return (
       <button
         type="button"
-        onClick={() => startTopic(titleName)}
+        onClick={() => startTopic(topicKey)}
         disabled={busy}
         className={`w-full h-48 relative rounded-3xl border border-stone-900 bg-stone-950
                     hover:scale-105 transition-transform duration-200 ease-out
                     focus:outline-none focus:ring-2 focus:ring-stone-700 disabled:opacity-60 ${extra || ""}`}
-        title={busy ? "Starting…" : `Learn ${title}`}
+        title={startLabel}
       >
-        <img src={imgSrc(titleName)} alt={title} className="w-full h-full rounded-3xl object-cover" draggable={false} />
+        <img src={imgSrc(topicKey)} alt={title} className="w-full h-full rounded-3xl object-cover" draggable={false} />
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-transparent to-black" />
         <div className="absolute right-0 bottom-0 pr-4 pb-4 text-stone-200 text-xl sm:text-2xl">{title}</div>
       </button>
@@ -82,14 +86,14 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
             clipRule="evenodd"
           />
         </svg>
-        <span className="text-sm">{busy ? "Starting…" : t('exploreTopics.title').toUpperCase()}</span>
+        <span className="text-sm">{busy ? t('promptRail.starting') : t('exploreTopics.title').toUpperCase()}</span>
       </div>
 
       <div className="w-full max-w-4xl mx-auto overflow-hidden">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-          <Card keyProp={mainTopics[0].key} name={mainTopics[0].name} />
-          <Card keyProp={mainTopics[1].key} name={mainTopics[1].name} />
-          <Card keyProp={mainTopics[2].key} name={mainTopics[2].name} extra="col-span-1 sm:col-span-2 lg:col-span-1" />
+          <Card key={mainTopics[0].key} topicKey={mainTopics[0].key} />
+          <Card key={mainTopics[1].key} topicKey={mainTopics[1].key} />
+          <Card key={mainTopics[2].key} topicKey={mainTopics[2].key} extra="col-span-1 sm:col-span-2 lg:col-span-1" />
         </div>
 
         <div
@@ -102,7 +106,7 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
           {moreRows.map((row, i) => (
             <div key={i} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               {row.map((topic) => (
-                <Card key={topic.key} keyProp={topic.key} name={topic.name} extra={topic === row[2] ? "col-span-1 sm:col-span-2 lg:col-span-1" : ""} />
+                <Card key={topic.key} topicKey={topic.key} extra={topic === row[2] ? "col-span-1 sm:col-span-2 lg:col-span-1" : ""} />
               ))}
             </div>
           ))}

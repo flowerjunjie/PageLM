@@ -32,6 +32,7 @@
   },
   "exploreTopics": {
     "title": "Explore Topics",
+    "starting": "Learn {{title}}",
     "mathematics": "Mathematics",
     "algebra": "Algebra",
     "geometry": "Geometry",
