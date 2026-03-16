@@ -33,6 +33,7 @@
   "exploreTopics": {
     "title": "Explore Topics",
     "starting": "Learn {{title}}",
+    "error": "Failed to start chat. Please try again.",
     "mathematics": "Mathematics",
     "algebra": "Algebra",
     "geometry": "Geometry",

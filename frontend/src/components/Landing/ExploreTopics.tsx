@@ -7,6 +7,7 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
   const { t } = useTranslation('landing');
   const [open, setOpen] = useState(false);
   const [internalBusy, setInternalBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const busy = externalBusy || internalBusy;
@@ -34,14 +35,22 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
 
   const startTopic = async (topicKey: string) => {
     if (busy) return;
+    setError(null);
     try {
       setInternalBusy(true);
       const topicName = t(`exploreTopics.${topicKey}`);
       const q = promptFor(topicKey, topicName);
       const r = await chatJSON({ q });
-      navigate(`/chat?chatId=${encodeURIComponent(r.chatId)}&q=${encodeURIComponent(q)}`, {
-        state: { chatId: r.chatId, q },
-      });
+      if (r.ok) {
+        navigate(`/chat?chatId=${encodeURIComponent(r.chatId)}&q=${encodeURIComponent(q)}`, {
+          state: { chatId: r.chatId, q },
+        });
+      } else {
+        setError(t('exploreTopics.error', { defaultValue: 'Failed to start chat' }));
+      }
+    } catch (err) {
+      console.error('Failed to start topic:', err);
+      setError(t('exploreTopics.error', { defaultValue: 'Network error. Please try again.' }));
     } finally {
       setInternalBusy(false);
     }
@@ -90,6 +99,17 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
       </div>
 
       <div className="w-full max-w-4xl mx-auto overflow-hidden">
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-red-950/40 border border-red-800/40 text-red-200 text-sm text-center">
+            {error}
+            <button
+              onClick={() => setError(null)}
+              className="ml-2 text-red-300 hover:text-red-100 underline"
+            >
+              {t('common.close')}
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
           <Card key={mainTopics[0].key} topicKey={mainTopics[0].key} />
           <Card key={mainTopics[1].key} topicKey={mainTopics[1].key} />
