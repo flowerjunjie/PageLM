@@ -34,6 +34,7 @@
     "title": "探索主题",
     "starting": "学习{{title}}",
     "error": "启动聊天失败，请重试。",
+    "networkError": "网络错误，请检查连接后重试。",
     "mathematics": "数学",
     "algebra": "代数",
     "geometry": "几何",

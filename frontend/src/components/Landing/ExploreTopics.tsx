@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { chatJSON } from "../../lib/api";
 import { useTranslation } from "react-i18next";
+import { env } from "../../config/env";
 
 export default function ExploreTopics({ busy: externalBusy = false }: { busy?: boolean }) {
   const { t } = useTranslation('landing');
@@ -12,21 +13,21 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
 
   const busy = externalBusy || internalBusy;
 
+  const mainTopics = [
+    { key: "mathematics", img: "mathematics" },
+    { key: "literature", img: "english" },
+    { key: "science", img: "science" },
+  ];
+
   const moreRows = useMemo(
     () => [
-      [{ key: "history" }, { key: "geography" }, { key: "music" }],
-      [{ key: "art" }, { key: "technology" }, { key: "philosophy" }],
+      [{ key: "history", img: "history" }, { key: "geography", img: "geography" }, { key: "music", img: "music" }],
+      [{ key: "art", img: "art" }, { key: "technology", img: "technology" }, { key: "philosophy", img: "philosophy" }],
     ],
     []
   );
 
-  const mainTopics = [
-    { key: "mathematics" },
-    { key: "literature" },
-    { key: "science" },
-  ];
-
-  const imgSrc = (key: string) => `/pictures/${encodeURIComponent(key.toLocaleLowerCase())}.png`;
+  const imgSrc = (imgKey: string) => `/pictures/${encodeURIComponent(imgKey)}.png`;
 
   const promptFor = (topicKey: string, topicName: string) => {
     // Use a default English prompt template that will be sent to the AI
@@ -40,23 +41,30 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
       setInternalBusy(true);
       const topicName = t(`exploreTopics.${topicKey}`);
       const q = promptFor(topicKey, topicName);
+
+      // Debug logging
+      console.log('Starting topic:', { topicKey, topicName, backendUrl: env.backend });
+
       const r = await chatJSON({ q });
-      if (r.ok) {
+      console.log('API response:', r);
+
+      if (r.ok && r.chatId) {
         navigate(`/chat?chatId=${encodeURIComponent(r.chatId)}&q=${encodeURIComponent(q)}`, {
           state: { chatId: r.chatId, q },
         });
       } else {
-        setError(t('exploreTopics.error', { defaultValue: 'Failed to start chat' }));
+        console.error('API error:', r);
+        setError(t('exploreTopics.error', { defaultValue: 'Failed to start chat. Please try again.' }));
       }
     } catch (err) {
       console.error('Failed to start topic:', err);
-      setError(t('exploreTopics.error', { defaultValue: 'Network error. Please try again.' }));
+      setError(t('exploreTopics.networkError'));
     } finally {
       setInternalBusy(false);
     }
   };
 
-  const Card = ({ topicKey, extra }: { topicKey: string; extra?: string }) => {
+  const Card = ({ topicKey, imgKey, extra }: { topicKey: string; imgKey: string; extra?: string }) => {
     const title = t(`exploreTopics.${topicKey}`);
     const startLabel = busy ? t('promptRail.starting') : t('exploreTopics.starting', { title });
     return (
@@ -69,7 +77,7 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
                     focus:outline-none focus:ring-2 focus:ring-stone-700 disabled:opacity-60 ${extra || ""}`}
         title={startLabel}
       >
-        <img src={imgSrc(topicKey)} alt={title} className="w-full h-full rounded-3xl object-cover" draggable={false} />
+        <img src={imgSrc(imgKey)} alt={title} className="w-full h-full rounded-3xl object-cover" draggable={false} />
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-transparent to-black" />
         <div className="absolute right-0 bottom-0 pr-4 pb-4 text-stone-200 text-xl sm:text-2xl">{title}</div>
       </button>
@@ -111,9 +119,9 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-          <Card key={mainTopics[0].key} topicKey={mainTopics[0].key} />
-          <Card key={mainTopics[1].key} topicKey={mainTopics[1].key} />
-          <Card key={mainTopics[2].key} topicKey={mainTopics[2].key} extra="col-span-1 sm:col-span-2 lg:col-span-1" />
+          <Card key={mainTopics[0].key} topicKey={mainTopics[0].key} imgKey={mainTopics[0].img} />
+          <Card key={mainTopics[1].key} topicKey={mainTopics[1].key} imgKey={mainTopics[1].img} />
+          <Card key={mainTopics[2].key} topicKey={mainTopics[2].key} imgKey={mainTopics[2].img} extra="col-span-1 sm:col-span-2 lg:col-span-1" />
         </div>
 
         <div
@@ -126,7 +134,7 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
           {moreRows.map((row, i) => (
             <div key={i} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               {row.map((topic) => (
-                <Card key={topic.key} topicKey={topic.key} extra={topic === row[2] ? "col-span-1 sm:col-span-2 lg:col-span-1" : ""} />
+                <Card key={topic.key} topicKey={topic.key} imgKey={topic.img} extra={topic === row[2] ? "col-span-1 sm:col-span-2 lg:col-span-1" : ""} />
               ))}
             </div>
           ))}
