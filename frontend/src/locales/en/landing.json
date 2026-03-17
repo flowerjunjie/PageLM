@@ -82,5 +82,37 @@
       "title": "Debate",
       "description": "Explore multiple perspectives on any topic"
     }
+  },
+  "learningModes": {
+    "heading": "Choose Your Learning Mode",
+    "subheading": "Select the best tool based on your current learning needs",
+    "preview": {
+      "title": "Preview Lesson",
+      "description": "Generate knowledge framework and preview key points"
+    },
+    "notes": {
+      "title": "Class Notes",
+      "description": "Organize notes and generate flashcards"
+    },
+    "quiz": {
+      "title": "Quiz Practice",
+      "description": "Test understanding and reinforce knowledge"
+    },
+    "podcast": {
+      "title": "Knowledge Podcast",
+      "description": "Review during碎片 time, learn on the go"
+    },
+    "planner": {
+      "title": "Homework Planner",
+      "description": "Break down tasks with timed reminders"
+    },
+    "chat": {
+      "title": "Free Chat",
+      "description": "AI conversation to answer any questions"
+    }
+  },
+  "quickInput": {
+    "show": "Quick Input",
+    "hide": "Hide Input"
   }
 }

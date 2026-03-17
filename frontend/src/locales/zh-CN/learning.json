@@ -1,0 +1,71 @@
+{
+  "title": "学习档案",
+  "subtitle": "追踪你的学习历程，可视化你的知识网络",
+  "stats": {
+    "weeklyStudyTime": "本周学习时长",
+    "masteredTopics": "掌握知识点",
+    "totalFlashcards": "记忆卡片总数",
+    "dueFlashcards": "待复习卡片",
+    "quizAccuracy": "测验正确率",
+    "hours": "小时",
+    "topics": "个知识点",
+    "cards": "张卡片",
+    "accuracy": "正确率"
+  },
+  "trend": {
+    "up": "上升 {{value}}%",
+    "down": "下降 {{value}}%",
+    "fromLastWeek": "较上周"
+  },
+  "knowledgeMap": {
+    "title": "知识地图",
+    "subtitle": "你的知识网络交互式可视化",
+    "legend": {
+      "physics": "物理",
+      "chemistry": "化学",
+      "biology": "生物",
+      "math": "数学",
+      "history": "历史",
+      "other": "其他"
+    },
+    "tooltip": {
+      "subject": "学科",
+      "reviewCount": "已复习 {{count}} 次",
+      "learnedAt": "学习于 {{date}}"
+    }
+  },
+  "subjects": {
+    "title": "学科统计",
+    "subtitle": "按学科查看学习进度",
+    "nodes": "个知识节点",
+    "flashcards": "张记忆卡片",
+    "accuracy": "测验正确率",
+    "studyTime": "学习时长"
+  },
+  "activity": {
+    "title": "最近活动",
+    "subtitle": "你的最新学习动态",
+    "types": {
+      "quiz": "测验",
+      "flashcard": "记忆卡片",
+      "note": "笔记",
+      "chat": "对话",
+      "podcast": "播客"
+    }
+  },
+  "weakAreas": {
+    "title": "待提升领域",
+    "subtitle": "专注于这些主题以提升你的知识水平",
+    "score": "正确率 {{score}}%"
+  },
+  "streak": {
+    "title": "学习连续天数",
+    "days": "连续 {{count}} 天",
+    "keepItUp": "继续保持！"
+  },
+  "empty": {
+    "title": "开启你的学习之旅",
+    "description": "完成测验、创建记忆卡片、与AI对话来构建你的知识地图",
+    "cta": "开始学习"
+  }
+}

@@ -10,6 +10,7 @@ export default function SmartNotes() {
   const [status, setStatus] = useState("")
   const [filePath, setFilePath] = useState<string | null>(null)
   const [error, setError] = useState<{ message: string } | null>(null)
+  const [isComposing, setIsComposing] = useState(false)
 
   const onGenerate = async () => {
     if (!topic.trim() || busy) return
@@ -57,9 +58,11 @@ export default function SmartNotes() {
             <input
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
               placeholder={t('smartNotes.topicPlaceholder')}
               className="w-full px-4 py-3 pr-16 rounded-xl bg-stone-900/70 border border-zinc-700 text-white placeholder-zinc-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none transition-all duration-300"
-              onKeyDown={(e) => e.key === "Enter" && onGenerate()}
+              onKeyDown={(e) => e.key === "Enter" && !isComposing && onGenerate()}
               disabled={busy}
             />
           </div>

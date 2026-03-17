@@ -7,13 +7,18 @@ export default function FlashCards() {
   const { t } = useTranslation("flashcards");
   const [items, setItems] = useState<SavedFlashcard[]>([]);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const load = async () => {
     try {
+      setError(null);
       const { flashcards } = await listFlashcards();
       setItems((flashcards || []).sort((a, b) => b.created - a.created));
-    } catch {}
+    } catch (e) {
+      setError(t("errors.loadFailed") || "Failed to load flashcards");
+      setItems([]);
+    }
   };
 
   useEffect(() => {
@@ -22,21 +27,29 @@ export default function FlashCards() {
 
   const remove = async (id: string) => {
     setBusy(true);
+    setError(null);
     try {
       await deleteFlashcard(id);
-    } catch {}
-    await load();
-    setBusy(false);
+      await load();
+    } catch (e) {
+      setError(t("errors.deleteFailed") || "Failed to delete flashcard");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const clearAll = async () => {
     if (!items.length) return;
     setBusy(true);
+    setError(null);
     try {
       await Promise.all(items.map((i) => deleteFlashcard(i.id).catch(() => {})));
-    } catch {}
-    await load();
-    setBusy(false);
+      await load();
+    } catch (e) {
+      setError(t("errors.clearFailed") || "Failed to clear flashcards");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -63,6 +76,12 @@ export default function FlashCards() {
             {t("clearAll")}
           </button>
         </div>
+
+        {error && (
+          <div className="mb-4 p-4 rounded-xl bg-red-900/20 border border-red-800 text-red-300">
+            {error}
+          </div>
+        )}
 
         <div className="grid md:grid-cols-2 gap-4">
           {items.map((it) => (
@@ -91,7 +110,7 @@ export default function FlashCards() {
           ))}
         </div>
 
-        {!items.length && (
+        {!items.length && !error && (
           <div className="mt-16 text-center text-stone-400">
             {t("empty")}
           </div>

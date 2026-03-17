@@ -82,5 +82,37 @@
       "title": "辩论",
       "description": "探索任何主题的多个观点"
     }
+  },
+  "learningModes": {
+    "heading": "选择你的学习模式",
+    "subheading": "根据当前学习需求，选择最适合的工具",
+    "preview": {
+      "title": "新课预习",
+      "description": "生成知识框架，提前了解重点"
+    },
+    "notes": {
+      "title": "课堂笔记",
+      "description": "整理笔记并生成记忆卡片"
+    },
+    "quiz": {
+      "title": "课后测验",
+      "description": "检验理解程度，巩固知识"
+    },
+    "podcast": {
+      "title": "知识播客",
+      "description": "碎片时间复习，随时听学"
+    },
+    "planner": {
+      "title": "作业规划",
+      "description": "分解任务，定时提醒"
+    },
+    "chat": {
+      "title": "自由提问",
+      "description": "AI对话，解答任何疑问"
+    }
+  },
+  "quickInput": {
+    "show": "快速输入",
+    "hide": "收起输入"
   }
 }

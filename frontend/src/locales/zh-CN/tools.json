@@ -44,6 +44,7 @@
       "connected": "已连接，正在生成...",
       "status": "状态",
       "scriptGenerated": "脚本已生成，正在创建音频...",
+      "audioProgress": "正在生成音频片段 {{current}}/{{total}}",
       "audioReady": "就绪 - 音频文件已准备好！",
       "done": "完成",
       "error": "错误",

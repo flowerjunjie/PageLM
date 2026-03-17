@@ -56,6 +56,8 @@ export default function Debate() {
     const [isDebateEnded, setIsDebateEnded] = useState(false);
     const [analysis, setAnalysis] = useState<DebateAnalysis | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isTopicComposing, setIsTopicComposing] = useState(false);
+    const [isArgumentComposing, setIsArgumentComposing] = useState(false);
 
     const wsRef = useRef<WebSocket | null>(null);
     const analysisWsRef = useRef<WebSocket | null>(null);
@@ -105,7 +107,7 @@ export default function Debate() {
         const ws = new WebSocket(getWsUrl(`/ws/debate?debateId=${id}`));
 
         ws.onopen = () => {
-            console.log("WebSocket connected");
+            // WebSocket connected
         };
 
         ws.onmessage = (event) => {
@@ -113,7 +115,7 @@ export default function Debate() {
 
             switch (data.type) {
                 case "ready":
-                    console.log("Debate WebSocket ready");
+                    // Debate WebSocket ready
                     break;
 
                 case "user_argument":
@@ -163,11 +165,11 @@ export default function Debate() {
 
         ws.onerror = (error) => {
             console.error("WebSocket error:", error);
-            setError("Connection error");
+            setError(t("errors.connection"));
         };
 
         ws.onclose = () => {
-            console.log("WebSocket closed");
+            // WebSocket closed
         };
 
         wsRef.current = ws;
@@ -233,7 +235,7 @@ export default function Debate() {
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter" && !e.shiftKey) {
+        if (e.key === "Enter" && !e.shiftKey && !isArgumentComposing) {
             e.preventDefault();
             submitArgument();
         }
@@ -275,7 +277,7 @@ export default function Debate() {
         const analysisWs = new WebSocket(getWsUrl(`/ws/debate/analyze?debateId=${debateId}`));
 
         analysisWs.onopen = () => {
-            console.log("Analysis WebSocket connected");
+            // Analysis WebSocket connected
         };
 
         analysisWs.onmessage = (event) => {
@@ -283,7 +285,7 @@ export default function Debate() {
 
             switch (data.type) {
                 case "ready":
-                    console.log("Analysis WebSocket ready");
+                    // Analysis WebSocket ready
                     break;
 
                 case "phase":
@@ -315,7 +317,7 @@ export default function Debate() {
         };
 
         analysisWs.onclose = () => {
-            console.log("Analysis WebSocket closed");
+            // Analysis WebSocket closed
         };
 
         analysisWsRef.current = analysisWs;
@@ -367,9 +369,11 @@ export default function Debate() {
                                 type="text"
                                 value={topic}
                                 onChange={(e) => setTopic(e.target.value)}
+                                onCompositionStart={() => setIsTopicComposing(true)}
+                                onCompositionEnd={() => setIsTopicComposing(false)}
                                 placeholder={t("topicPlaceholder")}
                                 className="w-full px-4 py-3 bg-stone-900/70 border border-zinc-800 rounded-xl text-white placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                                onKeyDown={(e) => e.key === "Enter" && startDebate()}
+                                onKeyDown={(e) => e.key === "Enter" && !isTopicComposing && startDebate()}
                             />
                         </div>
 
@@ -548,6 +552,8 @@ export default function Debate() {
                             ref={textareaRef}
                             value={argument}
                             onChange={handleTextareaChange}
+                            onCompositionStart={() => setIsArgumentComposing(true)}
+                            onCompositionEnd={() => setIsArgumentComposing(false)}
                             onKeyDown={handleKeyDown}
                             placeholder={
                                 isDebateEnded

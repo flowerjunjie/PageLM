@@ -38,5 +38,26 @@
     "next": "下一张",
     "previous": "上一张",
     "shuffle": "随机打乱"
+  },
+  "summarizePrompt": "将之前的答案总结为5-7个简洁的要点，关键词加粗。",
+  "learnMorePrompt": "深入探讨这个主题，包括高级细节、现实世界示例和一个简短的类比。",
+  "generatedFromChat": "从聊天生成",
+  "materials": {
+    "generatedForYou": "已为你生成学习资料",
+    "flashcardsCount": "已生成 {{count}} 张记忆卡片",
+    "flashcardsDesc": "复习关键概念",
+    "notesTitle": "笔记摘要",
+    "quizCount": "已生成 {{count}} 道测验题",
+    "quizDesc": "检验你的理解",
+    "view": "查看",
+    "viewAll": "查看全部",
+    "review": "开始复习",
+    "startReview": "开始复习",
+    "export": "导出",
+    "testNow": "测试一下",
+    "startQuiz": "开始测验",
+    "more": "更多",
+    "quizReady": "准备好检验你的知识了吗？",
+    "quizHint": "通过测验巩固所学内容"
   }
 }

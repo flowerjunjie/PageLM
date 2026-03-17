@@ -13,7 +13,7 @@ export default function TopicBar({
   phase?: string;
   isLoading?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('quiz');
   const disabled = !value.trim() || isLoading;
   return (
     <div className="sticky top-4 z-10 bg-black/50 backdrop-blur border border-stone-900 rounded-3xl p-4 mb-8">
@@ -47,7 +47,7 @@ export default function TopicBar({
           )}
         </button>
       </div>
-      {phase && <div className="text-xs text-stone-500 mt-2">Status: {phase}</div>}
+      {phase && <div className="text-xs text-stone-500 mt-2">{t("status")}: {phase}</div>}
     </div>
   );
 }

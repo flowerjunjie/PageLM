@@ -69,7 +69,10 @@
     "openDocumentToStart": "Open a document to start",
     "send": "Send",
     "contextLinked": "Context linked",
-    "noDocument": "No document"
+    "noDocument": "No document",
+    "hint": "Need a quick summary, quiz, or explanation? Ask anything about the current document and I'll stick to that context.",
+    "thinking": "Thinking...",
+    "studyCompanion": "Study Companion"
   },
   "connectionStatus": {
     "disconnected": "Disconnected",
@@ -81,11 +84,6 @@
     "quiz": "Make a quick quiz",
     "explain": "Explain this like I'm new"
   },
-  "companion": {
-    "hint": "Need a quick summary, quiz, or explanation? Ask anything about the current document and I'll stick to that context.",
-    "thinking": "Thinking...",
-    "studyCompanion": "Study Companion"
-  },
   "page404": {
     "heading": "Oops! Study session interrupted",
     "description": "The page you're looking for took a study break. Let's get you back to learning something amazing!",
@@ -93,5 +91,79 @@
     "chatLink": "Chat",
     "quizLink": "Take Quiz",
     "quote": "Every mistake is a learning opportunity"
+  },
+  "modelToolbar": {
+    "model": "Model",
+    "fileSelected": "File selected",
+    "addFiles": "Add files",
+    "clickOrDrop": "Click or drop",
+    "difficulty": "Difficulty",
+    "intermediate": "Intermediate"
+  },
+  "notifications": {
+    "taskCreated": "Task \"{{title}}\" created",
+    "taskDeleted": "Task deleted",
+    "filesUploaded": "{{count}} file(s) uploaded",
+    "studySessionStarted": "Study session started",
+    "sessionCompleted": "Session completed: {{minutes}} minutes",
+    "taskPlannedSuccessfully": "Task planned successfully",
+    "failedToPlanTask": "Failed to plan task: ",
+    "failedToUploadFile": "Failed to upload file",
+    "failedToDeleteFile": "Failed to delete file",
+    "homeworkReminder": "Homework Reminder",
+    "failedToContactCompanion": "Failed to contact companion",
+    "enabled": "Notifications Enabled",
+    "testMessage": "You will receive homework deadline reminders",
+    "statusEnabled": "Notifications Enabled",
+    "statusDenied": "Notifications Blocked",
+    "statusDefault": "Notifications Not Enabled",
+    "enabledDescription": "You will receive homework reminders",
+    "deniedDescription": "Please allow notifications in browser settings",
+    "defaultDescription": "Enable notifications to receive homework reminders",
+    "enable": "Enable",
+    "settings": "Settings",
+    "browserNotifications": "Browser Notifications",
+    "browserDescription": "Show notifications in browser",
+    "sound": "Sound",
+    "soundDescription": "Play sound when receiving notifications",
+    "reminderTimes": "Reminder Times",
+    "hoursBefore": "hours before",
+    "test": "Send Test Notification",
+    "testTitle": "Test Notification",
+    "testBody": "This is a test notification",
+    "recent": "Recent Notifications",
+    "notSupported": "Your browser does not support notifications"
+  },
+  "learningModes": {
+    "heading": "Choose Your Learning Mode",
+    "subheading": "Select the best tool based on your current learning needs",
+    "preview": {
+      "title": "Preview Lesson",
+      "description": "Generate knowledge framework and preview key points"
+    },
+    "notes": {
+      "title": "Class Notes",
+      "description": "Organize notes and generate flashcards"
+    },
+    "quiz": {
+      "title": "Quiz Practice",
+      "description": "Test understanding and reinforce knowledge"
+    },
+    "podcast": {
+      "title": "Knowledge Podcast",
+      "description": "Review during碎片 time, learn on the go"
+    },
+    "planner": {
+      "title": "Homework Planner",
+      "description": "Break down tasks with timed reminders"
+    },
+    "chat": {
+      "title": "Free Chat",
+      "description": "AI conversation to answer any questions"
+    }
+  },
+  "quickInput": {
+    "show": "Quick Input",
+    "hide": "Hide Input"
   }
 }

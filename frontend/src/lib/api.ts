@@ -35,6 +35,8 @@ export type PodcastEvent =
   | { type: "warn"; message: string }
   | { type: "script"; data: any }
   | { type: "audio"; file: string; filename?: string; staticUrl?: string }
+  | { type: "audio_progress"; i: number; len: number }
+  | { type: "ffmpeg"; data: string }
   | { type: "done" }
   | { type: "error"; error: string }
 export type SmartNotesEvent =
@@ -72,8 +74,82 @@ export type ChatEvent =
   | { type: "phase"; value: ChatPhase }
   | { type: "file"; filename: string; mime: string }
   | { type: "answer"; answer: AnswerPayload }
+  | { type: "materials"; materials: GeneratedMaterialRef }
   | { type: "done" }
   | { type: "error"; error: string };
+
+export type GeneratedMaterialRef = {
+  flashcards: { id: string; question: string; answer: string; tags: string[] }[];
+  notes: { id: string; title: string; summary: string };
+  quiz: { id: string; questionCount: number };
+};
+
+export type StoredMaterials = {
+  id: string;
+  chatId: string;
+  messageId?: string;
+  flashcards: { id: string; question: string; answer: string; tags: string[]; createdAt: number }[];
+  notes: { id: string; title: string; summary: string; content: string; keyPoints: string[]; examples: string[]; createdAt: number };
+  quiz: { id: string; questions: { id: string; question: string; type: "choice" | "short_answer"; options?: string[]; correct?: number; answer?: string; explanation: string }[]; createdAt: number };
+  createdAt: number;
+};
+
+// Learning Profile Types
+export type Subject = 'physics' | 'chemistry' | 'biology' | 'math' | 'history' | 'other';
+
+export interface KnowledgeNode {
+  id: string;
+  name: string;
+  subject: Subject;
+  learnedAt: number;
+  reviewCount: number;
+  x?: number;
+  y?: number;
+  size?: number;
+}
+
+export interface KnowledgeEdge {
+  source: string;
+  target: string;
+  strength: number;
+}
+
+export interface LearningStats {
+  totalStudyTime: number;
+  weeklyStudyTime: number;
+  masteredTopics: number;
+  totalFlashcards: number;
+  dueFlashcards: number;
+  quizAccuracy: number;
+  quizAccuracyTrend: number;
+  weeklyFlashcardsReviewed: number;
+  streakDays: number;
+}
+
+export interface SubjectStats {
+  subject: Subject;
+  name: string;
+  color: string;
+  nodeCount: number;
+  flashcardCount: number;
+  quizAccuracy: number;
+  studyTime: number;
+}
+
+export interface ActivityItem {
+  id: string;
+  type: 'quiz' | 'flashcard' | 'note' | 'chat' | 'podcast';
+  title: string;
+  subject?: Subject;
+  timestamp: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface LearningProfile {
+  stats: LearningStats;
+  subjects: SubjectStats[];
+  recentActivity: ActivityItem[];
+}
 
 type O<T> = Promise<T>;
 type AnswerPayload = string | { answer: string; flashcards?: FlashCard[] };
@@ -322,8 +398,8 @@ export async function podcastStart(payload: { topic: string }) {
 }
 
 export function connectPodcastStream(pid: string, onEvent: (ev: any) => void) {
-  const wsUrl = `${env.backend.replace(/^http/, "ws")}/ws/podcast?pid=${pid}`
-  const ws = new WebSocket(wsUrl)
+  const url = wsURL(`/ws/podcast?pid=${encodeURIComponent(pid)}`)
+  const ws = new WebSocket(url)
 
   ws.onopen = () => {
   }
@@ -379,6 +455,11 @@ export type PlannerTask = {
   tags?: string[];
   files?: { id: string; filename: string; originalName: string; mimeType: string; size: number; uploadedAt: number }[];
   steps?: string[];
+  // Phase 6: Enhanced task fields
+  subject?: 'physics' | 'chemistry' | 'biology' | 'math' | 'english' | 'other';
+  actualMins?: number;
+  relatedTopics?: string[];
+  reminders?: { type: 'browser' | 'email'; time: number; sent?: boolean }[];
 };
 
 export type PlannerSlot = { id: string; taskId: string; start: number; end: number; kind: "focus" | "review" | "buffer"; done?: boolean }
@@ -598,4 +679,209 @@ export async function analyzeDebate(debateId: string) {
 
 export function err(e: unknown) {
   return e instanceof Error ? e.message : String(e);
+}
+
+// Learning Materials API
+export async function generateMaterials(input: { question: string; answer: string; chatId?: string }) {
+  return req<{ ok: boolean; materials: GeneratedMaterialRef; storedId?: string }>(`${env.backend}/api/materials/generate`, {
+    method: "POST",
+    headers: jsonHeaders({}),
+    body: JSON.stringify(input),
+    timeout: 120000,
+  });
+}
+
+export async function getMaterialsByChat(chatId: string) {
+  return req<{ ok: boolean; chatId: string; materials: StoredMaterials[]; count: number }>(
+    `${env.backend}/api/materials/by-chat/${encodeURIComponent(chatId)}`,
+    { method: "GET" }
+  );
+}
+
+export async function getMaterialById(id: string) {
+  return req<{ ok: boolean; material: StoredMaterials }>(
+    `${env.backend}/api/materials/${encodeURIComponent(id)}`,
+    { method: "GET" }
+  );
+}
+
+export async function deleteMaterial(id: string) {
+  return req<{ ok: boolean; message: string }>(
+    `${env.backend}/api/materials/${encodeURIComponent(id)}`,
+    { method: "DELETE" }
+  );
+}
+
+// Learning Profile API
+export async function getLearningProfile() {
+  return req<{ ok: boolean; profile: LearningProfile }>(
+    `${env.backend}/api/learning/profile`,
+    { method: "GET" }
+  );
+}
+
+export async function getLearningStats() {
+  return req<{ ok: boolean; stats: LearningStats }>(
+    `${env.backend}/api/learning/stats`,
+    { method: "GET" }
+  );
+}
+
+export async function getKnowledgeMap() {
+  return req<{ ok: boolean; nodes: KnowledgeNode[]; edges: KnowledgeEdge[] }>(
+    `${env.backend}/api/learning/knowledge-map`,
+    { method: "GET" }
+  );
+}
+
+export async function getSubjectStats() {
+  return req<{ ok: boolean; subjects: SubjectStats[] }>(
+    `${env.backend}/api/learning/subjects`,
+    { method: "GET" }
+  );
+}
+
+export async function getRecentActivity(limit = 10) {
+  return req<{ ok: boolean; activity: ActivityItem[] }>(
+    `${env.backend}/api/learning/activity?limit=${limit}`,
+    { method: "GET" }
+  );
+}
+
+// Review Schedule API Types
+export type ReviewSchedule = {
+  flashcardId: string;
+  userId: string;
+  nextReviewAt: number;
+  interval: number;
+  repetition: number;
+  easiness: number;
+  reviewHistory: {
+    date: number;
+    quality: number;
+  }[];
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type ReviewStats = {
+  totalCards: number;
+  dueToday: number;
+  completedToday: number;
+  streak: number;
+  averageEasiness: number;
+};
+
+// Review Schedule API
+export async function getDueReviews(userId?: string) {
+  const url = new URL(`${env.backend}/api/reviews/due`);
+  if (userId) url.searchParams.set('userId', userId);
+  return req<{ success: boolean; data: ReviewSchedule[]; meta: { total: number } }>(
+    url.toString(),
+    { method: "GET" }
+  );
+}
+
+export async function getAllReviews(userId?: string) {
+  const url = new URL(`${env.backend}/api/reviews/all`);
+  if (userId) url.searchParams.set('userId', userId);
+  return req<{ success: boolean; data: ReviewSchedule[]; meta: { total: number } }>(
+    url.toString(),
+    { method: "GET" }
+  );
+}
+
+export async function submitReviewResult(flashcardId: string, quality: number) {
+  return req<{ success: boolean; data: ReviewSchedule }>(
+    `${env.backend}/api/reviews/${encodeURIComponent(flashcardId)}/result`,
+    {
+      method: "POST",
+      headers: jsonHeaders({}),
+      body: JSON.stringify({ quality }),
+    }
+  );
+}
+
+export async function getReviewStats(userId?: string) {
+  const url = new URL(`${env.backend}/api/reviews/stats`);
+  if (userId) url.searchParams.set('userId', userId);
+  return req<{ success: boolean; data: ReviewStats }>(
+    url.toString(),
+    { method: "GET" }
+  );
+}
+
+export async function deleteReviewSchedule(flashcardId: string, userId?: string) {
+  const url = new URL(`${env.backend}/api/reviews/${encodeURIComponent(flashcardId)}`);
+  if (userId) url.searchParams.set('userId', userId);
+  return req<{ success: boolean; message: string }>(
+    url.toString(),
+    { method: "DELETE" }
+  );
+}
+
+// Weekly Report Types
+export interface WeeklyReport {
+  week: string;
+  startDate: number;
+  endDate: number;
+  summary: {
+    totalStudyTime: number;
+    studyDays: number;
+    newTopics: number;
+    flashcardsCreated: number;
+    notesCreated: number;
+    quizzesCompleted: number;
+    averageAccuracy: number;
+  };
+  dailyStats: {
+    date: string;
+    studyTime: number;
+    topics: number;
+  }[];
+  subjectDistribution: {
+    subject: string;
+    percentage: number;
+  }[];
+  weakAreas: string[];
+  suggestions: string[];
+  comparison: {
+    studyTimeChange: number;
+    accuracyChange: number;
+  };
+}
+
+// Weekly Report API
+export async function getWeeklyReport(week?: string) {
+  const url = new URL(`${env.backend}/api/reports/weekly`);
+  if (week) url.searchParams.set('week', week);
+  return req<{ ok: boolean; report: WeeklyReport }>(
+    url.toString(),
+    { method: "GET" }
+  ).then(r => r.report);
+}
+
+export async function getAvailableWeeks() {
+  return req<{ ok: boolean; weeks: string[] }>(
+    `${env.backend}/api/reports/available-weeks`,
+    { method: "GET" }
+  ).then(r => r.weeks);
+}
+
+export async function createShareLink(week: string) {
+  return req<{ ok: boolean; token: string; shareUrl: string; expiresIn: string }>(
+    `${env.backend}/api/reports/share`,
+    {
+      method: "POST",
+      headers: jsonHeaders({}),
+      body: JSON.stringify({ week }),
+    }
+  ).then(r => r.shareUrl);
+}
+
+export async function getSharedReport(token: string) {
+  return req<{ ok: boolean; report: WeeklyReport }>(
+    `${env.backend}/api/reports/share/${encodeURIComponent(token)}`,
+    { method: "GET" }
+  ).then(r => r.report);
 }

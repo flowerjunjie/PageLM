@@ -18,6 +18,9 @@ import enDebate from '../locales/en/debate.json';
 import enFlashcards from '../locales/en/flashcards.json';
 import enExamlab from '../locales/en/examlab.json';
 import enHelp from '../locales/en/help.json';
+import enLearning from '../locales/en/learning.json';
+import enReview from '../locales/en/review.json';
+import enReports from '../locales/en/reports.json';
 
 import zhCommon from '../locales/zh-CN/common.json';
 import zhNavigation from '../locales/zh-CN/navigation.json';
@@ -34,6 +37,9 @@ import zhDebate from '../locales/zh-CN/debate.json';
 import zhFlashcards from '../locales/zh-CN/flashcards.json';
 import zhExamlab from '../locales/zh-CN/examlab.json';
 import zhHelp from '../locales/zh-CN/help.json';
+import zhLearning from '../locales/zh-CN/learning.json';
+import zhReview from '../locales/zh-CN/review.json';
+import zhReports from '../locales/zh-CN/reports.json';
 
 // Configure i18next
 i18n
@@ -57,6 +63,9 @@ i18n
         flashcards: enFlashcards,
         examlab: enExamlab,
         help: enHelp,
+        learning: enLearning,
+        review: enReview,
+        reports: enReports,
       },
       'zh-CN': {
         common: zhCommon,
@@ -74,11 +83,14 @@ i18n
         flashcards: zhFlashcards,
         examlab: zhExamlab,
         help: zhHelp,
+        learning: zhLearning,
+        review: zhReview,
+        reports: zhReports,
       },
     },
     fallbackLng: 'en', // Use English if translation is missing
     defaultNS: 'common', // Default namespace
-    ns: ['common', 'navigation', 'chat', 'quiz', 'planner', 'tools', 'landing', 'errors', 'onboarding', 'share', 'shortcuts', 'debate', 'flashcards', 'examlab', 'help'],
+    ns: ['common', 'navigation', 'chat', 'quiz', 'planner', 'tools', 'landing', 'errors', 'onboarding', 'share', 'shortcuts', 'debate', 'flashcards', 'examlab', 'help', 'learning', 'review', 'reports'],
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],

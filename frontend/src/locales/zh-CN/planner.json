@@ -7,7 +7,8 @@
     "quickAdd": "快速添加",
     "addTask": "添加任务",
     "noTasks": "今天没有任务",
-    "allCaughtUp": "您已经完成了所有任务！"
+    "allCaughtUp": "您已经完成了所有任务！",
+    "stats": "统计"
   },
   "todayFocus": {
     "title": "今日重点",
@@ -63,7 +64,53 @@
     "completed": "已完成",
     "attachedFiles": "附件",
     "weeklyPlan": "每周计划",
-    "noPlanYet": "暂无计划"
+    "noPlanYet": "暂无计划",
+    "title": "标题",
+    "subject": "科目",
+    "priority": "优先级",
+    "estimatedTime": "预估时间"
+  },
+  "camera": {
+    "title": "拍照添加作业",
+    "description": "拍照或上传作业图片，AI自动识别",
+    "upload": "上传图片",
+    "takePhoto": "拍照",
+    "dropzone": "点击或拖拽上传作业图片",
+    "supportedFormats": "支持 JPG, PNG, WEBP 格式",
+    "retake": "重拍",
+    "recognizing": "识别中...",
+    "startRecognition": "开始识别",
+    "recognizedText": "识别结果",
+    "parsedInfo": "解析信息",
+    "suggestedSchedule": "建议学习计划",
+    "creating": "创建中...",
+    "createTask": "创建任务",
+    "errorNoCamera": "无法访问相机，请使用上传功能",
+    "errorFileTooLarge": "文件大小不能超过10MB",
+    "errorOCR": "识别失败，请重试",
+    "errorCreateTask": "创建任务失败",
+    "ocrPrompt": "请识别这张作业图片中的所有文字内容，包括题目、要求、截止时间等信息。请以纯文本格式返回识别结果，保持原有格式。"
+  },
+  "stats": {
+    "loading": "加载中...",
+    "error": "加载统计失败",
+    "totalTasks": "总任务",
+    "completed": "已完成",
+    "weeklyCompleted": "本周完成",
+    "overdue": "已逾期",
+    "timeEstimates": "时间预估准确度",
+    "accuracy": "准确度",
+    "totalEstimated": "总预估时间",
+    "totalActual": "总实际时间",
+    "subjectDistribution": "科目分布",
+    "priorityDistribution": "优先级分布",
+    "procrastination": "拖延分析",
+    "dueAt": "截止"
+  },
+  "priority": {
+    "high": "高",
+    "medium": "中",
+    "low": "低"
   },
   "mindmap": {
     "title": "思维导图",

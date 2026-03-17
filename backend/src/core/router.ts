@@ -8,6 +8,10 @@ import { transcriberRoutes } from "./routes/transcriber";
 import { plannerRoutes } from "./routes/planner";
 import { debateRoutes } from "./routes/debate";
 import { companionRoutes } from "./routes/companion";
+import { materialsRoutes } from "./routes/materials";
+import { learningRoutes } from "./routes/learning";
+import { reviewRoutes } from "./routes/reviews";
+import { reportRoutes } from "./routes/reports";
 
 export function registerRoutes(app: any) {
   chatRoutes(app);
@@ -20,4 +24,8 @@ export function registerRoutes(app: any) {
   plannerRoutes(app);
   debateRoutes(app);
   companionRoutes(app);
+  materialsRoutes(app);
+  learningRoutes(app);
+  reviewRoutes(app);
+  reportRoutes(app);
 }

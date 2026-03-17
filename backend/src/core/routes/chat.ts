@@ -113,13 +113,25 @@ export function chatRoutes(app: any) {
             history: relevantHistory,
           });
 
+          console.log('[chat] Answer received, sending to frontend via WebSocket');
           await addMsg(id, {
             role: "assistant",
             content: answer,
             at: Date.now(),
           });
           emitToAll(chatSockets.get(id), { type: "answer", answer });
+
+          // Emit materials if generated
+          if (answer?.materials) {
+            console.log('[chat] Emitting generated materials');
+            emitToAll(chatSockets.get(id), {
+              type: "materials",
+              materials: answer.materials
+            });
+          }
+
           emitToAll(chatSockets.get(id), { type: "done" });
+          console.log('[chat] WebSocket messages sent');
         } catch (err: any) {
           const msg = err?.message || "failed";
           const stack = err?.stack || String(err);

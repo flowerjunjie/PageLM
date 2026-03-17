@@ -15,8 +15,11 @@ export const makeLLM: MkLLM = (cfg: any) => {
 }
 
 export const makeEmbeddings: MkEmb = (cfg: any): EmbeddingsLike => {
+  const apiKey = cfg.gemini || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY
+  console.log('[gemini] Initializing embeddings with model:', cfg.gemini_embed_model || 'embedding-001')
+  console.log('[gemini] API Key:', apiKey ? '已设置 (' + apiKey.slice(0, 10) + '...)' : '未设置')
   return new GoogleGenerativeAIEmbeddings({
-    model: cfg.gemini_embed_model || 'text-embedding-004',
-    apiKey: cfg.gemini || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY,
+    model: cfg.gemini_embed_model || 'embedding-001',
+    apiKey,
   })
 }

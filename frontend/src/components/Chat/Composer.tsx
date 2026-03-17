@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
 export default function Composer({ disabled, loading = false, onSend }: Props) {
   const { t } = useTranslation("chat");
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [isComposing, setIsComposing] = useState(false);
 
   useEffect(() => {
     const el = inputRef.current;
@@ -47,8 +48,10 @@ export default function Composer({ disabled, loading = false, onSend }: Props) {
             placeholder={t("composer.placeholder")}
             rows={1}
             className="w-full text-stone-200 bg-transparent rounded-3xl p-4 pl-2 pr-20 outline-none resize-none overflow-y-auto max-h-64 min-h-[2.5rem]"
+            onCompositionStart={() => setIsComposing(true)}
+            onCompositionEnd={() => setIsComposing(false)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (e.key === "Enter" && !e.shiftKey && !isComposing) {
                 e.preventDefault();
                 if (!disabled) send();
               }

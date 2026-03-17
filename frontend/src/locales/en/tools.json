@@ -44,6 +44,7 @@
       "connected": "Connected, generating...",
       "status": "Status",
       "scriptGenerated": "Script generated, creating audio...",
+      "audioProgress": "Generating audio segment {{current}}/{{total}}",
       "audioReady": "Ready - Audio file is ready!",
       "done": "Done",
       "error": "Error",

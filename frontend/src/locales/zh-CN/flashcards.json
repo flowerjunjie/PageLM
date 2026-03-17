@@ -3,5 +3,14 @@
   "clearAll": "全部清除",
   "empty": "你的包是空的。从聊天中添加抽认卡或笔记。",
   "note": "笔记",
-  "flashcard": "抽认卡"
+  "flashcard": "抽认卡",
+  "ariaLabels": {
+    "back": "返回",
+    "delete": "删除抽认卡"
+  },
+  "errors": {
+    "loadFailed": "加载抽认卡失败",
+    "deleteFailed": "删除抽认卡失败",
+    "clearFailed": "清除抽认卡失败"
+  }
 }

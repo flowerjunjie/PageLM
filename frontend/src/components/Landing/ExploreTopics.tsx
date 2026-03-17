@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { env } from "../../config/env";
 
 export default function ExploreTopics({ busy: externalBusy = false }: { busy?: boolean }) {
-  const { t } = useTranslation('landing');
+  const { t } = useTranslation(['landing', 'common']);
   const [open, setOpen] = useState(false);
   const [internalBusy, setInternalBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,24 +14,24 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
   const busy = externalBusy || internalBusy;
 
   const mainTopics = [
-    { key: "mathematics", img: "mathematics" },
-    { key: "literature", img: "english" },
-    { key: "science", img: "science" },
+    { key: "mathematics", img: "mathematics.webp" },
+    { key: "literature", img: "english.jpg" },
+    { key: "science", img: "science.webp" },
   ];
 
   const moreRows = useMemo(
     () => [
-      [{ key: "history", img: "history" }, { key: "geography", img: "geography" }, { key: "music", img: "music" }],
-      [{ key: "art", img: "art" }, { key: "technology", img: "technology" }, { key: "philosophy", img: "philosophy" }],
+      [{ key: "history", img: "history.avif" }, { key: "geography", img: "geography.avif" }, { key: "music", img: "music.avif" }],
+      [{ key: "art", img: "art.jpg" }, { key: "technology", img: "technology.jpg" }, { key: "philosophy", img: "philosophy.avif" }],
     ],
     []
   );
 
-  const imgSrc = (imgKey: string) => `/pictures/${encodeURIComponent(imgKey)}.png`;
+  const imgSrc = (imgFile: string) => `/pictures/${imgFile}`;
 
   const promptFor = (topicKey: string, topicName: string) => {
-    // Use a default English prompt template that will be sent to the AI
-    return `Give me a clear, beginner-friendly lesson on ${topicName}`;
+    // 使用中文提示词模板
+    return `给我一份关于${topicName}的清晰、适合初学者的教程`;
   };
 
   const startTopic = async (topicKey: string) => {
@@ -42,29 +42,23 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
       const topicName = t(`exploreTopics.${topicKey}`);
       const q = promptFor(topicKey, topicName);
 
-      // Debug logging
-      console.log('Starting topic:', { topicKey, topicName, backendUrl: env.backend });
-
       const r = await chatJSON({ q });
-      console.log('API response:', r);
 
       if (r.ok && r.chatId) {
         navigate(`/chat?chatId=${encodeURIComponent(r.chatId)}&q=${encodeURIComponent(q)}`, {
           state: { chatId: r.chatId, q },
         });
       } else {
-        console.error('API error:', r);
         setError(t('exploreTopics.error', { defaultValue: 'Failed to start chat. Please try again.' }));
       }
     } catch (err) {
-      console.error('Failed to start topic:', err);
       setError(t('exploreTopics.networkError'));
     } finally {
       setInternalBusy(false);
     }
   };
 
-  const Card = ({ topicKey, imgKey, extra }: { topicKey: string; imgKey: string; extra?: string }) => {
+  const Card = ({ topicKey, imgFile, extra }: { topicKey: string; imgFile: string; extra?: string }) => {
     const title = t(`exploreTopics.${topicKey}`);
     const startLabel = busy ? t('promptRail.starting') : t('exploreTopics.starting', { title });
     return (
@@ -77,9 +71,9 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
                     focus:outline-none focus:ring-2 focus:ring-stone-700 disabled:opacity-60 ${extra || ""}`}
         title={startLabel}
       >
-        <img src={imgSrc(imgKey)} alt={title} className="w-full h-full rounded-3xl object-cover" draggable={false} />
+        <img src={imgSrc(imgFile)} alt={title} className="w-full h-full rounded-3xl object-cover" draggable={false} />
         <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-transparent to-black" />
-        <div className="absolute right-0 bottom-0 pr-4 pb-4 text-stone-200 text-xl sm:text-2xl">{title}</div>
+        <div className="absolute right-0 bottom-0 pr-4 pb-4 text-stone-200 text-xl sm:text-2xl font-medium tracking-wide" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{title}</div>
       </button>
     );
   };
@@ -114,14 +108,14 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
               onClick={() => setError(null)}
               className="ml-2 text-red-300 hover:text-red-100 underline"
             >
-              {t('common.close')}
+              {t('close', { ns: 'common' })}
             </button>
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-          <Card key={mainTopics[0].key} topicKey={mainTopics[0].key} imgKey={mainTopics[0].img} />
-          <Card key={mainTopics[1].key} topicKey={mainTopics[1].key} imgKey={mainTopics[1].img} />
-          <Card key={mainTopics[2].key} topicKey={mainTopics[2].key} imgKey={mainTopics[2].img} extra="col-span-1 sm:col-span-2 lg:col-span-1" />
+          <Card key={mainTopics[0].key} topicKey={mainTopics[0].key} imgFile={mainTopics[0].img} />
+          <Card key={mainTopics[1].key} topicKey={mainTopics[1].key} imgFile={mainTopics[1].img} />
+          <Card key={mainTopics[2].key} topicKey={mainTopics[2].key} imgFile={mainTopics[2].img} extra="col-span-1 sm:col-span-2 lg:col-span-1" />
         </div>
 
         <div
@@ -134,7 +128,7 @@ export default function ExploreTopics({ busy: externalBusy = false }: { busy?: b
           {moreRows.map((row, i) => (
             <div key={i} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               {row.map((topic) => (
-                <Card key={topic.key} topicKey={topic.key} imgKey={topic.img} extra={topic === row[2] ? "col-span-1 sm:col-span-2 lg:col-span-1" : ""} />
+                <Card key={topic.key} topicKey={topic.key} imgFile={topic.img} extra={topic === row[2] ? "col-span-1 sm:col-span-2 lg:col-span-1" : ""} />
               ))}
             </div>
           ))}

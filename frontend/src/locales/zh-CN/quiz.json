@@ -10,8 +10,10 @@
     "question": "问题",
     "of": "共",
     "generating": "生成测验中...",
-    "errorGenerating": "生成测验时出错。请重试。"
+    "errorGenerating": "生成测验时出错。请重试。",
+    "noAnswersYet": "暂无答案。"
   },
+  "status": "状态",
   "header": {
     "testYourKnowledge": "用{{count}}道题测试您的知识",
     "question": "第{{current}}题，共{{total}}题",

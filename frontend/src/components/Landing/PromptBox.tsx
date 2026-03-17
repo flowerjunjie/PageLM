@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 type Props = {
@@ -15,6 +15,7 @@ export default function PromptBox({
   busy,
 }: Props) {
   const { t } = useTranslation(['landing', 'common']);
+  const [isComposing, setIsComposing] = useState(false);
 
   return (
     <div
@@ -27,8 +28,10 @@ export default function PromptBox({
           className="w-full text-stone-200 bg-transparent rounded-2xl p-2.5 outline-none resize-none leading-6 min-h-[40px]"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onCompositionStart={() => setIsComposing(true)}
+          onCompositionEnd={() => setIsComposing(false)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && !isComposing) {
               e.preventDefault();
               onSend();
             }

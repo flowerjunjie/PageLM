@@ -19,7 +19,7 @@ function takeQuizArray(a: unknown): Question[] {
 }
 
 export default function Quiz() {
-  const { t } = useTranslation('quiz');
+  const { t } = useTranslation(['quiz', 'common']);
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation() as any;

@@ -7,11 +7,11 @@
   "contactSupport": "联系客服",
   "quickStart": {
     "title": "快速入门",
-    "description": "快速了解如何使用 PageLM 开始学习"
+    "description": "快速了解如何使用灵犀开始学习"
   },
   "features": {
     "title": "功能介绍",
-    "description": "了解 PageLM 的各种功能"
+    "description": "了解灵犀的各种功能"
   },
   "faq": {
     "title": "常见问题",
@@ -75,7 +75,7 @@
     },
     "contactSupport": {
       "question": "如何联系客服？",
-      "answer": "点击页面底部的'联系客服'按钮，或发送邮件到 support@pagelm.com"
+      "answer": "点击页面底部的'联系客服'按钮，或发送邮件到 flowerjunjie@163.com"
     }
   }
 }

@@ -69,7 +69,10 @@
     "openDocumentToStart": "打开文档以开始",
     "send": "发送",
     "contextLinked": "已关联上下文",
-    "noDocument": "无文档"
+    "noDocument": "无文档",
+    "hint": "需要快速摘要、测验或解释？询问关于当前文档的任何内容，我会保持在相关上下文中。",
+    "thinking": "思考中...",
+    "studyCompanion": "学习助手"
   },
   "connectionStatus": {
     "disconnected": "断开连接",
@@ -81,11 +84,6 @@
     "quiz": "做个快速测验",
     "explain": "像初学者一样解释"
   },
-  "companion": {
-    "hint": "需要快速摘要、测验或解释？询问关于当前文档的任何内容，我会保持在相关上下文中。",
-    "thinking": "思考中...",
-    "studyCompanion": "学习助手"
-  },
   "page404": {
     "heading": "抱歉！学习会话已中断",
     "description": "您查找的页面正在休息。让我们回到学习状态吧！",
@@ -93,5 +91,79 @@
     "chatLink": "聊天",
     "quizLink": "测验",
     "quote": "每个错误都是学习的机会"
+  },
+  "modelToolbar": {
+    "model": "模型",
+    "fileSelected": "已选择文件",
+    "addFiles": "添加文件",
+    "clickOrDrop": "点击或拖放",
+    "difficulty": "难度",
+    "intermediate": "中等"
+  },
+  "notifications": {
+    "taskCreated": "任务 \"{{title}}\" 已创建",
+    "taskDeleted": "任务已删除",
+    "filesUploaded": "{{count}} 个文件已上传",
+    "studySessionStarted": "学习会话已开始",
+    "sessionCompleted": "会话已完成：{{minutes}} 分钟",
+    "taskPlannedSuccessfully": "任务规划成功",
+    "failedToPlanTask": "任务规划失败：",
+    "failedToUploadFile": "文件上传失败",
+    "failedToDeleteFile": "文件删除失败",
+    "homeworkReminder": "作业提醒",
+    "failedToContactCompanion": "无法联系助手",
+    "enabled": "通知已启用",
+    "testMessage": "您将收到作业截止提醒",
+    "statusEnabled": "通知已启用",
+    "statusDenied": "通知被阻止",
+    "statusDefault": "通知未启用",
+    "enabledDescription": "您将收到作业提醒",
+    "deniedDescription": "请在浏览器设置中允许通知",
+    "defaultDescription": "启用通知以接收作业提醒",
+    "enable": "启用",
+    "settings": "设置",
+    "browserNotifications": "浏览器通知",
+    "browserDescription": "在浏览器中显示通知",
+    "sound": "提示音",
+    "soundDescription": "收到通知时播放提示音",
+    "reminderTimes": "提醒时间",
+    "hoursBefore": "小时前",
+    "test": "发送测试通知",
+    "testTitle": "测试通知",
+    "testBody": "这是一条测试通知",
+    "recent": "最近通知",
+    "notSupported": "您的浏览器不支持通知功能"
+  },
+  "learningModes": {
+    "heading": "选择你的学习模式",
+    "subheading": "根据当前学习需求，选择最适合的工具",
+    "preview": {
+      "title": "新课预习",
+      "description": "生成知识框架，提前了解重点"
+    },
+    "notes": {
+      "title": "课堂笔记",
+      "description": "整理笔记并生成记忆卡片"
+    },
+    "quiz": {
+      "title": "课后测验",
+      "description": "检验理解程度，巩固知识"
+    },
+    "podcast": {
+      "title": "知识播客",
+      "description": "碎片时间复习，随时听学"
+    },
+    "planner": {
+      "title": "作业规划",
+      "description": "分解任务，定时提醒"
+    },
+    "chat": {
+      "title": "自由提问",
+      "description": "AI对话，解答任何疑问"
+    }
+  },
+  "quickInput": {
+    "show": "快速输入",
+    "hide": "收起输入"
   }
 }

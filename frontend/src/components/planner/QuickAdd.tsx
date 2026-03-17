@@ -11,6 +11,7 @@ export default function QuickAdd({ onAdd, loading }: QuickAddProps) {
     const [text, setText] = useState("")
     const [selectedFiles, setSelectedFiles] = useState<File[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const [isComposing, setIsComposing] = useState(false)
 
     const handleSubmit = async () => {
         if (!text.trim() && selectedFiles.length === 0) return
@@ -44,9 +45,11 @@ export default function QuickAdd({ onAdd, loading }: QuickAddProps) {
                     <input
                         value={text}
                         onChange={e => setText(e.target.value)}
+                        onCompositionStart={() => setIsComposing(true)}
+                        onCompositionEnd={() => setIsComposing(false)}
                         placeholder={t('quickAdd.placeholder')}
                         className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-200 placeholder:text-zinc-500 outline-none focus:ring-1 focus:ring-zinc-700"
-                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSubmit()}
+                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && !isComposing && handleSubmit()}
                     />
                     <input
                         ref={fileInputRef}

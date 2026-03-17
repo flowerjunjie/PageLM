@@ -1,0 +1,187 @@
+{
+  "title": "灵犀AI学习系统2.0升级",
+  "description": "从通用AI对话工具升级为完整AI学习系统，实现与豆包等产品的差异化定位",
+  "version": "2.0.0",
+  "phases": [
+    {
+      "id": 1,
+      "name": "首页界面重构",
+      "priority": "high",
+      "estimated_hours": 8,
+      "dependencies": [],
+      "tasks": [
+        {
+          "id": "1.1",
+          "title": "隐藏中央大输入框",
+          "file": "frontend/src/pages/Landing.tsx",
+          "description": "将现有大输入框改为辅助入口，不再是视觉焦点"
+        },
+        {
+          "id": "1.2",
+          "title": "创建学习模式选择卡片网格",
+          "file": "frontend/src/components/LearningModeSelector.tsx",
+          "description": "6个学习模式卡片：新课预习、课堂笔记、课后测验、知识播客、作业规划、自由提问"
+        },
+        {
+          "id": "1.3",
+          "title": "添加学习模式路由",
+          "file": "frontend/src/App.tsx",
+          "description": "为每个学习模式创建独立路由和入口"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "学习资料强制生成",
+      "priority": "high",
+      "estimated_hours": 12,
+      "dependencies": [1],
+      "tasks": [
+        {
+          "id": "2.1",
+          "title": "后端生成学习资料API",
+          "file": "backend/src/lib/ai/learning-materials.ts",
+          "description": "创建函数自动生成记忆卡片、笔记摘要、测验题目"
+        },
+        {
+          "id": "2.2",
+          "title": "修改AI回答流程",
+          "file": "backend/src/lib/ai/ask.ts",
+          "description": "handleAsk后自动调用资料生成"
+        },
+        {
+          "id": "2.3",
+          "title": "前端展示已生成资料",
+          "file": "frontend/src/components/Chat/GeneratedMaterials.tsx",
+          "description": "在聊天界面显示已生成的卡片/笔记/测验入口"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "学习档案与知识地图",
+      "priority": "medium",
+      "estimated_hours": 16,
+      "dependencies": [2],
+      "tasks": [
+        {
+          "id": "3.1",
+          "title": "学习统计API",
+          "file": "backend/src/core/routes/learning.ts",
+          "description": "统计学习时长、知识点数量、卡片数量等"
+        },
+        {
+          "id": "3.2",
+          "title": "知识地图可视化",
+          "file": "frontend/src/components/KnowledgeMap.tsx",
+          "description": "使用D3.js或ECharts实现知识网络图"
+        },
+        {
+          "id": "3.3",
+          "title": "学习档案页面",
+          "file": "frontend/src/pages/LearningProfile.tsx",
+          "description": "个人学习数据中心"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "遗忘曲线复习系统",
+      "priority": "medium",
+      "estimated_hours": 14,
+      "dependencies": [2],
+      "tasks": [
+        {
+          "id": "4.1",
+          "title": "复习调度服务",
+          "file": "backend/src/services/spaced-repetition.ts",
+          "description": "SM-2算法实现，计算下次复习时间"
+        },
+        {
+          "id": "4.2",
+          "title": "复习提醒组件",
+          "file": "frontend/src/components/ReviewReminder.tsx",
+          "description": "今日待复习列表和推送通知"
+        },
+        {
+          "id": "4.3",
+          "title": "复习界面",
+          "file": "frontend/src/pages/Review.tsx",
+          "description": "卡片复习交互界面（类似Anki）"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "学习周报系统",
+      "priority": "medium",
+      "estimated_hours": 10,
+      "dependencies": [3],
+      "tasks": [
+        {
+          "id": "5.1",
+          "title": "周报生成API",
+          "file": "backend/src/core/routes/reports.ts",
+          "description": "聚合一周学习数据生成报告"
+        },
+        {
+          "id": "5.2",
+          "title": "周报页面",
+          "file": "frontend/src/pages/WeeklyReport.tsx",
+          "description": "可视化周报，支持分享"
+        },
+        {
+          "id": "5.3",
+          "title": "家长端查看页面",
+          "file": "frontend/src/pages/ParentView.tsx",
+          "description": "只读视图，显示学习数据不含聊天记录"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Planner作业规划增强",
+      "priority": "low",
+      "estimated_hours": 12,
+      "dependencies": [1],
+      "tasks": [
+        {
+          "id": "6.1",
+          "title": "作业拍照OCR",
+          "file": "backend/src/services/ocr.ts",
+          "description": "识别作业图片并分解任务"
+        },
+        {
+          "id": "6.2",
+          "title": "增强Planner组件",
+          "file": "frontend/src/components/planner/Planner.tsx",
+          "description": "学科分类、时间预估、优先级"
+        },
+        {
+          "id": "6.3",
+          "title": "定时提醒系统",
+          "file": "backend/src/services/notifications.ts",
+          "description": "浏览器通知和推送"
+        }
+      ]
+    }
+  ],
+  "acceptance_criteria": [
+    "用户首次进入看到学习模式选择，而非大输入框",
+    "每次AI对话后自动生成至少3张记忆卡片",
+    "学习档案页面显示知识地图和学习统计",
+    "系统根据遗忘曲线推送复习提醒",
+    "每周一生成学习周报，可分享给家长",
+    "家长端只能看到学习数据，看不到聊天记录"
+  ],
+  "technical_requirements": {
+    "frontend": ["React", "TypeScript", "Tailwind CSS", "ECharts/D3.js", "React Router"],
+    "backend": ["Node.js", "Express", "DeepSeek API", "阿里云Embeddings"],
+    "database": ["JSON文件存储 (现有)", "可选：迁移到PostgreSQL"]
+  },
+  "notes": [
+    "保留原有聊天功能作为'自由提问'模式",
+    "所有新功能必须与现有DeepSeek + 阿里云Embeddings配置兼容",
+    "数据模型扩展时需考虑向后兼容"
+  ]
+}

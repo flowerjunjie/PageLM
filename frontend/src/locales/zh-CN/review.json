@@ -1,0 +1,49 @@
+{
+  "title": "复习卡片",
+  "loading": "正在加载复习任务...",
+  "close": "关闭",
+  "progress": "第 {{current}} / {{total}} 张",
+  "clickToFlip": "点击查看答案",
+  "ratings": {
+    "blackout": "忘记",
+    "hard": "困难",
+    "good": "记得",
+    "easy": "简单"
+  },
+  "legend": {
+    "blackout": "1分钟后",
+    "hard": "10分钟后",
+    "good": "正常间隔",
+    "easy": "延长间隔"
+  },
+  "header": {
+    "stats": "待复习: {{due}} | 已完成: {{completed}}"
+  },
+  "completed": {
+    "title": "全部完成！",
+    "message": "你已经完成了今天的所有复习任务，太棒了！",
+    "back": "返回首页"
+  },
+  "stats": {
+    "completedToday": "今日完成",
+    "streak": "连续天数"
+  },
+  "error": {
+    "title": "出错了",
+    "retry": "重试"
+  },
+  "tips": {
+    "srs": "使用 SM-2 算法优化记忆效果"
+  },
+  "reminder": {
+    "title": "该复习了！",
+    "dueToday": "今日待复习 {{count}} 张",
+    "completed": "已完成 {{count}} 张",
+    "streak": "连续 {{count}} 天",
+    "start": "开始复习"
+  },
+  "notification": {
+    "title": "复习提醒",
+    "body": "你有 {{count}} 张记忆卡片需要复习"
+  }
+}

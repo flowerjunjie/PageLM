@@ -176,7 +176,7 @@ export default function Help() {
           <div className="bg-stone-950/50 border border-stone-800 rounded-xl p-6 text-center">
             <p className="text-stone-400 mb-4">{t("faq.contactSupport.answer")}</p>
             <a
-              href="mailto:support@pagelm.com"
+              href="mailto:flowerjunjie@163.com"
               className="inline-flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 rounded-xl font-medium transition-colors"
             >
               <svg className="size-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">

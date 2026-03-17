@@ -1,0 +1,78 @@
+{
+  "title": "学习周报",
+  "subtitle": "追踪你的学习进度和成就",
+  "parentView": {
+    "title": "学生学习报告",
+    "subtitle": "每周学习进度概览",
+    "disclaimer": "本报告仅包含学习统计数据，不包含任何对话内容。",
+    "studentLabel": "学生",
+    "weekLabel": "周次",
+    "generatedAt": "生成时间"
+  },
+  "weekSelector": {
+    "label": "选择周次",
+    "thisWeek": "本周",
+    "lastWeek": "上周",
+    "custom": "自定义"
+  },
+  "summary": {
+    "title": "本周概览",
+    "studyTime": "学习时长",
+    "studyDays": "学习天数",
+    "newTopics": "新增知识点",
+    "flashcards": "记忆卡片",
+    "notes": "笔记",
+    "quizzes": "测验",
+    "accuracy": "正确率",
+    "minutes": "分钟",
+    "days": "天",
+    "cards": "张",
+    "items": "条"
+  },
+  "charts": {
+    "studyTimeTrend": "学习时长趋势",
+    "subjectDistribution": "学科分布",
+    "accuracyTrend": "测验正确率趋势",
+    "dailyAverage": "日均",
+    "minutes": "分钟",
+    "correctRate": "正确率"
+  },
+  "comparison": {
+    "title": "环比数据",
+    "studyTimeChange": "学习时长",
+    "accuracyChange": "正确率",
+    "increase": "+{{value}}%",
+    "decrease": "{{value}}%",
+    "noChange": "无变化"
+  },
+  "weakAreas": {
+    "title": "薄弱环节",
+    "description": "重点关注这些知识点以提升理解",
+    "empty": "太棒了！本周没有发现薄弱环节。",
+    "topic": "知识点"
+  },
+  "suggestions": {
+    "title": "学习建议",
+    "description": "基于你的学习进度提供的个性化建议"
+  },
+  "share": {
+    "title": "分享报告",
+    "description": "生成可分享给家长或老师的链接",
+    "button": "分享报告",
+    "generate": "生成链接",
+    "copy": "复制链接",
+    "copied": "已复制！",
+    "qrCode": "二维码",
+    "expiresIn": "链接7天后过期",
+    "close": "关闭",
+    "success": "分享链接创建成功"
+  },
+  "errors": {
+    "loadFailed": "加载报告失败",
+    "shareFailed": "创建分享链接失败",
+    "invalidWeek": "周次格式无效",
+    "expiredLink": "此分享链接已过期"
+  },
+  "loading": "加载报告中...",
+  "noData": "本周暂无学习数据。开始学习，生成你的第一份周报吧！"
+}

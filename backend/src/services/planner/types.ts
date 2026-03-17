@@ -2,6 +2,18 @@ export type TaskStatus = "todo" | "doing" | "done" | "blocked"
 
 export type TaskType = "homework" | "project" | "lab" | "essay" | "exam"
 
+export type Subject = "physics" | "chemistry" | "biology" | "math" | "english" | "other"
+
+export type Priority = "high" | "medium" | "low"
+
+export type ReminderType = "browser" | "email"
+
+export type Reminder = {
+    type: ReminderType
+    time: number  // timestamp when reminder should fire
+    sent?: boolean
+}
+
 export type PlanPolicy = {
     pomodoroMins: number // 25 default
     breakMins: number // 5 default
@@ -55,6 +67,11 @@ export type Task = {
     tags?: string[]
     rubric?: string
     files?: TaskFile[]
+    // Phase 6: Enhanced task fields
+    subject?: Subject
+    actualMins?: number      // Actual time spent on task
+    relatedTopics?: string[] // Related knowledge topics
+    reminders?: Reminder[]   // Scheduled reminders
 }
 
 export type Plan = {
@@ -77,6 +94,11 @@ export type CreateTaskRequest = {
     estMins?: number
     priority?: 1 | 2 | 3 | 4 | 5
     files?: any[] // File objects from multer
+    // Phase 6: Enhanced fields
+    subject?: Subject
+    actualMins?: number
+    relatedTopics?: string[]
+    reminders?: Reminder[]
 }
 
 export type UpdateTaskRequest = Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt'>>
@@ -87,4 +109,29 @@ export type PlannerGenerateRequest = {
 
 export type MaterialsRequest = {
     type: "summary" | "studyGuide" | "flashcards" | "quiz"
+}
+
+// Phase 6: Homework parsing types
+export type ParsedHomework = {
+    title: string
+    subject?: Subject
+    type?: TaskType
+    dueAt?: string
+    estMins?: number
+    priority?: Priority
+    description?: string
+    steps?: string[]
+    relatedTopics?: string[]
+}
+
+export type HomeworkParseResult = {
+    success: boolean
+    homework: ParsedHomework
+    schedule?: {
+        date: string
+        timeRange: string
+        task: string
+        estimatedMinutes: number
+    }[]
+    error?: string
 }

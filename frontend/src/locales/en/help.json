@@ -7,11 +7,11 @@
   "contactSupport": "Contact Support",
   "quickStart": {
     "title": "Quick Start",
-    "description": "Get started with PageLM quickly"
+    "description": "Get started with Lingxi quickly"
   },
   "features": {
     "title": "Features",
-    "description": "Learn about PageLM features"
+    "description": "Learn about Lingxi features"
   },
   "faq": {
     "title": "FAQ",
@@ -75,7 +75,7 @@
     },
     "contactSupport": {
       "question": "How to contact support?",
-      "answer": "Click the 'Contact Support' button at the bottom of the page, or email support@pagelm.com"
+      "answer": "Click the 'Contact Support' button at the bottom of the page, or email flowerjunjie@163.com"
     }
   }
 }

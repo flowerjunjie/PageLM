@@ -3,11 +3,50 @@ import { useTranslation } from "react-i18next"
 import PlannerMindmap from "./PlannerMindmap"
 import TodayFocus from "./TodayFocus"
 import QuickAdd from "./QuickAdd"
+import HomeworkCamera from "./HomeworkCamera"
+import PlannerStats from "./PlannerStats"
 import { connectPlannerStream, plannerDelete, plannerIngest, plannerList, plannerMaterials, plannerPlan, plannerUpdate, plannerWeekly, plannerCreateWithFiles, plannerUploadFiles, plannerDeleteFile, type PlannerEvent, type PlannerSlot, type PlannerTask, type WeeklyPlan } from "../../lib/api"
 
 function fmtTime(ts: number) {
     const d = new Date(ts)
     return d.toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+}
+
+// Subject color mapping
+const SUBJECT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+    physics: { bg: "bg-blue-900/30", text: "text-blue-300", border: "border-blue-700" },
+    chemistry: { bg: "bg-purple-900/30", text: "text-purple-300", border: "border-purple-700" },
+    biology: { bg: "bg-green-900/30", text: "text-green-300", border: "border-green-700" },
+    math: { bg: "bg-orange-900/30", text: "text-orange-300", border: "border-orange-700" },
+    english: { bg: "bg-pink-900/30", text: "text-pink-300", border: "border-pink-700" },
+    other: { bg: "bg-gray-800/50", text: "text-gray-300", border: "border-gray-600" }
+}
+
+// Priority badge component
+function PriorityBadge({ priority }: { priority: number }) {
+    const config = priority >= 4
+        ? { color: "bg-red-600", label: "High" }
+        : priority >= 2
+            ? { color: "bg-yellow-600", label: "Medium" }
+            : { color: "bg-green-600", label: "Low" }
+
+    return (
+        <span className={`${config.color} text-white text-[10px] px-1.5 py-0.5 rounded font-medium`}>
+            {config.label}
+        </span>
+    )
+}
+
+// Subject badge component
+function SubjectBadge({ subject }: { subject?: string }) {
+    const colors = SUBJECT_COLORS[subject || "other"]
+    const label = subject ? subject.charAt(0).toUpperCase() + subject.slice(1) : "Other"
+
+    return (
+        <span className={`${colors.bg} ${colors.text} ${colors.border} border text-[10px] px-1.5 py-0.5 rounded font-medium`}>
+            {label}
+        </span>
+    )
 }
 
 function DaySlots({ date, slots, tasks }: { date: string; slots: PlannerSlot[]; tasks: Record<string, PlannerTask> }) {
@@ -40,7 +79,8 @@ export default function Planner() {
     const [materials, setMaterials] = useState<Record<string, any>>({})
     const [loadingStates, setLoadingStates] = useState<Record<string, { plan?: boolean; summary?: boolean; flashcards?: boolean }>>({})
     const wsRef = useRef<ReturnType<typeof connectPlannerStream> | null>(null)
-    const [view, setView] = useState<"today" | "list" | "mindmap">("today")
+    const [view, setView] = useState<"today" | "list" | "mindmap" | "stats">("today")
+    const [showCamera, setShowCamera] = useState(false)
     const [selectedFiles, setSelectedFiles] = useState<File[]>([])
     const [notifications, setNotifications] = useState<Array<{ id: string; type: string; message: string; at: number }>>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -79,18 +119,18 @@ export default function Planner() {
             }
             if (ev.type === "task.created") {
                 setTasks(t => [ev.task, ...t.filter(x => x.id !== ev.task.id)])
-                addNotification("success", `Task "${ev.task.title}" created`)
+                addNotification("success", translate("notifications.taskCreated", { title: ev.task.title }))
             }
             if (ev.type === "task.updated") {
                 setTasks(t => t.map(x => x.id === ev.task.id ? ev.task : x))
             }
             if (ev.type === "task.deleted") {
                 setTasks(t => t.filter(x => x.id !== ev.taskId))
-                addNotification("info", "Task deleted")
+                addNotification("info", translate("notifications.taskDeleted"))
             }
             if (ev.type === "task.files.added") {
                 setTasks(t => t.map(x => x.id === ev.taskId ? { ...x, files: [...(x.files || []), ...ev.files] } : x))
-                addNotification("success", `${ev.files.length} file(s) uploaded`)
+                addNotification("success", translate("notifications.filesUploaded", { count: ev.files.length }))
             }
             if (ev.type === "task.file.removed") {
                 setTasks(t => t.map(x => x.id === ev.taskId ? { ...x, files: (x.files || []).filter(f => f.id !== ev.fileId) } : x))
@@ -101,7 +141,7 @@ export default function Planner() {
             if (ev.type === "reminder") {
                 addNotification("reminder", ev.text)
                 if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification('Homework Reminder', { body: ev.text })
+                    new Notification(translate("notifications.homeworkReminder"), { body: ev.text })
                 }
             }
             if (ev.type === "break.reminder") {
@@ -111,10 +151,10 @@ export default function Planner() {
                 addNotification("info", ev.message)
             }
             if (ev.type === "session.started") {
-                addNotification("success", "Study session started")
+                addNotification("success", translate("notifications.studySessionStarted"))
             }
             if (ev.type === "session.ended") {
-                addNotification("success", `Session completed: ${ev.session.minutesWorked} minutes`)
+                addNotification("success", translate("notifications.sessionCompleted", { minutes: ev.session.minutesWorked }))
             }
             if (ev.type === "materials.chunk") {
                 setMaterials(m => ({ ...m, _chunks: [...(m._chunks || []), ev] }))
@@ -190,17 +230,14 @@ export default function Planner() {
     const planTask = async (id: string) => {
         setLoadingStates(prev => ({ ...prev, [id]: { ...prev[id], plan: true } }))
         try {
-            console.log('Planning task:', id)
             const result = await plannerPlan(id, false)
-            console.log('Plan result:', result)
             const { task } = result
             setTasks(t => t.map(x => x.id === id ? task as any : x))
             const wp = await plannerWeekly(false)
             setPlan(wp.plan)
-            addNotification("success", "Task planned successfully")
+            addNotification("success", translate("notifications.taskPlannedSuccessfully"))
         } catch (error) {
-            console.error('Plan task error:', error)
-            addNotification("error", "Failed to plan task: " + (error as any)?.message)
+            addNotification("error", translate("notifications.failedToPlanTask") + (error as any)?.message)
         } finally {
             setLoadingStates(prev => ({ ...prev, [id]: { ...prev[id], plan: false } }))
         }
@@ -221,7 +258,7 @@ export default function Planner() {
             await plannerUploadFiles(id, [file])
             // Files will be updated via WebSocket event
         } catch (e) {
-            addNotification("error", "Failed to upload file")
+            addNotification("error", translate("notifications.failedToUploadFile"))
         }
     }
 
@@ -230,7 +267,7 @@ export default function Planner() {
             await plannerDeleteFile(taskId, fileId)
             // File removal will be updated via WebSocket event
         } catch (e) {
-            addNotification("error", "Failed to delete file")
+            addNotification("error", translate("notifications.failedToDeleteFile"))
         }
     }
 
@@ -276,6 +313,7 @@ export default function Planner() {
                         <button onClick={() => setView("today")} className={`px-2 py-1 ${view === 'today' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}`}>{translate('planner.todayFocus')}</button>
                         <button onClick={() => setView("list")} className={`px-2 py-1 ${view === 'list' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}`}>{translate('planner.upcoming')}</button>
                         <button onClick={() => setView("mindmap")} className={`px-2 py-1 ${view === 'mindmap' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}`}>{translate('mindmap.title')}</button>
+                        <button onClick={() => setView("stats")} className={`px-2 py-1 ${view === 'stats' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-300'}`}>{translate('planner.stats', { defaultValue: '统计' })}</button>
                     </div>
                     <button onClick={reload} className="text-xs px-2 py-1 rounded bg-stone-800 text-stone-200">{translate('common.refresh', { ns: 'common' })}</button>
                 </div>
@@ -307,10 +345,24 @@ export default function Planner() {
                                 onCompleteTask={(id) => mark(id, "done")}
                             />
                         </div>
-                        <div>
+                        <div className="space-y-4">
                             <QuickAdd onAdd={add} loading={loading} />
+                            <button
+                                onClick={() => setShowCamera(true)}
+                                className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-4 text-left hover:bg-zinc-800 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">📷</span>
+                                    <div>
+                                        <div className="text-zinc-200 font-medium">{translate('camera.title', { defaultValue: '拍照添加作业' })}</div>
+                                        <div className="text-zinc-400 text-sm">{translate('camera.description', { defaultValue: '拍照或上传作业图片，AI自动识别' })}</div>
+                                    </div>
+                                </div>
+                            </button>
                         </div>
                     </div>
+                ) : view === 'stats' ? (
+                    <PlannerStats />
                 ) : view === 'mindmap' ? (
                     <div className="rounded-xl border border-zinc-800 overflow-hidden h-[75vh]">
                         <PlannerMindmap
@@ -327,17 +379,52 @@ export default function Planner() {
                     </div>
                 ) : (
                     <div className="grid gap-3">
-                        {tasks.map(t => (
-                            <div key={t.id} className="rounded-xl border border-zinc-800 bg-stone-950 p-3">
+                        {tasks.map(t => {
+                            const subjectColors = SUBJECT_COLORS[t.subject || 'other']
+                            return (
+                            <div key={t.id} className={`rounded-xl border ${subjectColors.border} bg-stone-950 p-3 overflow-hidden`}>
+                                {/* Subject color bar */}
+                                <div className={`h-1 w-full ${subjectColors.bg.replace('/30', '')} -mt-3 mb-3`} />
+
                                 <div className="flex items-center justify-between">
-                                    <div className="min-w-0">
-                                        <div className="text-zinc-100 font-medium truncate">{t.title}</div>
-                                        <div className="text-zinc-400 text-xs">
-                                            {translate('task.due')} {fmtTime(t.dueAt)} · {t.estMins} mins · P{t.priority}
-                                            {t.files && t.files.length > 0 && ` · ${t.files.length} file(s)`}
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <SubjectBadge subject={t.subject} />
+                                            <PriorityBadge priority={t.priority} />
+                                            {t.files && t.files.length > 0 && (
+                                                <span className="text-zinc-400 text-xs">📎 {t.files.length}</span>
+                                            )}
                                         </div>
+                                        <div className="text-zinc-100 font-medium truncate">{t.title}</div>
+                                        <div className="text-zinc-400 text-xs mt-1">
+                                            {translate('task.due')} {fmtTime(t.dueAt)}
+                                            {t.estMins && (
+                                                <span className="ml-2">
+                                                    ⏱️ {t.estMins}m
+                                                    {t.actualMins && (
+                                                        <span className={t.actualMins > t.estMins ? 'text-red-400' : 'text-green-400'}>
+                                                            {' '}(实际: {t.actualMins}m)
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {/* Time progress bar */}
+                                        {t.actualMins && t.estMins && (
+                                            <div className="mt-2">
+                                                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full ${t.actualMins > t.estMins ? 'bg-red-500' : 'bg-green-500'}`}
+                                                        style={{ width: `${Math.min((t.actualMins / t.estMins) * 100, 100)}%` }}
+                                                    />
+                                                </div>
+                                                <div className="text-[10px] text-zinc-500 mt-0.5">
+                                                    {Math.round((t.actualMins / t.estMins) * 100)}% of estimated time
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 ml-4">
                                         <select value={t.status} onChange={e => mark(t.id, e.target.value as any)} className="bg-stone-900 border border-zinc-800 text-stone-200 text-xs rounded px-2 py-1">
                                             <option value="todo">todo</option>
                                             <option value="doing">doing</option>
@@ -371,6 +458,17 @@ export default function Planner() {
                                     </div>
                                 )}
 
+                                {/* Related Topics */}
+                                {t.relatedTopics && t.relatedTopics.length > 0 && (
+                                    <div className="mt-3 flex flex-wrap gap-1">
+                                        {t.relatedTopics.map((topic, i) => (
+                                            <span key={i} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded-full">
+                                                {topic}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
                                 {materials[t.id]?.summary && (
                                     <div className="mt-3 text-sm text-zinc-200 whitespace-pre-wrap">{materials[t.id].summary.answer || materials[t.id].summary}</div>
                                 )}
@@ -385,7 +483,8 @@ export default function Planner() {
                                     </div>
                                 )}
                             </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 )}
                 {view === 'list' && (
@@ -403,6 +502,18 @@ export default function Planner() {
                     </div>
                 )}
             </div>
+
+            {/* Camera Modal */}
+            {showCamera && (
+                <HomeworkCamera
+                    onClose={() => setShowCamera(false)}
+                    onCapture={(result) => {
+                        setShowCamera(false)
+                        // Reload tasks to show the newly created task
+                        reload()
+                    }}
+                />
+            )}
         </div>
     )
 }

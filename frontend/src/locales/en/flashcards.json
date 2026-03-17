@@ -3,5 +3,14 @@
   "clearAll": "Clear All",
   "empty": "Your bag is empty. Add flashcards or notes from the chat.",
   "note": "note",
-  "flashcard": "flashcard"
+  "flashcard": "flashcard",
+  "ariaLabels": {
+    "back": "Go back",
+    "delete": "Delete flashcard"
+  },
+  "errors": {
+    "loadFailed": "Failed to load flashcards",
+    "deleteFailed": "Failed to delete flashcard",
+    "clearFailed": "Failed to clear flashcards"
+  }
 }

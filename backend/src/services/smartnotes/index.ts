@@ -175,8 +175,8 @@ async function createSimplePDF(data: any) {
       h: "Questions",
       t: (data.questions || [])
         .map((q: string, i: number) => {
-          const a = data.answers && data.answers[i] ? `\nAnswer: ${data.answers[i]}` : ""
-          return `• ${q}${a}`
+          const a = data.answers && data.answers[i] ? `\nAnswer: ${sanitizeText(data.answers[i])}` : ""
+          return `• ${sanitizeText(q)}${a}`
         })
         .join("\n\n")
     }

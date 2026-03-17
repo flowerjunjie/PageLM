@@ -1,0 +1,49 @@
+{
+  "title": "Review Flashcards",
+  "loading": "Loading your review session...",
+  "close": "Close",
+  "progress": "Card {{current}} of {{total}}",
+  "clickToFlip": "Click to reveal answer",
+  "ratings": {
+    "blackout": "Forgot",
+    "hard": "Hard",
+    "good": "Good",
+    "easy": "Easy"
+  },
+  "legend": {
+    "blackout": "1 min",
+    "hard": "10 min",
+    "good": "Normal",
+    "easy": "Longer"
+  },
+  "header": {
+    "stats": "Due: {{due}} | Completed: {{completed}}"
+  },
+  "completed": {
+    "title": "All Caught Up!",
+    "message": "You've completed all your reviews for now. Great job!",
+    "back": "Back to Home"
+  },
+  "stats": {
+    "completedToday": "Completed Today",
+    "streak": "Day Streak"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "retry": "Try Again"
+  },
+  "tips": {
+    "srs": "Using SM-2 algorithm for optimal retention"
+  },
+  "reminder": {
+    "title": "Time to Review!",
+    "dueToday": "{{count}} cards due today",
+    "completed": "{{count}} done",
+    "streak": "{{count}} day streak",
+    "start": "Start Review"
+  },
+  "notification": {
+    "title": "Review Reminder",
+    "body": "You have {{count}} flashcards ready for review"
+  }
+}

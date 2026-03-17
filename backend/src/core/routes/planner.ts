@@ -1,9 +1,11 @@
 import { ingestText } from "../../services/planner/ingest"
 import { plannerService } from "../../services/planner/service"
-import { CreateTaskRequest, UpdateTaskRequest, PlannerGenerateRequest, MaterialsRequest } from "../../services/planner/types"
+import { CreateTaskRequest, UpdateTaskRequest, PlannerGenerateRequest, MaterialsRequest, Subject } from "../../services/planner/types"
 import { emitToAll } from "../../utils/chat/ws"
 import { emitLarge } from "../../utils/chat/ws"
 import { parseMultipart } from "../../lib/parser/upload"
+import { parseHomework, priorityToNumber } from "../../services/homework-parser"
+import { scheduleTaskReminders, cancelTaskNotifications, getUserNotifications, sendTaskCompletionNotification } from "../../services/notifications"
 import crypto from "crypto"
 
 const rooms = new Map<string, Set<any>>()
@@ -305,6 +307,207 @@ export function plannerRoutes(app: any) {
     app.post("/reminders/test", async (_req: any, res: any) => {
         emitToAll(rooms.get("default"), { type: "reminder", text: "Test reminder", at: Date.now() + 60000 })
         res.send({ ok: true })
+    })
+
+    // Phase 6: Homework parsing endpoint
+    app.post("/planner/parse-homework", async (req: any, res: any) => {
+        try {
+            const { text, imageText } = req.body
+            const content = text || imageText
+
+            if (!content || typeof content !== "string") {
+                return res.status(400).send({ ok: false, error: "text or imageText required" })
+            }
+
+            const result = await parseHomework(content)
+            res.send({ ok: true, ...result })
+        } catch (e: any) {
+            console.error("Parse homework error:", e)
+            res.status(500).send({ ok: false, error: e?.message || "Failed to parse homework" })
+        }
+    })
+
+    // Phase 6: Task completion tracking
+    app.post("/tasks/:id/complete", async (req: any, res: any) => {
+        try {
+            const { actualMinutes, notes } = req.body
+            const existingTask = await plannerService.getTask(req.params.id)
+            if (!existingTask) return res.status(404).send({ ok: false, error: "Task not found" })
+
+            const updatedNotes = notes
+                ? `${existingTask.notes || ""}\n\nCompletion notes: ${notes}`.trim()
+                : existingTask.notes
+
+            const task = await plannerService.updateTask(req.params.id, {
+                status: "done",
+                actualMins: actualMinutes,
+                notes: updatedNotes
+            })
+
+            if (!task) return res.status(404).send({ ok: false, error: "Task not found" })
+
+            // Cancel any pending reminders for this task
+            cancelTaskNotifications(req.params.id)
+
+            // Send completion notification
+            sendTaskCompletionNotification("default", task.title, actualMinutes || task.estMins)
+
+            res.send({ ok: true, task })
+            emitToAll(rooms.get("default"), { type: "task.completed", task })
+        } catch (e: any) {
+            res.status(500).send({ ok: false, error: e?.message || "failed" })
+        }
+    })
+
+    // Phase 6: Get task statistics
+    app.get("/planner/stats/detailed", async (req: any, res: any) => {
+        try {
+            const tasks = await plannerService.listTasks()
+            const now = Date.now()
+            const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000
+
+            // Calculate completion rate
+            const completedTasks = tasks.filter(t => t.status === "done")
+            const completionRate = tasks.length > 0 ? completedTasks.length / tasks.length : 0
+
+            // Calculate weekly stats
+            const thisWeekTasks = tasks.filter(t => t.createdAt && new Date(t.createdAt).getTime() > oneWeekAgo)
+            const thisWeekCompleted = thisWeekTasks.filter(t => t.status === "done")
+
+            // Calculate time estimates accuracy
+            const tasksWithActualTime = completedTasks.filter(t => t.actualMins && t.estMins)
+            let totalEstimateAccuracy = 0
+            let estimateCount = 0
+
+            for (const task of tasksWithActualTime) {
+                if (task.actualMins && task.estMins) {
+                    const accuracy = Math.min(task.estMins / task.actualMins, 2) // Cap at 2x
+                    totalEstimateAccuracy += accuracy
+                    estimateCount++
+                }
+            }
+
+            const avgEstimateAccuracy = estimateCount > 0 ? totalEstimateAccuracy / estimateCount : 1
+
+            // Calculate procrastination stats
+            const overdueTasks = tasks.filter(t => {
+                if (t.status === "done") return false
+                return new Date(t.dueAt).getTime() < now
+            })
+
+            // Subject distribution
+            const subjectStats: Record<string, { total: number; completed: number; totalMinutes: number }> = {}
+            for (const task of tasks) {
+                const subject = task.subject || "other"
+                if (!subjectStats[subject]) {
+                    subjectStats[subject] = { total: 0, completed: 0, totalMinutes: 0 }
+                }
+                subjectStats[subject].total++
+                if (task.status === "done") {
+                    subjectStats[subject].completed++
+                }
+                subjectStats[subject].totalMinutes += task.actualMins || task.estMins || 0
+            }
+
+            // Priority distribution
+            const priorityStats = {
+                high: tasks.filter(t => t.priority >= 4).length,
+                medium: tasks.filter(t => t.priority === 2 || t.priority === 3).length,
+                low: tasks.filter(t => t.priority === 1).length
+            }
+
+            res.send({
+                ok: true,
+                stats: {
+                    overall: {
+                        totalTasks: tasks.length,
+                        completedTasks: completedTasks.length,
+                        completionRate: Math.round(completionRate * 100),
+                        overdueTasks: overdueTasks.length
+                    },
+                    weekly: {
+                        total: thisWeekTasks.length,
+                        completed: thisWeekCompleted.length,
+                        completionRate: thisWeekTasks.length > 0
+                            ? Math.round((thisWeekCompleted.length / thisWeekTasks.length) * 100)
+                            : 0
+                    },
+                    timeEstimates: {
+                        avgAccuracy: Math.round(avgEstimateAccuracy * 100),
+                        totalEstimatedMinutes: tasks.reduce((sum, t) => sum + (t.estMins || 0), 0),
+                        totalActualMinutes: completedTasks.reduce((sum, t) => sum + (t.actualMins || 0), 0)
+                    },
+                    subjects: subjectStats,
+                    priorities: priorityStats,
+                    procrastination: {
+                        overdueCount: overdueTasks.length,
+                        overdueTasks: overdueTasks.slice(0, 5).map(t => ({
+                            id: t.id,
+                            title: t.title,
+                            dueAt: t.dueAt,
+                            hoursOverdue: Math.round((now - new Date(t.dueAt).getTime()) / (60 * 60 * 1000))
+                        }))
+                    }
+                }
+            })
+        } catch (e: any) {
+            res.status(500).send({ ok: false, error: e?.message || "failed" })
+        }
+    })
+
+    // Phase 6: Schedule task reminders
+    app.post("/tasks/:id/reminders", async (req: any, res: any) => {
+        try {
+            const task = await plannerService.getTask(req.params.id)
+            if (!task) return res.status(404).send({ ok: false, error: "Task not found" })
+
+            const { reminderHoursBefore, includeBrowser, includeEmail } = req.body
+
+            const notifications = await scheduleTaskReminders(
+                "default",
+                task.id,
+                task.title,
+                new Date(task.dueAt).getTime(),
+                {
+                    reminderHoursBefore: reminderHoursBefore || [24, 2],
+                    includeBrowser: includeBrowser !== false,
+                    includeEmail: includeEmail === true
+                }
+            )
+
+            // Update task with reminder info
+            await plannerService.updateTask(req.params.id, {
+                reminders: notifications.map(n => ({
+                    type: n.type as any,
+                    time: n.scheduledTime
+                }))
+            })
+
+            res.send({ ok: true, reminders: notifications })
+        } catch (e: any) {
+            res.status(500).send({ ok: false, error: e?.message || "failed" })
+        }
+    })
+
+    // Phase 6: Get user notifications
+    app.get("/notifications", async (_req: any, res: any) => {
+        try {
+            const notifications = getUserNotifications("default")
+            res.send({ ok: true, notifications })
+        } catch (e: any) {
+            res.status(500).send({ ok: false, error: e?.message || "failed" })
+        }
+    })
+
+    // Phase 6: Cancel notification
+    app.delete("/notifications/:id", async (req: any, res: any) => {
+        try {
+            const { cancelNotification } = await import("../../services/notifications")
+            const success = cancelNotification(req.params.id)
+            res.send({ ok: success })
+        } catch (e: any) {
+            res.status(500).send({ ok: false, error: e?.message || "failed" })
+        }
     })
 }
 

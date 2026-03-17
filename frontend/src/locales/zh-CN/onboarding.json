@@ -5,7 +5,7 @@
   "getStarted": "开始使用",
   "steps": {
     "welcome": {
-      "title": "欢迎使用 PageLM",
+      "title": "欢迎使用灵犀",
       "description": "您的 AI 学习助手。提问、生成测验、创建笔记、探索新主题，获得个性化的学习体验。"
     },
     "ask": {

@@ -7,6 +7,8 @@ export const makeLLM: MkLLM = (cfg: any) => {
     model: cfg.ollama?.model || 'llama3',
     baseUrl: cfg.ollama?.baseUrl || 'http://localhost:11434',
     temperature: cfg.temp ?? 0.7,
+    keepAlive: '5m',
+    numPredict: 2048,
   })
   return wrapChat(m)
 }

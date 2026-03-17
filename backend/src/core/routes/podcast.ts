@@ -86,8 +86,7 @@ export function podcastRoutes(app: any) {
           }
           const filename = path.basename(outPath)
           const downloadUrl = `${config.baseUrl}/podcast/download/${pid}/${filename}`
-          const rel = path.relative(process.cwd(), outPath).split(path.sep).join("/")
-          const staticUrl = `${config.baseUrl}/${rel}`
+          const staticUrl = `${config.baseUrl}/storage/podcasts/${pid}/${filename}`
           
           const audioMessage = { 
             type: "audio", 

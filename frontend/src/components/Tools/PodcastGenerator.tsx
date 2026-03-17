@@ -13,6 +13,7 @@ export default function PodcastGenerator() {
   const [audioFile, setAudioFile] = useState<string | null>(null)
   const [audioFilename, setAudioFilename] = useState<string | null>(null)
   const [error, setError] = useState<{ message: string } | null>(null)
+  const [isComposing, setIsComposing] = useState(false)
 
   useEffect(() => {
     // Check if we were navigated here with a podcast already started
@@ -29,6 +30,9 @@ export default function PodcastGenerator() {
         }
         if (ev.type === "phase") {
           setStatus(`${t('podcastGenerator.status.status')}: ${ev.value}`)
+        }
+        if (ev.type === "audio_progress") {
+          setStatus(t("podcastGenerator.status.audioProgress", { current: ev.i + 1, total: ev.len }))
         }
         if (ev.type === "script") {
           setStatus(t('podcastGenerator.status.scriptGenerated'))
@@ -88,6 +92,9 @@ export default function PodcastGenerator() {
         }
         if (ev.type === "phase") {
           setStatus(`${t('podcastGenerator.status.status')}: ${ev.value}`)
+        }
+        if (ev.type === "audio_progress") {
+          setStatus(t("podcastGenerator.status.audioProgress", { current: ev.i + 1, total: ev.len }))
         }
         if (ev.type === "script") {
           setStatus(t('podcastGenerator.status.scriptGenerated'))
@@ -155,9 +162,11 @@ export default function PodcastGenerator() {
             <input
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
               placeholder={t('podcastGenerator.topicPlaceholder')}
               className="w-full px-4 py-3 pr-16 rounded-xl bg-stone-900/70 border border-zinc-700 text-white placeholder-zinc-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all duration-300"
-              onKeyDown={(e) => e.key === "Enter" && onGenerate()}
+              onKeyDown={(e) => e.key === "Enter" && !isComposing && onGenerate()}
             />
           </div>
           <button

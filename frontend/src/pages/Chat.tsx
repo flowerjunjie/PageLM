@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { env } from "../config/env";
 import { chatJSON, getChatDetail, type FlashCard, createFlashcard, listFlashcards, deleteFlashcard, getChats, type ChatMessage, type SavedFlashcard, podcastStart } from "../lib/api";
 import MarkdownView from "../components/Chat/MarkdownView";
@@ -12,6 +13,7 @@ import BagDrawer from "../components/Chat/BagDrawer";
 import LoadingIndicator from "../components/Chat/LoadingIndicator";
 import ConnectionStatus from "../components/ConnectionStatus";
 import { useCompanion } from "../components/Companion/CompanionProvider";
+import GeneratedMaterials, { type GeneratedMaterialRef } from "../components/Chat/GeneratedMaterials";
 
 type BagItem = { id: string; kind: "flashcard" | "note"; title: string; content: string };
 
@@ -50,6 +52,7 @@ function deriveTopicFromMarkdown(md: string): string {
 }
 
 export default function Chat() {
+  const { t } = useTranslation();
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation() as any;
@@ -73,6 +76,7 @@ export default function Chat() {
   const [connecting, setConnecting] = useState<boolean>(!!(initialChatId || initialQuestion));
   const [awaitingAnswer, setAwaitingAnswer] = useState<boolean>(false);
   const [topic, setTopic] = useState<string>("");
+  const [generatedMaterials, setGeneratedMaterials] = useState<GeneratedMaterialRef | null>(null);
   const { setDocument } = useCompanion();
 
   const selPopupRef = useRef<HTMLDivElement>(null);
@@ -166,8 +170,15 @@ export default function Chat() {
           if (norm.flashcards.length) setCards(norm.flashcards);
           if (norm.topic) setTopic(norm.topic);
           else if (norm.md) setTopic((t) => t || deriveTopicFromMarkdown(norm.md));
+          // Handle generated materials if present
+          if (m.answer?.materials) {
+            setGeneratedMaterials(m.answer.materials);
+          }
           setAwaitingAnswer(false);
           setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 0);
+        }
+        if (m?.type === "materials") {
+          setGeneratedMaterials(m.materials);
         }
       } catch { }
     };
@@ -334,20 +345,48 @@ export default function Chat() {
             {latestAssistantContent && !awaitingAnswer && (
               <ActionRow
                 disabled={busy}
-                onSummarize={() => sendFollowup("Summarize the previous answer into 5–7 concise bullet points with bolded keywords.")}
-                onLearnMore={() => sendFollowup("Go deeper into this topic with advanced details, real-world examples, and a short analogy.")}
+                onSummarize={() => sendFollowup(t("chat.summarizePrompt"))}
+                onLearnMore={() => sendFollowup(t("chat.learnMorePrompt"))}
                 onStartQuiz={() => {
-                  const t = topic || deriveTopicFromMarkdown(latestAssistantContent) || "General";
-                  navigate(`/quiz?topic=${encodeURIComponent(t)}`, { state: { topic: t } });
+                  const quizTopic = topic || deriveTopicFromMarkdown(latestAssistantContent) || "General";
+                  navigate(`/quiz?topic=${encodeURIComponent(quizTopic)}`, { state: { topic: quizTopic } });
                 }}
                 onCreatePodcast={async () => {
                   try {
-                    const topicContent = latestAssistantContent || topic || "Generated from chat";
+                    const topicContent = latestAssistantContent || topic || t("chat.generatedFromChat");
                     const response = await podcastStart({ topic: topicContent });
                     navigate("/tools", { state: { podcastPid: response.pid, podcastTopic: topicContent } });
                   } catch (error) {
                     console.error("Failed to create podcast:", error);
                   }
+                }}
+              />
+            )}
+
+            {generatedMaterials && !awaitingAnswer && (
+              <GeneratedMaterials
+                materials={generatedMaterials}
+                onViewFlashcards={() => navigate("/flashcards")}
+                onReviewFlashcards={() => navigate("/flashcards")}
+                onViewNotes={() => navigate("/tools", { state: { tab: "smartnotes" } })}
+                onExportNotes={() => {
+                  // Export notes as markdown
+                  if (generatedMaterials.notes) {
+                    const blob = new Blob(
+                      [`# ${generatedMaterials.notes.title}\n\n${generatedMaterials.notes.summary}`],
+                      { type: "text/markdown" }
+                    );
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${generatedMaterials.notes.title.replace(/\s+/g, "_")}.md`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }
+                }}
+                onTakeQuiz={() => {
+                  const quizTopic = topic || deriveTopicFromMarkdown(latestAssistantContent) || "General";
+                  navigate(`/quiz?topic=${encodeURIComponent(quizTopic)}`, { state: { topic: quizTopic } });
                 }}
               />
             )}

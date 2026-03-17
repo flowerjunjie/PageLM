@@ -43,7 +43,7 @@ export default function ReviewModal({ answers, onClose }:{ answers:UA[]; onClose
               </div>
             );
           })}
-          {!answers.length && <div className="text-stone-400">{t("quiz.noAnswersYet", "No answers yet.")}</div>}
+          {!answers.length && <div className="text-stone-400">{t("quiz.noAnswersYet")}</div>}
         </div>
 
         <div className="mt-6 flex justify-end">

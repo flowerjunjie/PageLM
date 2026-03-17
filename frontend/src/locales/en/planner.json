@@ -7,7 +7,8 @@
     "quickAdd": "Quick Add",
     "addTask": "Add Task",
     "noTasks": "No tasks for today",
-    "allCaughtUp": "You're all caught up!"
+    "allCaughtUp": "You're all caught up!",
+    "stats": "Statistics"
   },
   "todayFocus": {
     "title": "Today's Focus",
@@ -63,7 +64,53 @@
     "completed": "Completed",
     "attachedFiles": "Attached Files",
     "weeklyPlan": "Weekly Plan",
-    "noPlanYet": "No plan yet"
+    "noPlanYet": "No plan yet",
+    "title": "Title",
+    "subject": "Subject",
+    "priority": "Priority",
+    "estimatedTime": "Estimated Time"
+  },
+  "camera": {
+    "title": "Photo Homework",
+    "description": "Take a photo or upload homework image, AI will auto-recognize",
+    "upload": "Upload Image",
+    "takePhoto": "Take Photo",
+    "dropzone": "Click or drag to upload homework image",
+    "supportedFormats": "Supports JPG, PNG, WEBP formats",
+    "retake": "Retake",
+    "recognizing": "Recognizing...",
+    "startRecognition": "Start Recognition",
+    "recognizedText": "Recognized Text",
+    "parsedInfo": "Parsed Information",
+    "suggestedSchedule": "Suggested Study Plan",
+    "creating": "Creating...",
+    "createTask": "Create Task",
+    "errorNoCamera": "Cannot access camera, please use upload",
+    "errorFileTooLarge": "File size must not exceed 10MB",
+    "errorOCR": "Recognition failed, please try again",
+    "errorCreateTask": "Failed to create task",
+    "ocrPrompt": "Please recognize all text content in this homework image, including questions, requirements, deadlines, etc. Return the recognition result in plain text format, maintaining the original format."
+  },
+  "stats": {
+    "loading": "Loading...",
+    "error": "Failed to load statistics",
+    "totalTasks": "Total Tasks",
+    "completed": "Completed",
+    "weeklyCompleted": "Weekly Completed",
+    "overdue": "Overdue",
+    "timeEstimates": "Time Estimate Accuracy",
+    "accuracy": "Accuracy",
+    "totalEstimated": "Total Estimated",
+    "totalActual": "Total Actual",
+    "subjectDistribution": "Subject Distribution",
+    "priorityDistribution": "Priority Distribution",
+    "procrastination": "Procrastination Analysis",
+    "dueAt": "Due"
+  },
+  "priority": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low"
   },
   "mindmap": {
     "title": "Mind Map",

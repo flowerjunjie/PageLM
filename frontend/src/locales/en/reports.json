@@ -1,0 +1,78 @@
+{
+  "title": "Weekly Learning Report",
+  "subtitle": "Track your learning progress and achievements",
+  "parentView": {
+    "title": "Student Learning Report",
+    "subtitle": "Weekly learning progress overview",
+    "disclaimer": "This report contains learning statistics only. No conversation content is included.",
+    "studentLabel": "Student",
+    "weekLabel": "Week",
+    "generatedAt": "Generated"
+  },
+  "weekSelector": {
+    "label": "Select Week",
+    "thisWeek": "This Week",
+    "lastWeek": "Last Week",
+    "custom": "Custom"
+  },
+  "summary": {
+    "title": "Weekly Overview",
+    "studyTime": "Study Time",
+    "studyDays": "Study Days",
+    "newTopics": "New Topics",
+    "flashcards": "Flashcards",
+    "notes": "Notes",
+    "quizzes": "Quizzes",
+    "accuracy": "Accuracy",
+    "minutes": "min",
+    "days": "days",
+    "cards": "cards",
+    "items": "items"
+  },
+  "charts": {
+    "studyTimeTrend": "Study Time Trend",
+    "subjectDistribution": "Subject Distribution",
+    "accuracyTrend": "Quiz Accuracy Trend",
+    "dailyAverage": "Daily Average",
+    "minutes": "minutes",
+    "correctRate": "Correct Rate"
+  },
+  "comparison": {
+    "title": "Week-over-Week",
+    "studyTimeChange": "Study Time",
+    "accuracyChange": "Accuracy",
+    "increase": "+{{value}}%",
+    "decrease": "{{value}}%",
+    "noChange": "No change"
+  },
+  "weakAreas": {
+    "title": "Areas for Improvement",
+    "description": "Focus on these topics to improve your understanding",
+    "empty": "Great job! No weak areas identified this week.",
+    "topic": "Topic"
+  },
+  "suggestions": {
+    "title": "Learning Suggestions",
+    "description": "Personalized recommendations based on your progress"
+  },
+  "share": {
+    "title": "Share Report",
+    "description": "Generate a shareable link for parents or teachers",
+    "button": "Share Report",
+    "generate": "Generate Link",
+    "copy": "Copy Link",
+    "copied": "Copied!",
+    "qrCode": "QR Code",
+    "expiresIn": "Link expires in 7 days",
+    "close": "Close",
+    "success": "Share link created successfully"
+  },
+  "errors": {
+    "loadFailed": "Failed to load report",
+    "shareFailed": "Failed to create share link",
+    "invalidWeek": "Invalid week format",
+    "expiredLink": "This share link has expired"
+  },
+  "loading": "Loading report...",
+  "noData": "No learning data for this week. Start studying to generate your first report!"
+}

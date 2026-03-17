@@ -10,8 +10,10 @@
     "question": "Question",
     "of": "of",
     "generating": "Generating quiz...",
-    "errorGenerating": "Error generating quiz. Please try again."
+    "errorGenerating": "Error generating quiz. Please try again.",
+    "noAnswersYet": "No answers yet."
   },
+  "status": "Status",
   "header": {
     "testYourKnowledge": "Test your knowledge with {{count}} questions",
     "question": "Question {{current}} of {{total}}",

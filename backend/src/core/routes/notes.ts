@@ -67,7 +67,7 @@ export function smartnotesRoutes(app: any) {
           nlog("generated", noteId, result.file);
           emitToAll(ns.get(noteId), {
             type: "file",
-            file: `${config.url}/storage/smartnotes/${path.basename(
+            file: `${config.baseUrl}/storage/smartnotes/${path.basename(
               result.file
             )}`,
           });

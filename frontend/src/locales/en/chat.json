@@ -38,5 +38,26 @@
     "next": "Next",
     "previous": "Previous",
     "shuffle": "Shuffle"
+  },
+  "summarizePrompt": "Summarize the previous answer into 5–7 concise bullet points with bolded keywords.",
+  "learnMorePrompt": "Go deeper into this topic with advanced details, real-world examples, and a short analogy.",
+  "generatedFromChat": "Generated from chat",
+  "materials": {
+    "generatedForYou": "Learning materials generated for you",
+    "flashcardsCount": "{{count}} flashcards generated",
+    "flashcardsDesc": "Review key concepts",
+    "notesTitle": "Notes summary",
+    "quizCount": "{{count}} quiz questions",
+    "quizDesc": "Test your understanding",
+    "view": "View",
+    "viewAll": "View all",
+    "review": "Review",
+    "startReview": "Start review",
+    "export": "Export",
+    "testNow": "Test now",
+    "startQuiz": "Start quiz",
+    "more": "more",
+    "quizReady": "Ready to test your knowledge?",
+    "quizHint": "Take the quiz to reinforce what you've learned"
   }
 }

@@ -58,9 +58,9 @@ export default function CompanionDock() {
 
   const headerTitle = useMemo(() => {
     if (document?.title) return document.title
-    if (document?.filePath) return document.filePath.split(/[\\/]/).pop() || "Document"
-    return "Study Companion"
-  }, [document?.filePath, document?.title])
+    if (document?.filePath) return document.filePath.split(/[\\/]/).pop() || t("companion.studyCompanion")
+    return t("companion.studyCompanion")
+  }, [document?.filePath, document?.title, t])
 
   const send = async (prompt?: string) => {
     if (!hasDocument || busy) return
@@ -101,7 +101,7 @@ export default function CompanionDock() {
       }
       setMessages(prev => [...prev, assistantMessage])
     } catch (err: any) {
-      const msg = err?.message || "Failed to contact companion"
+      const msg = err?.message || t("notifications.failedToContactCompanion", "Failed to contact companion")
       setError(msg)
       setMessages(prev => prev.slice(0, -1))
     } finally {
@@ -119,7 +119,7 @@ export default function CompanionDock() {
           onClick={() => setOpen(true)}
           className="fixed bottom-6 right-6 z-40 px-4 py-3 rounded-2xl bg-sky-500/90 hover:bg-sky-500 text-white font-medium shadow-lg shadow-sky-500/30 transition-colors"
         >
-          Study Companion
+          {t("companion.studyCompanion")}
         </button>
       )}
 
@@ -160,7 +160,7 @@ export default function CompanionDock() {
         <div ref={bodyRef} className="px-5 py-4 space-y-4 overflow-y-auto custom-scroll">
           {!hasDocument && (
             <div className="text-sm text-stone-400">
-              Open a note or topic to unlock the companion. It will only use the content of that document for answers.
+              {t("companion.hint")}
             </div>
           )}
 
@@ -227,7 +227,7 @@ export default function CompanionDock() {
           {busy && (
             <div className="flex justify-start">
               <div className="px-4 py-2 rounded-2xl bg-stone-900/80 border border-stone-700 text-xs text-stone-300 animate-pulse">
-                Thinking�?�
+                {t("companion.thinking")}
               </div>
             </div>
           )}

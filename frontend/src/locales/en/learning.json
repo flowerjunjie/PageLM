@@ -1,0 +1,71 @@
+{
+  "title": "Learning Profile",
+  "subtitle": "Track your learning journey and visualize your knowledge",
+  "stats": {
+    "weeklyStudyTime": "Weekly Study Time",
+    "masteredTopics": "Mastered Topics",
+    "totalFlashcards": "Total Flashcards",
+    "dueFlashcards": "Due for Review",
+    "quizAccuracy": "Quiz Accuracy",
+    "hours": "hours",
+    "topics": "topics",
+    "cards": "cards",
+    "accuracy": "accuracy"
+  },
+  "trend": {
+    "up": "Up {{value}}%",
+    "down": "Down {{value}}%",
+    "fromLastWeek": "from last week"
+  },
+  "knowledgeMap": {
+    "title": "Knowledge Map",
+    "subtitle": "Interactive visualization of your knowledge network",
+    "legend": {
+      "physics": "Physics",
+      "chemistry": "Chemistry",
+      "biology": "Biology",
+      "math": "Mathematics",
+      "history": "History",
+      "other": "Other"
+    },
+    "tooltip": {
+      "subject": "Subject",
+      "reviewCount": "Reviewed {{count}} times",
+      "learnedAt": "Learned {{date}}"
+    }
+  },
+  "subjects": {
+    "title": "Subject Statistics",
+    "subtitle": "Your learning progress by subject",
+    "nodes": "knowledge nodes",
+    "flashcards": "flashcards",
+    "accuracy": "quiz accuracy",
+    "studyTime": "study time"
+  },
+  "activity": {
+    "title": "Recent Activity",
+    "subtitle": "Your latest learning activities",
+    "types": {
+      "quiz": "Quiz",
+      "flashcard": "Flashcard",
+      "note": "Note",
+      "chat": "Chat",
+      "podcast": "Podcast"
+    }
+  },
+  "weakAreas": {
+    "title": "Areas to Improve",
+    "subtitle": "Focus on these topics to boost your knowledge",
+    "score": "{{score}}% accuracy"
+  },
+  "streak": {
+    "title": "Learning Streak",
+    "days": "{{count}} day streak",
+    "keepItUp": "Keep it up!"
+  },
+  "empty": {
+    "title": "Start Your Learning Journey",
+    "description": "Complete quizzes, create flashcards, and chat with AI to build your knowledge map",
+    "cta": "Start Learning"
+  }
+}
