@@ -28,10 +28,13 @@
     "analyzing": "Analyzing..."
   },
   "bag": {
-    "title": "Saved Items",
+    "title": "My Learning Bag",
     "importantTopics": "Important Topics",
-    "empty": "No saved items yet",
-    "remove": "Remove"
+    "empty": "Your bag is empty",
+    "emptySubtext": "Add flashcards and notes to get started!",
+    "clearAll": "Clear All Items",
+    "remove": "Remove",
+    "bagAlt": "learning bag"
   },
   "flashcards": {
     "flip": "Flip",

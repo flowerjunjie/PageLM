@@ -151,7 +151,7 @@
     },
     "podcast": {
       "title": "Knowledge Podcast",
-      "description": "Review during碎片 time, learn on the go"
+      "description": "Review during spare time, learn on the go"
     },
     "planner": {
       "title": "Homework Planner",
@@ -165,5 +165,8 @@
   "quickInput": {
     "show": "Quick Input",
     "hide": "Hide Input"
+  },
+  "footer": {
+    "disclaimer": "{{appName}} can make mistakes, cross-check crucial information. We're not responsible for any misconduct."
   }
 }

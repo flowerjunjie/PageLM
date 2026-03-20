@@ -28,10 +28,13 @@
     "analyzing": "分析中..."
   },
   "bag": {
-    "title": "已保存项目",
+    "title": "我的学习袋",
     "importantTopics": "重要主题",
-    "empty": "暂无保存项目",
-    "remove": "移除"
+    "empty": "学习袋是空的",
+    "emptySubtext": "添加抽认卡和笔记开始学习！",
+    "clearAll": "清空所有内容",
+    "remove": "移除",
+    "bagAlt": "学习袋"
   },
   "flashcards": {
     "flip": "翻转",

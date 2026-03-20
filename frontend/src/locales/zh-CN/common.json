@@ -165,5 +165,8 @@
   "quickInput": {
     "show": "快速输入",
     "hide": "收起输入"
+  },
+  "footer": {
+    "disclaimer": "{{appName}} 可能会犯错，请核实重要信息。我们不对任何不当使用承担责任。"
   }
 }
