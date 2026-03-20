@@ -7,10 +7,12 @@
  * - Redis-backed support for distributed systems
  */
 
+import type { AppRequest, AppResponse, NextFunction } from '../../types/http';
+
 interface RateLimitConfig {
   windowMs: number;      // Time window in milliseconds
   maxRequests: number;   // Max requests per window
-  keyGenerator?: (req: any) => string;
+  keyGenerator?: (req: AppRequest) => string;
   skipSuccessfulRequests?: boolean;
   skipFailedRequests?: boolean;
 }
@@ -33,19 +35,22 @@ setInterval(() => {
   }
 }, 60000);
 
+/** Middleware handler type understood by the Fubelt framework */
+type MiddlewareFn = (req: AppRequest, res: AppResponse, next: NextFunction) => void | Promise<void>;
+
 /**
  * Create rate limiting middleware
  */
-export function createRateLimiter(config: RateLimitConfig) {
+export function createRateLimiter(config: RateLimitConfig): MiddlewareFn {
   const {
     windowMs,
     maxRequests,
-    keyGenerator = (req: any) => req.ip || 'unknown',
+    keyGenerator = (req: AppRequest) => req.ip || 'unknown',
     skipSuccessfulRequests = false,
     skipFailedRequests = false,
   } = config;
 
-  return async (req: any, res: any, next: Function) => {
+  return async (req: AppRequest, res: AppResponse, next: NextFunction): Promise<void> => {
     // Skip rate limiting for certain conditions if configured
     if (skipSuccessfulRequests && res.statusCode < 400) {
       return next();
@@ -85,11 +90,12 @@ export function createRateLimiter(config: RateLimitConfig) {
       const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
       res.setHeader('Retry-After', retryAfter);
 
-      return res.status(429).json({
+      res.status(429).json({
         error: 'Too Many Requests',
         message: `Rate limit exceeded. Please try again in ${retryAfter} seconds.`,
         retryAfter,
       });
+      return;
     }
 
     next();
@@ -120,6 +126,6 @@ export const uploadRateLimiter = createRateLimiter({
 /**
  * Create custom rate limiter with specific configuration
  */
-export function customRateLimiter(windowMs: number, maxRequests: number) {
+export function customRateLimiter(windowMs: number, maxRequests: number): MiddlewareFn {
   return createRateLimiter({ windowMs, maxRequests });
 }

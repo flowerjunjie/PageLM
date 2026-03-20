@@ -1,6 +1,7 @@
 import db from '../utils/database/keyv'
 
-export type Subject = 'physics' | 'chemistry' | 'biology' | 'math' | 'history' | 'other'
+export type { Subject } from '../types/subject'
+import type { Subject } from '../types/subject'
 
 export interface KnowledgeNode {
   id: string
@@ -62,6 +63,7 @@ const SUBJECT_COLORS: Record<Subject, string> = {
   biology: '#F97316',
   math: '#EF4444',
   history: '#8B5CF6',
+  english: '#EC4899',
   other: '#6B7280'
 }
 
@@ -71,6 +73,7 @@ const SUBJECT_NAMES: Record<Subject, string> = {
   biology: 'Biology',
   math: 'Mathematics',
   history: 'History',
+  english: 'English',
   other: 'Other'
 }
 
@@ -130,7 +133,7 @@ function generateEdgesFromNodes(nodes: KnowledgeNode[]): KnowledgeEdge[] {
 
 function calculatePositions(nodes: KnowledgeNode[]): KnowledgeNode[] {
   const subjectGroups: Record<Subject, KnowledgeNode[]> = {
-    physics: [], chemistry: [], biology: [], math: [], history: [], other: []
+    physics: [], chemistry: [], biology: [], math: [], history: [], english: [], other: []
   }
 
   for (const node of nodes) {
@@ -262,7 +265,7 @@ export async function getSubjectStats(): Promise<SubjectStats[]> {
   const flashcards = (await db.get('flashcards')) || []
   const quizResults = (await db.get('quiz_results')) || []
 
-  const subjects: Subject[] = ['physics', 'chemistry', 'biology', 'math', 'history', 'other']
+  const subjects: Subject[] = ['physics', 'chemistry', 'biology', 'math', 'history', 'english', 'other']
 
   return subjects.map(subject => {
     const subjectCards = flashcards.filter((f: any) =>

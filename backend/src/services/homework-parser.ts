@@ -6,6 +6,7 @@ const SUBJECT_KEYWORDS: Record<Subject, string[]> = {
     chemistry: ["化学", "chemistry", "元素", "反应", "分子", "原子", "化合", "分解", "溶液"],
     biology: ["生物", "biology", "细胞", "基因", "遗传", "生态", "植物", "动物", "人体"],
     math: ["数学", "math", "代数", "几何", "微积分", "方程", "函数", "概率", "统计", "计算"],
+    history: ["历史", "history", "历史事件", "朝代", "战争", "革命", "文明", "古代", "近代"],
     english: ["英语", "english", "作文", "阅读", "听力", "语法", "单词", "词汇", "写作", "essay"],
     other: []
 }

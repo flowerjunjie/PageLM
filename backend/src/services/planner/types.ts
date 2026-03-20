@@ -2,7 +2,8 @@ export type TaskStatus = "todo" | "doing" | "done" | "blocked"
 
 export type TaskType = "homework" | "project" | "lab" | "essay" | "exam"
 
-export type Subject = "physics" | "chemistry" | "biology" | "math" | "english" | "other"
+export type { Subject } from '../../types/subject'
+import type { Subject } from '../../types/subject'
 
 export type Priority = "high" | "medium" | "low"
 

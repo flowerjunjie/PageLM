@@ -1,7 +1,8 @@
 import db from '../utils/database/keyv'
 import crypto from 'crypto'
 
-export type Subject = 'physics' | 'chemistry' | 'biology' | 'math' | 'history' | 'other'
+export type { Subject } from '../types/subject'
+import type { Subject } from '../types/subject'
 
 export interface WeeklyReport {
   week: string
@@ -47,6 +48,7 @@ const SUBJECT_NAMES: Record<Subject, string> = {
   biology: 'Biology',
   math: 'Mathematics',
   history: 'History',
+  english: 'English',
   other: 'Other'
 }
 

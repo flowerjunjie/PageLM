@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import Busboy from 'busboy';
 import crypto from 'crypto';
+import type { AppRequest, AppResponse, NextFunction } from '../../types/http';
 
 export interface UploadedFile {
   path: string;
@@ -98,7 +99,7 @@ function validateMimeType(filePath: string, declaredMimeType: string): boolean {
   fs.closeSync(fd);
 
   // Check file signatures
-  const signatures: { [key: string]: string } = {
+  const signatures: Record<string, string> = {
     'image/png': '89504E470D0A1A0A',
     'image/jpeg': 'FFD8FF',
     'image/gif': '47494638',
@@ -133,13 +134,13 @@ export function createSecureUpload(config: UploadConfig = {}) {
     fs.mkdirSync(uploadDir, { recursive: true, mode: 0o750 });
   }
 
-  return (req: any, res: any, next: Function) => {
+  return (req: AppRequest, res: AppResponse, next: NextFunction): void => {
     if (!req.headers['content-type']?.includes('multipart/form-data')) {
       return next();
     }
 
     const busboy = Busboy({
-      headers: req.headers,
+      headers: req.headers as Record<string, string>,
       limits: {
         fileSize: maxFileSize,
         files: maxFiles,
@@ -147,18 +148,18 @@ export function createSecureUpload(config: UploadConfig = {}) {
     });
 
     const files: UploadedFile[] = [];
-    const fields: { [key: string]: string } = {};
+    const fields: Record<string, string> = {};
     let fileCount = 0;
 
-    busboy.on('field', (fieldname: string, value: any) => {
+    busboy.on('field', (fieldname: string, value: string) => {
       fields[fieldname] = value;
     });
 
-    busboy.on('file', async (fieldname: string, file: any, info: any) => {
+    busboy.on('file', async (fieldname: string, file: NodeJS.ReadableStream, info: { filename: string; encoding: string; mimeType: string }) => {
       fileCount++;
 
       if (fileCount > maxFiles) {
-        file.resume();
+        (file as NodeJS.ReadableStream & { resume(): void }).resume();
         return;
       }
 
@@ -168,7 +169,7 @@ export function createSecureUpload(config: UploadConfig = {}) {
       try {
         // Validate MIME type
         if (!allowedMimeTypes.includes(mimeType)) {
-          file.resume();
+          (file as NodeJS.ReadableStream & { resume(): void }).resume();
           throw new Error(`MIME type not allowed: ${mimeType}`);
         }
 
@@ -190,17 +191,17 @@ export function createSecureUpload(config: UploadConfig = {}) {
           if (fileSize > maxFileSize) {
             writeStream.destroy();
             fs.unlinkSync(filePath);
-            file.resume();
+            (file as NodeJS.ReadableStream & { resume(): void }).resume();
             throw new Error(`File size exceeds limit: ${maxFileSize}`);
           }
         });
 
         writeStream.on('error', (error: Error) => {
-          file.resume();
+          (file as NodeJS.ReadableStream & { resume(): void }).resume();
           console.error('File write error:', error);
         });
 
-        file.pipe(writeStream);
+        file.pipe(writeStream as NodeJS.WritableStream);
 
         writeStream.on('finish', async () => {
           try {
@@ -220,22 +221,22 @@ export function createSecureUpload(config: UploadConfig = {}) {
               size: fileSize,
               hash,
             });
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error('File validation error:', error);
             if (fs.existsSync(filePath)) {
               fs.unlinkSync(filePath);
             }
           }
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('File upload error:', error);
-        file.resume();
+        (file as NodeJS.ReadableStream & { resume(): void }).resume();
       }
     });
 
     busboy.on('finish', () => {
       req.uploadedFiles = files;
-      req.body = { ...fields, ...req.body };
+      req.body = { ...(fields as Record<string, unknown>), ...(req.body as Record<string, unknown> | null ?? {}) };
       next();
     });
 
@@ -253,21 +254,21 @@ export function createSecureUpload(config: UploadConfig = {}) {
       });
     });
 
-    req.pipe(busboy);
+    req.pipe(busboy as unknown as NodeJS.WritableStream);
   };
 }
 
 /**
  * Cleanup old uploaded files
  */
-export function cleanupOldUploads(uploadDir: string, maxAge: number = 24 * 60 * 60 * 1000) {
+export function cleanupOldUploads(uploadDir: string, maxAge: number = 24 * 60 * 60 * 1000): void {
   const now = Date.now();
 
   if (!fs.existsSync(uploadDir)) return;
 
-  const files = fs.readdirSync(uploadDir);
+  const fileList = fs.readdirSync(uploadDir);
 
-  for (const file of files) {
+  for (const file of fileList) {
     const filePath = path.join(uploadDir, file);
     const stats = fs.statSync(filePath);
 
@@ -285,7 +286,7 @@ export function cleanupOldUploads(uploadDir: string, maxAge: number = 24 * 60 * 
 // Schedule cleanup every hour
 if (require.main === module) {
   setInterval(() => {
-    const uploadDir = path.join(process.cwd(), 'storage', 'uploads');
-    cleanupOldUploads(uploadDir);
+    const dir = path.join(process.cwd(), 'storage', 'uploads');
+    cleanupOldUploads(dir);
   }, 60 * 60 * 1000);
 }

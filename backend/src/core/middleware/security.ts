@@ -3,13 +3,14 @@
  * Provides comprehensive security headers and protections
  */
 
+import type { AppRequest, AppResponse, NextFunction } from '../../types/http';
 import { createRateLimiter } from './rateLimiter';
 
 /**
  * Security Headers Middleware
  * Implements OWASP recommended security headers
  */
-export function securityHeaders(req: any, res: any, next: Function) {
+export function securityHeaders(req: AppRequest, res: AppResponse, next: NextFunction): void {
   // Content Security Policy - Restrict sources of content
   const cspDirectives = [
     "default-src 'self'",
@@ -49,14 +50,15 @@ export function securityHeaders(req: any, res: any, next: Function) {
  * Prevents DoS attacks through large payloads
  */
 export function requestSizeLimiter(maxSize: number = 10 * 1024 * 1024) {
-  return (req: any, res: any, next: Function) => {
+  return (req: AppRequest, res: AppResponse, next: NextFunction): void => {
     const contentLength = parseInt(req.headers['content-length'] || '0');
 
     if (contentLength > maxSize) {
-      return res.status(413).json({
+      res.status(413).json({
         error: 'Payload Too Large',
         message: `Request body too large. Maximum size is ${maxSize / 1024 / 1024}MB`,
       });
+      return;
     }
 
     next();
@@ -67,37 +69,37 @@ export function requestSizeLimiter(maxSize: number = 10 * 1024 * 1024) {
  * Sanitize Input Middleware
  * Removes potentially dangerous input patterns
  */
-export function sanitizeInput(req: any, res: any, next: Function) {
+export function sanitizeInput(req: AppRequest, res: AppResponse, next: NextFunction): void {
   const sanitizeString = (str: string): string => {
     // Remove null bytes and control characters
     return str.replace(/[\x00-\x1F\x7F]/g, '').trim();
   };
 
-  const sanitizeObject = (obj: any): any => {
+  const sanitizeValue = (obj: unknown): unknown => {
     if (typeof obj === 'string') {
       return sanitizeString(obj);
     }
     if (Array.isArray(obj)) {
-      return obj.map(sanitizeObject);
+      return obj.map(sanitizeValue);
     }
-    if (obj && typeof obj === 'object') {
-      const sanitized: any = {};
-      for (const [key, value] of Object.entries(obj)) {
-        sanitized[sanitizeString(key)] = sanitizeObject(value);
+    if (obj !== null && typeof obj === 'object') {
+      const sanitized: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+        sanitized[sanitizeString(key)] = sanitizeValue(value);
       }
       return sanitized;
     }
     return obj;
   };
 
-  if (req.body) {
-    req.body = sanitizeObject(req.body);
+  if (req.body !== undefined && req.body !== null) {
+    req.body = sanitizeValue(req.body);
   }
   if (req.query) {
-    req.query = sanitizeObject(req.query);
+    req.query = sanitizeValue(req.query) as Record<string, string | string[]>;
   }
   if (req.params) {
-    req.params = sanitizeObject(req.params);
+    req.params = sanitizeValue(req.params) as Record<string, string>;
   }
 
   next();
@@ -106,19 +108,20 @@ export function sanitizeInput(req: any, res: any, next: Function) {
 /**
  * Prevent Path Traversal
  */
-export function preventPathTraversal(req: any, res: any, next: Function) {
-  const checkPath = (path: string) => {
+export function preventPathTraversal(req: AppRequest, res: AppResponse, next: NextFunction): void {
+  const checkPath = (path: string): boolean => {
     if (path.includes('..') || path.includes('\\') || path.includes('\0')) {
       return true;
     }
     return false;
   };
 
-  if (checkPath(req.url) || checkPath(req.path)) {
-    return res.status(400).json({
+  if (checkPath(req.url ?? '') || checkPath(req.path)) {
+    res.status(400).json({
       error: 'Bad Request',
       message: 'Invalid path',
     });
+    return;
   }
 
   next();
@@ -127,15 +130,16 @@ export function preventPathTraversal(req: any, res: any, next: Function) {
 /**
  * Validate Content Type for POST/PUT/PATCH
  */
-export function validateContentType(req: any, res: any, next: Function) {
-  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+export function validateContentType(req: AppRequest, res: AppResponse, next: NextFunction): void {
+  if (['POST', 'PUT', 'PATCH'].includes(req.method ?? '')) {
     const contentType = req.headers['content-type'];
 
     if (!contentType) {
-      return res.status(415).json({
+      res.status(415).json({
         error: 'Unsupported Media Type',
         message: 'Content-Type header is required',
       });
+      return;
     }
 
     const validTypes = [
@@ -148,24 +152,28 @@ export function validateContentType(req: any, res: any, next: Function) {
     const isValid = validTypes.some(type => contentType.includes(type));
 
     if (!isValid) {
-      return res.status(415).json({
+      res.status(415).json({
         error: 'Unsupported Media Type',
         message: `Content-Type ${contentType} is not supported`,
       });
+      return;
     }
   }
 
   next();
 }
 
+/** Middleware handler type understood by the Fubelt framework */
+type MiddlewareFn = (req: AppRequest, res: AppResponse, next: NextFunction) => void;
+
 /**
  * Compose multiple middleware functions
  */
-export function composeMiddleware(...middlewares: Function[]) {
-  return (req: any, res: any, next: Function) => {
+export function composeMiddleware(...middlewares: MiddlewareFn[]): MiddlewareFn {
+  return (req: AppRequest, res: AppResponse, next: NextFunction): void => {
     let index = 0;
 
-    function dispatch(i: number) {
+    function dispatch(i: number): void {
       if (i >= middlewares.length) {
         return next();
       }
