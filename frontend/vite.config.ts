@@ -15,5 +15,18 @@ export default defineConfig(({ mode }) => {
       port: Number(env.VITE_FRONTEND_PORT) || 8080,
     },
     envDir: path.resolve(__dirname, ".."),
+    build: {
+      chunkSizeWarningLimit: 800,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+            'echarts': ['echarts'],
+            'query': ['@tanstack/react-query'],
+          },
+        },
+      },
+    },
   };
 });

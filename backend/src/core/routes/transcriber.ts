@@ -4,6 +4,9 @@ import fs from 'fs';
 import path from 'path';
 import Busboy from 'busboy';
 
+// 10MB limit for audio files
+const AUDIO_MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 type ParsedTranscriptionRequest = {
     provider: TranscriptionProvider;
     files: Array<{ path: string; filename: string; mimeType: string }>;
@@ -11,7 +14,13 @@ type ParsedTranscriptionRequest = {
 
 function parseTranscriptionRequest(req: any): Promise<ParsedTranscriptionRequest> {
     return new Promise((resolve, reject) => {
-        const bb = Busboy({ headers: req.headers });
+        const bb = Busboy({
+            headers: req.headers,
+            limits: {
+                fileSize: AUDIO_MAX_FILE_SIZE,
+                files: 1,
+            },
+        });
         let provider: TranscriptionProvider = config.transcription_provider as TranscriptionProvider;
         const files: Array<{ path: string; filename: string; mimeType: string }> = [];
         let pending = 0;
@@ -41,6 +50,14 @@ function parseTranscriptionRequest(req: any): Promise<ParsedTranscriptionRequest
             const filePath = path.join(uploadDir, `${Date.now()}-${filename}`);
             const writeStream = fs.createWriteStream(filePath);
 
+            // Busboy emits 'limit' on the file stream when fileSize limit is exceeded
+            file.on('limit', () => {
+                failed = true;
+                writeStream.destroy();
+                try { fs.unlinkSync(filePath); } catch (_e) { /* ignore cleanup errors */ }
+                reject(new Error(`File too large. Maximum size is ${AUDIO_MAX_FILE_SIZE / 1024 / 1024}MB`));
+            });
+
             file.on('error', (e) => {
                 failed = true;
                 reject(e);
@@ -50,7 +67,9 @@ function parseTranscriptionRequest(req: any): Promise<ParsedTranscriptionRequest
                 reject(e);
             });
             writeStream.on('finish', () => {
-                files.push({ path: filePath, filename, mimeType });
+                if (!failed) {
+                    files.push({ path: filePath, filename, mimeType });
+                }
                 pending--;
                 done();
             });
@@ -123,7 +142,8 @@ export function transcriberRoutes(app: any) {
 
         } catch (error: any) {
             console.error('Transcription route error:', error);
-            res.status(500).json({
+            const isSizeError = error.message?.includes('too large') || error.message?.includes('Maximum size');
+            res.status(isSizeError ? 413 : 500).json({
                 ok: false,
                 error: error.message || 'Transcription failed'
             });
