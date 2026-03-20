@@ -61,7 +61,8 @@ app.options('*', cors({
   },
   credentials: true,
 }));
-app.use(app.serverStatic("/storage", "./storage"))
+// Only expose uploads directory - never expose database or cache
+app.use(app.serverStatic("/storage/uploads", "./storage/uploads"))
 
 registerRoutes(app)
 
