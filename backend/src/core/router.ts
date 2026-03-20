@@ -12,8 +12,21 @@ import { materialsRoutes } from "./routes/materials";
 import { learningRoutes } from "./routes/learning";
 import { reviewRoutes } from "./routes/reviews";
 import { reportRoutes } from "./routes/reports";
+import type { IncomingMessage, ServerResponse } from 'http';
 
-export function registerRoutes(app: any) {
+type RouteHandler = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
+
+export interface AppServer {
+  get: (path: string, handler: RouteHandler) => void;
+  post: (path: string, handler: RouteHandler) => void;
+  put: (path: string, handler: RouteHandler) => void;
+  patch: (path: string, handler: RouteHandler) => void;
+  delete: (path: string, handler: RouteHandler) => void;
+  use: (handler: RouteHandler) => void;
+  ws: (path: string, handler: (ws: unknown, req: IncomingMessage) => void) => void;
+}
+
+export function registerRoutes(app: AppServer) {
   chatRoutes(app);
   quizRoutes(app);
   examRoutes(app);

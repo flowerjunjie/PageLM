@@ -7,6 +7,7 @@ import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n/config";
 import Onboarding from "./components/Onboarding";
 import ShortcutHelp from "./components/ShortcutHelp";
+import { ToastProvider } from "./components/Toast";
 
 export default function App() {
   const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
@@ -56,17 +57,19 @@ export default function App() {
 
   return (
     <I18nextProvider i18n={i18n}>
-      <CompanionProvider>
-        <div className="bg-black text-stone-300 min-h-screen flex flex-col">
-          <Sidebar />
-          <div className="flex-1 relative">
-            <Outlet />
+      <ToastProvider>
+        <CompanionProvider>
+          <div className="bg-black text-stone-300 min-h-screen flex flex-col">
+            <Sidebar />
+            <div className="flex-1 relative">
+              <Outlet />
+            </div>
           </div>
-        </div>
-        <CompanionDock />
-        <Onboarding />
-        <ShortcutHelp isOpen={isShortcutHelpOpen} onClose={() => setIsShortcutHelpOpen(false)} />
-      </CompanionProvider>
+          <CompanionDock />
+          <Onboarding />
+          <ShortcutHelp isOpen={isShortcutHelpOpen} onClose={() => setIsShortcutHelpOpen(false)} />
+        </CompanionProvider>
+      </ToastProvider>
     </I18nextProvider>
   );
 }
