@@ -1,6 +1,6 @@
 export function normalizeTopic(input: any): string {
   if (input == null) return ""
-  if (typeof input === "string") return input.trim()
+  if (typeof input === "string") return input.trim().replace(/\s+/g, ' ')
 
   if (typeof input === "object") {
     const cand =
