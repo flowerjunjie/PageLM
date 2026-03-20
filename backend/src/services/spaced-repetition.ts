@@ -137,22 +137,29 @@ export async function scheduleReview(
 }
 
 /**
+ * Batch-fetch review schedules for a list of flashcard IDs.
+ * Returns only the schedules that exist in the database.
+ */
+async function batchGetSchedules(flashcardIds: string[]): Promise<ReviewSchedule[]> {
+  const results = await Promise.all(
+    flashcardIds.map((id) => db.get(`review:${id}`) as Promise<ReviewSchedule | undefined>)
+  )
+  return results.filter((s): s is ReviewSchedule => s !== undefined && s !== null)
+}
+
+/**
  * Get all due reviews for a user
  */
 export async function getDueReviews(userId: string = 'default'): Promise<ReviewSchedule[]> {
   const userReviews: string[] = (await db.get(`user-reviews:${userId}`)) || []
   const now = Date.now()
-  const dueReviews: ReviewSchedule[] = []
 
-  for (const flashcardId of userReviews) {
-    const schedule = await db.get(`review:${flashcardId}`)
-    if (schedule && schedule.nextReviewAt <= now) {
-      dueReviews.push(schedule)
-    }
-  }
+  const schedules = await batchGetSchedules(userReviews)
 
   // Sort by next review time (oldest first)
-  return dueReviews.sort((a, b) => a.nextReviewAt - b.nextReviewAt)
+  return schedules
+    .filter((s) => s.nextReviewAt <= now)
+    .sort((a, b) => a.nextReviewAt - b.nextReviewAt)
 }
 
 /**
@@ -160,16 +167,10 @@ export async function getDueReviews(userId: string = 'default'): Promise<ReviewS
  */
 export async function getAllReviews(userId: string = 'default'): Promise<ReviewSchedule[]> {
   const userReviews: string[] = (await db.get(`user-reviews:${userId}`)) || []
-  const reviews: ReviewSchedule[] = []
 
-  for (const flashcardId of userReviews) {
-    const schedule = await db.get(`review:${flashcardId}`)
-    if (schedule) {
-      reviews.push(schedule)
-    }
-  }
+  const schedules = await batchGetSchedules(userReviews)
 
-  return reviews.sort((a, b) => a.nextReviewAt - b.nextReviewAt)
+  return schedules.sort((a, b) => a.nextReviewAt - b.nextReviewAt)
 }
 
 /**
@@ -237,10 +238,10 @@ export async function getReviewStats(userId: string = 'default'): Promise<{
   let totalEasiness = 0
   let validCards = 0
 
-  for (const flashcardId of userReviews) {
-    const schedule: ReviewSchedule | undefined = await db.get(`review:${flashcardId}`)
-    if (!schedule) continue
+  // Batch-fetch all schedules in parallel instead of one-by-one
+  const schedules = await batchGetSchedules(userReviews)
 
+  for (const schedule of schedules) {
     validCards++
     totalEasiness += schedule.easiness
 
@@ -274,10 +275,10 @@ async function calculateStreak(userId: string): Promise<number> {
   const userReviews: string[] = (await db.get(`user-reviews:${userId}`)) || []
   const reviewDays = new Set<number>()
 
-  for (const flashcardId of userReviews) {
-    const schedule: ReviewSchedule | undefined = await db.get(`review:${flashcardId}`)
-    if (!schedule) continue
+  // Batch-fetch all schedules in parallel
+  const schedules = await batchGetSchedules(userReviews)
 
+  for (const schedule of schedules) {
     for (const history of schedule.reviewHistory) {
       const day = new Date(history.date).setHours(0, 0, 0, 0)
       reviewDays.add(day)

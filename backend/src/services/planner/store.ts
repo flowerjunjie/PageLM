@@ -41,15 +41,56 @@ export async function deleteTask(id: string): Promise<boolean> {
 
 export async function listTasks(filter?: { status?: string; dueBefore?: string; course?: string }): Promise<Task[]> {
     const list = (await db.get(LIST_KEY)) || []
+
+    // Fetch all task records and the shared files index in parallel
+    const [taskRecords, allFilesList] = await Promise.all([
+        Promise.all(list.map((it: any) => db.get(`planner:task:${it.id}`) as Promise<Task | undefined>)),
+        db.get(FILES_LIST_KEY) as Promise<Array<{ id: string; taskId: string }> | undefined>,
+    ])
+
+    const filesList = allFilesList || []
+
+    // Group file index entries by taskId to avoid re-reading the list per task
+    const fileIndexByTask = new Map<string, Array<{ id: string; taskId: string }>>()
+    for (const item of filesList) {
+        const existing = fileIndexByTask.get(item.taskId)
+        if (existing) {
+            existing.push(item)
+        } else {
+            fileIndexByTask.set(item.taskId, [item])
+        }
+    }
+
+    // Collect all file IDs that are needed for the tasks we have
+    const allFileIds = filesList.map((item) => item.id)
+    const fileRecords = await Promise.all(
+        allFileIds.map((id) => db.get(`planner:task_file:${id}`) as Promise<TaskFile | undefined>)
+    )
+    const fileById = new Map<string, TaskFile>()
+    allFileIds.forEach((id, idx) => {
+        const f = fileRecords[idx]
+        if (f) fileById.set(id, f)
+    })
+
     const tasks: Task[] = []
-    for (const it of list) {
-        const t = await getTask(it.id)
-        if (!t) continue
+    for (const raw of taskRecords) {
+        if (!raw) continue
+        const t = raw as Task
+
+        // Apply filters before attaching files (avoids unnecessary file lookups)
         if (filter?.status && t.status !== filter.status) continue
         if (filter?.dueBefore && new Date(t.dueAt) > new Date(filter.dueBefore)) continue
         if (filter?.course && t.course !== filter.course) continue
+
+        // Attach files from the pre-fetched map
+        const fileEntries = fileIndexByTask.get(t.id) || []
+        t.files = fileEntries
+            .map((entry) => fileById.get(entry.id))
+            .filter((f): f is TaskFile => f !== undefined)
+
         tasks.push(t)
     }
+
     return tasks.sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
 }
 
@@ -62,14 +103,13 @@ export async function saveTaskFile(file: TaskFile): Promise<void> {
 
 export async function getTaskFiles(taskId: string): Promise<TaskFile[]> {
     const list = (await db.get(FILES_LIST_KEY)) || []
-    const files: TaskFile[] = []
-    for (const item of list) {
-        if (item.taskId === taskId) {
-            const file = await db.get(`planner:task_file:${item.id}`)
-            if (file) files.push(file)
-        }
-    }
-    return files
+    const matchingItems = list.filter((item: any) => item.taskId === taskId)
+
+    // Batch-fetch all matching files in parallel instead of one-by-one
+    const files = await Promise.all(
+        matchingItems.map((item: any) => db.get(`planner:task_file:${item.id}`) as Promise<TaskFile | undefined>)
+    )
+    return files.filter((f): f is TaskFile => f !== undefined && f !== null)
 }
 
 export async function deleteTaskFile(id: string): Promise<void> {

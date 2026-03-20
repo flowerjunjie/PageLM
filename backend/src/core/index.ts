@@ -1,5 +1,6 @@
 import cors from 'cors';
 import path from 'path'
+import compression from 'compression'
 import server from '../utils/server/server'
 import { registerRoutes } from './router'
 import { loggerMiddleware } from './middleware'
@@ -30,6 +31,9 @@ function getAllowedOrigins(): string[] {
 const allowedOrigins = getAllowedOrigins();
 
 const app = server()
+
+// Apply compression before all other middleware for maximum benefit
+app.use(compression())
 
 // Apply security middleware before routes
 app.use(defaultSecurityMiddleware)
