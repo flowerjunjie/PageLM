@@ -102,7 +102,7 @@ function generateKnowledgeNodesFromFlashcards(flashcards: any[]): KnowledgeNode[
         name: card.tag || 'General',
         subject,
         learnedAt: card.created || Date.now(),
-        reviewCount: Math.floor(Math.random() * 10) + 1
+        reviewCount: card.repetitions || card.reviewCount || 1
       })
     }
   }
@@ -122,7 +122,7 @@ function generateEdgesFromNodes(nodes: KnowledgeNode[]): KnowledgeEdge[] {
         edges.push({
           source: nodeA.id,
           target: nodeB.id,
-          strength: 0.3 + Math.random() * 0.4
+          strength: Math.min(0.9, 0.3 + ((nodeA.reviewCount + nodeB.reviewCount) / 20))
         })
       }
     }
@@ -219,7 +219,7 @@ export async function getLearningStats(): Promise<LearningStats> {
     dueFlashcards,
     quizAccuracy,
     quizAccuracyTrend,
-    weeklyFlashcardsReviewed: Math.floor(Math.random() * 50) + 10,
+    weeklyFlashcardsReviewed: flashcards.filter((f: any) => f.lastReviewed && f.lastReviewed > oneWeekAgo).length,
     streakDays
   }
 }
@@ -364,16 +364,37 @@ export async function identifyWeakAreas(): Promise<Array<{ subject: Subject; top
 }
 
 export async function calculateLearningTrend(days = 30): Promise<Array<{ date: string; studyTime: number; flashcardsReviewed: number; quizScore: number }>> {
-  const trend: Array<{ date: string; studyTime: number; flashcardsReviewed: number; quizScore: number }> = []
+  const [chats, flashcards, quizResults] = await Promise.all([
+    db.get('chats') as Promise<any[]>,
+    db.get('flashcards') as Promise<any[]>,
+    db.get('quiz_results') as Promise<any[]>,
+  ])
+
+  const chatList = chats || []
+  const flashcardList = flashcards || []
+  const quizList = quizResults || []
+
   const now = Date.now()
+  const trend: Array<{ date: string; studyTime: number; flashcardsReviewed: number; quizScore: number }> = []
 
   for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const dayStart = new Date(now - i * 24 * 60 * 60 * 1000)
+    dayStart.setHours(0, 0, 0, 0)
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
+    const date = dayStart.toISOString().split('T')[0]
+
+    const dayChats = chatList.filter((c: any) => c.createdAt >= dayStart.getTime() && c.createdAt < dayEnd.getTime())
+    const dayFlashcards = flashcardList.filter((f: any) => f.lastReviewed >= dayStart.getTime() && f.lastReviewed < dayEnd.getTime())
+    const dayQuizzes = quizList.filter((q: any) => q.completedAt >= dayStart.getTime() && q.completedAt < dayEnd.getTime())
+
+    const correct = dayQuizzes.reduce((s: number, q: any) => s + (q.correctCount || 0), 0)
+    const total = dayQuizzes.reduce((s: number, q: any) => s + (q.totalCount || 0), 0)
+
     trend.push({
       date,
-      studyTime: Math.floor(Math.random() * 60) + 10,
-      flashcardsReviewed: Math.floor(Math.random() * 20) + 5,
-      quizScore: Math.floor(Math.random() * 40) + 60
+      studyTime: dayChats.length * 15,
+      flashcardsReviewed: dayFlashcards.length,
+      quizScore: total > 0 ? Math.round((correct / total) * 100) : 0,
     })
   }
 
