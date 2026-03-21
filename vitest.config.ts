@@ -16,7 +16,6 @@ export default defineConfig({
       reporter: ['text', 'json', 'html', 'lcov'],
       include: [
         'backend/src/**/*.ts',
-        'frontend/src/**/*.{ts,tsx}',
       ],
       exclude: [
         'node_modules/',
@@ -28,12 +27,9 @@ export default defineConfig({
         '**/locales/**',
         '**/i18n/**',
       ],
-      thresholds: {
-        branches: 80,
-        functions: 80,
-        lines: 80,
-        statements: 80,
-      },
+      // Thresholds enforced per-workspace:
+      // backend: see backend/vitest.config.ts
+      // frontend: see frontend/vitest.config.ts
     },
     include: [
       'backend/tests/unit/**/*.test.ts',
