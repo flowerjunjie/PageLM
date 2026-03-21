@@ -21,3 +21,38 @@ database.sqlite
 # TypeScript build info
 tsconfig.tsbuildinfo
 vite.config.tsbuildinfo
+
+# Test coverage and results
+coverage/
+**/coverage/
+test-results/
+**/test-results/
+playwright-report/
+**/playwright-report/
+*.log
+
+# Generated report files
+*_REPORT.md
+*_SUMMARY.md
+*_SUMMARY_V2.md
+IMPROVEMENTS_SUMMARY.md
+OPTIMIZATION_SUMMARY.md
+ROUNDS_*.md
+UI_*.md
+SESSION_*.md
+SYSTEM_*.md
+FINAL_*.md
+COMPLETE_*.md
+SECURITY_*.md
+PERFORMANCE_*.md
+COMPONENT_*.md
+TEST_COVERAGE*.md
+BACKEND_FIX*.md
+BUGFIX_*.md
+BUTTON_TEST*.md
+FEATURE_TEST*.md
+CLAUDE_*.md
+
+# Ad-hoc test scripts
+test-*.py
+test-*.sh
