@@ -1,0 +1,437 @@
+/**
+ * Performance Optimizations
+ * CSS-based performance improvements for better rendering
+ */
+
+/* Content-visibility for long lists */
+.message-item,
+.chat-list-item,
+.card-list-item,
+.sidebar-item {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 80px;
+}
+
+/* GPU acceleration for animations */
+@keyframes spin-gpu {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-gpu {
+  animation: spin-gpu 1s linear infinite;
+  /* Use wrapper div for GPU acceleration */
+  will-change: transform;
+}
+
+/* Optimized transitions */
+.optimized-transition {
+  transition-property: transform, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Reduce paint for static elements */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-scroll {
+  will-change: scroll-position;
+}
+
+/* Image optimization */
+img {
+  image-rendering: auto;
+}
+
+/* Font optimization */
+.font-display-swap {
+  font-display: swap;
+}
+
+.font-display-optional {
+  font-display: optional;
+}
+
+/* Containment for layout optimization */
+.chat-container {
+  contain: layout style paint;
+}
+
+.sidebar-container {
+  contain: layout style;
+}
+
+/* Performance-hint for above-fold content */
+.above-fold {
+  contain: strict;
+}
+
+/* Low-priority rendering for below-fold content */
+.below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+/* Smooth scrolling with reduced paint */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Optimized backdrop filter */
+.backdrop-optimized {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter;
+}
+
+/* SVG animation wrapper for GPU acceleration */
+.svg-animate-wrapper {
+  display: inline-block;
+}
+
+.svg-animate-wrapper svg {
+  display: block;
+}
+
+/* Prefetch and preload hints */
+.link-prefetch {
+  rel: prefetch;
+}
+
+.link-preload {
+  rel: preload;
+  as: 'fetch';
+  crossorigin: 'anonymous';
+}
+
+/* Critical CSS inlined */
+@media screen and (max-width: 600px) {
+  .mobile-optimized {
+    contain: layout style;
+  }
+}
+
+/* Reduce repaint for hover states */
+.hover-optimized {
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+/* Optimized flex/grid layouts */
+.layout-optimized {
+  contain: layout;
+}
+
+/* Text rendering optimization */
+.text-optimized {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent layout shift */
+.aspect-ratio-box {
+  aspect-ratio: 16 / 9;
+  contain: layout;
+}
+
+/* ============================================
+ * Loading States & Animations
+ * ============================================ */
+
+/* Shimmer animation for skeleton screens */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    90deg,
+    rgb(41, 37, 36) 0%,
+    rgb(68, 64, 60) 50%,
+    rgb(41, 37, 36) 100%
+  );
+  background-size: 1000px 100%;
+}
+
+/* Pulse animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Bounce animation for loading indicators */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-25%);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+/* Spin animation for loaders */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Fade in from top */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown 0.3s ease-out;
+}
+
+/* Fade in from bottom */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Scale animation */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Slide in from left */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
+}
+
+/* Staggered animation delays */
+.animate-delay-100 {
+  animation-delay: 100ms;
+}
+
+.animate-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animate-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animate-delay-500 {
+  animation-delay: 500ms;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Loading spinner wrapper */
+.loading-spinner-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Progress bar animation */
+@keyframes progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-progress {
+  animation: progress 1.5s infinite linear;
+}
+
+/* Skeleton pulse gradient */
+.skeleton-gradient {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(255, 255, 255, 0.1) 60%,
+    rgba(255, 255, 255, 0.05) 80%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ============================================
+ * Progress Animations
+ * ============================================ */
+
+/* Indeterminate progress bar animation */
+@keyframes indeterminate-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-indeterminate-progress {
+  animation: indeterminate-progress 1.5s infinite ease-in-out;
+}
+
+/* Striped progress bar animation */
+@keyframes progress-stripes {
+  0% {
+    background-position: 1rem 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+.animate-progress-stripes {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+  animation: progress-stripes 1s linear infinite;
+}
+
+/* Circular progress animation */
+@keyframes circular-progress {
+  0% {
+    stroke-dashoffset: 283;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-circular-progress {
+  animation: circular-progress 1s ease-out forwards;
+}
+
+/* Ping animation for status indicators */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
