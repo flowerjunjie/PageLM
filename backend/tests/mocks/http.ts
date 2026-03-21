@@ -94,8 +94,8 @@ export function mockResponse(overrides: Partial<any> = {}): any {
   res._send = undefined
   res._render = undefined
   res._redirect = undefined
-  res._headers: { [key: string]: string } = {}
-  res._cookies: { [key: string]: any } = {}
+  res._headers = {} as { [key: string]: string }
+  res._cookies = {} as { [key: string]: any }
 
   // Methods
   res.status = vi.fn((code: number) => {
@@ -153,6 +153,20 @@ export function mockResponse(overrides: Partial<any> = {}): any {
     } else if (value !== undefined) {
       res._headers[field.toLowerCase()] = value
     }
+    return res
+  })
+
+  res.setHeader = vi.fn((field: string, value: string) => {
+    res._headers[field.toLowerCase()] = value
+    return res
+  })
+
+  res.getHeader = vi.fn((field: string): string | undefined => {
+    return res._headers[field.toLowerCase()]
+  })
+
+  res.removeHeader = vi.fn((field: string) => {
+    delete res._headers[field.toLowerCase()]
     return res
   })
 
@@ -249,8 +263,8 @@ export function createMockExpressApp(): any {
   }
 
   // Route handlers
-  app._routes: { [key: string]: any } = {}
-  app._wsHandlers: { [key: string]: any } = {}
+  app._routes = {} as { [key: string]: any }
+  app._wsHandlers = {} as { [key: string]: any }
 
   // Core methods
   app.use = vi.fn((path: string | Function, ...handlers: Function[]) => {
