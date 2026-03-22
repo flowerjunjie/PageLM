@@ -45,7 +45,7 @@ function parseTranscriptionRequest(req: any): Promise<ParsedTranscriptionRequest
 
         bb.on('file', (_name, file, info: any) => {
             pending++;
-            const filename = info?.filename || 'audio';
+            const filename = path.basename(info?.filename || 'audio') || 'audio';
             const mimeType = info?.mimeType || info?.mime || 'audio/webm';
             const filePath = path.join(uploadDir, `${Date.now()}-${filename}`);
             const writeStream = fs.createWriteStream(filePath);
@@ -60,10 +60,12 @@ function parseTranscriptionRequest(req: any): Promise<ParsedTranscriptionRequest
 
             file.on('error', (e) => {
                 failed = true;
+                try { fs.unlinkSync(filePath); } catch (_cleanupError) { /* ignore cleanup errors */ }
                 reject(e);
             });
             writeStream.on('error', (e) => {
                 failed = true;
+                try { fs.unlinkSync(filePath); } catch (_cleanupError) { /* ignore cleanup errors */ }
                 reject(e);
             });
             writeStream.on('finish', () => {
@@ -115,6 +117,11 @@ export function transcriberRoutes(app: any) {
 
             // Check if it's an audio file (or video, which often contains audio)
             if (!audioFile.mimeType.startsWith('audio/') && !audioFile.mimeType.startsWith('video/')) {
+                try {
+                    fs.unlinkSync(audioFile.path);
+                } catch (_e) {
+                    // ignore cleanup errors for invalid uploads
+                }
                 return res.status(400).json({
                     ok: false,
                     error: 'File must be an audio or video file'
@@ -123,22 +130,24 @@ export function transcriberRoutes(app: any) {
 
             console.log(`[transcriber] Processing ${audioFile.filename} with ${provider} provider`);
 
-            const result = await transcribeAudio(audioFile.path, provider);
-
-            // Clean up the temporary file
             try {
-                fs.unlinkSync(audioFile.path);
-            } catch (e) {
-                console.warn('Failed to delete temp file:', audioFile.path);
-            }
+                const result = await transcribeAudio(audioFile.path, provider);
 
-            res.json({
-                ok: true,
-                transcription: result.text,
-                provider: result.provider,
-                duration: result.duration,
-                confidence: result.confidence
-            });
+                res.json({
+                    ok: true,
+                    transcription: result.text,
+                    provider: result.provider,
+                    duration: result.duration,
+                    confidence: result.confidence
+                });
+            } finally {
+                // Clean up the temporary file
+                try {
+                    fs.unlinkSync(audioFile.path);
+                } catch (e) {
+                    console.warn('Failed to delete temp file:', audioFile.path);
+                }
+            }
 
         } catch (error: any) {
             console.error('Transcription route error:', error);

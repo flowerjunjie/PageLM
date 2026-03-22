@@ -251,81 +251,203 @@ describe('weeklyPlan', () => {
   })
 
   it('should place task slots in the correct day bucket', () => {
-    const tomorrow = new Date()
-    tomorrow.setHours(0, 0, 0, 0)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowDateStr = tomorrow.toISOString().slice(0, 10)
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-22T12:00:00.000Z'))
 
-    // Create a slot that falls tomorrow at 10 AM
-    const slotStart = new Date(tomorrow)
-    slotStart.setHours(10, 0, 0, 0)
-    const slotEnd = new Date(slotStart.getTime() + 25 * 60 * 1000)
+    try {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const tomorrowDateStr = tomorrow.toISOString().slice(0, 10)
 
-    const taskWithSlot = makeTask({
-      id: 'task-with-slots',
-      plan: {
-        slots: [
-          {
-            id: 'slot-1',
-            taskId: 'task-with-slots',
-            start: slotStart.toISOString(),
-            end: slotEnd.toISOString(),
-            kind: 'focus',
-          },
-        ],
-        policy: makePolicy(),
-        lastPlannedAt: new Date().toISOString(),
-      },
-    })
+      const slotStart = new Date(tomorrow)
+      slotStart.setHours(10, 0, 0, 0)
+      const slotEnd = new Date(slotStart.getTime() + 25 * 60 * 1000)
 
-    const result = weeklyPlan([taskWithSlot], makePolicy())
+      const taskWithSlot = makeTask({
+        id: 'task-with-slots',
+        plan: {
+          slots: [
+            {
+              id: 'slot-1',
+              taskId: 'task-with-slots',
+              start: slotStart.toISOString(),
+              end: slotEnd.toISOString(),
+              kind: 'focus',
+            },
+          ],
+          policy: makePolicy(),
+          lastPlannedAt: new Date().toISOString(),
+        },
+      })
 
-    const tomorrowDay = result.days.find(d => d.date === tomorrowDateStr)
-    expect(tomorrowDay).toBeDefined()
-    expect(tomorrowDay!.slots.length).toBeGreaterThan(0)
+      const result = weeklyPlan([taskWithSlot], makePolicy())
+
+      const tomorrowDay = result.days.find(d => d.date === tomorrowDateStr)
+      expect(tomorrowDay).toBeDefined()
+      expect(tomorrowDay!.slots.map(slot => slot.id)).toEqual(['slot-1'])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('should exclude slots before the weekly window starts while keeping the start boundary inclusive', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-22T12:00:00.000Z'))
+
+    try {
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
+      const justBeforeWindow = new Date(startOfToday.getTime() - 1)
+      const windowStartEnd = new Date(startOfToday.getTime() + 25 * 60 * 1000)
+      const justBeforeWindowEnd = new Date(justBeforeWindow.getTime() + 25 * 60 * 1000)
+
+      const taskAtWindowBoundary = makeTask({
+        id: 'task-window-boundary',
+        plan: {
+          slots: [
+            {
+              id: 'slot-before-window',
+              taskId: 'task-window-boundary',
+              start: justBeforeWindow.toISOString(),
+              end: justBeforeWindowEnd.toISOString(),
+              kind: 'focus',
+            },
+            {
+              id: 'slot-window-start',
+              taskId: 'task-window-boundary',
+              start: startOfToday.toISOString(),
+              end: windowStartEnd.toISOString(),
+              kind: 'focus',
+            },
+          ],
+          policy: makePolicy(),
+          lastPlannedAt: new Date().toISOString(),
+        },
+      })
+
+      const result = weeklyPlan([taskAtWindowBoundary], makePolicy())
+
+      expect(result.days[0].slots.map(slot => slot.id)).toEqual(['slot-window-start'])
+      expect(result.days.flatMap(day => day.slots.map(slot => slot.id))).not.toContain('slot-before-window')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('should ignore slots scheduled beyond the 7-day window', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-22T12:00:00.000Z'))
+
+    try {
+      const startOfToday = new Date()
+      startOfToday.setHours(0, 0, 0, 0)
+      const lastIncludedDay = new Date(startOfToday.getTime() + 6 * 24 * 60 * 60 * 1000)
+      lastIncludedDay.setHours(9, 0, 0, 0)
+      const beyondWindow = new Date(startOfToday.getTime() + 7 * 24 * 60 * 60 * 1000)
+      beyondWindow.setHours(9, 0, 0, 0)
+
+      const taskWithFutureSlots = makeTask({
+        id: 'task-future-slot',
+        plan: {
+          slots: [
+            {
+              id: 'slot-last-in-range',
+              taskId: 'task-future-slot',
+              start: lastIncludedDay.toISOString(),
+              end: new Date(lastIncludedDay.getTime() + 25 * 60 * 1000).toISOString(),
+              kind: 'focus',
+            },
+            {
+              id: 'slot-beyond-window',
+              taskId: 'task-future-slot',
+              start: beyondWindow.toISOString(),
+              end: new Date(beyondWindow.getTime() + 25 * 60 * 1000).toISOString(),
+              kind: 'focus',
+            },
+          ],
+          policy: makePolicy(),
+          lastPlannedAt: new Date().toISOString(),
+        },
+      })
+
+      const result = weeklyPlan([taskWithFutureSlots], makePolicy())
+
+      expect(result.days[6].slots.map(slot => slot.id)).toEqual(['slot-last-in-range'])
+      expect(result.days.flatMap(day => day.slots.map(slot => slot.id))).not.toContain('slot-beyond-window')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('should leave all day buckets empty for tasks without a plan', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-22T12:00:00.000Z'))
+
+    try {
+      const taskWithoutPlan = makeTask({ id: 'task-no-plan' })
+
+      const result = weeklyPlan([taskWithoutPlan], makePolicy())
+
+      expect(result.days.map(day => day.slots.map(slot => slot.id))).toEqual([[], [], [], [], [], [], []])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('should sort slots within each day by start time', () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-22T12:00:00.000Z'))
 
-    const slot2Start = new Date(today)
-    slot2Start.setHours(11, 0, 0, 0)
-    const slot1Start = new Date(today)
-    slot1Start.setHours(9, 0, 0, 0)
+    try {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
 
-    const taskWithSlots = makeTask({
-      id: 'task-sort',
-      plan: {
-        slots: [
-          {
-            id: 'slot-later',
-            taskId: 'task-sort',
-            start: slot2Start.toISOString(),
-            end: new Date(slot2Start.getTime() + 25 * 60 * 1000).toISOString(),
-            kind: 'focus',
-          },
-          {
-            id: 'slot-earlier',
-            taskId: 'task-sort',
-            start: slot1Start.toISOString(),
-            end: new Date(slot1Start.getTime() + 25 * 60 * 1000).toISOString(),
-            kind: 'focus',
-          },
-        ],
-        policy: makePolicy(),
-        lastPlannedAt: new Date().toISOString(),
-      },
-    })
+      const laterStart = new Date(today)
+      laterStart.setHours(11, 0, 0, 0)
+      const earlierStart = new Date(today)
+      earlierStart.setHours(9, 0, 0, 0)
 
-    const result = weeklyPlan([taskWithSlots], makePolicy())
+      const taskWithLaterSlot = makeTask({
+        id: 'task-later',
+        plan: {
+          slots: [
+            {
+              id: 'slot-later',
+              taskId: 'task-later',
+              start: laterStart.toISOString(),
+              end: new Date(laterStart.getTime() + 25 * 60 * 1000).toISOString(),
+              kind: 'focus',
+            },
+          ],
+          policy: makePolicy(),
+          lastPlannedAt: new Date().toISOString(),
+        },
+      })
 
-    const todayStr = today.toISOString().slice(0, 10)
-    const todayDay = result.days.find(d => d.date === todayStr)
+      const taskWithEarlierSlot = makeTask({
+        id: 'task-earlier',
+        plan: {
+          slots: [
+            {
+              id: 'slot-earlier',
+              taskId: 'task-earlier',
+              start: earlierStart.toISOString(),
+              end: new Date(earlierStart.getTime() + 25 * 60 * 1000).toISOString(),
+              kind: 'focus',
+            },
+          ],
+          policy: makePolicy(),
+          lastPlannedAt: new Date().toISOString(),
+        },
+      })
 
-    if (todayDay && todayDay.slots.length >= 2) {
-      expect(new Date(todayDay.slots[0].start).getTime())
-        .toBeLessThanOrEqual(new Date(todayDay.slots[1].start).getTime())
+      const result = weeklyPlan([taskWithLaterSlot, taskWithEarlierSlot], makePolicy())
+
+      expect(result.days[0].slots.map(slot => slot.id)).toEqual(['slot-earlier', 'slot-later'])
+    } finally {
+      vi.useRealTimers()
     }
   })
 })

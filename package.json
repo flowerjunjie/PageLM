@@ -5,7 +5,7 @@
     "build": "tsc -p backend/tsconfig.json",
     "start": "node backend/dist/src/core/index.js",
     "test:backend:run": "vitest run",
-    "test:backend:coverage": "vitest run --coverage",
+    "test:backend:coverage": "cd backend && vitest run --coverage",
     "test:backend:watch": "vitest",
     "test": "npm run test:backend:run && cd frontend && npm run test:run"
   },

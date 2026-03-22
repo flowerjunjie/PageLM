@@ -173,6 +173,7 @@ export async function getLearningStats(): Promise<LearningStats> {
 
   const now = Date.now()
   const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000
+  const twoWeeksAgo = now - 14 * 24 * 60 * 60 * 1000
   const oneDayAgo = now - 24 * 60 * 60 * 1000
 
   const weeklyChats = chats.filter((c: any) => c.createdAt > oneWeekAgo)
@@ -193,7 +194,7 @@ export async function getLearningStats(): Promise<LearningStats> {
   const quizAccuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0
 
   const previousWeekQuizzes = quizResults.filter((q: any) => {
-    return q.completedAt > oneWeekAgo * 2 && q.completedAt <= oneWeekAgo
+    return q.completedAt > twoWeeksAgo && q.completedAt <= oneWeekAgo
   })
   const prevCorrect = previousWeekQuizzes.reduce((sum: number, q: any) => sum + (q.correctCount || 0), 0)
   const prevTotal = previousWeekQuizzes.reduce((sum: number, q: any) => sum + (q.totalCount || 0), 0)

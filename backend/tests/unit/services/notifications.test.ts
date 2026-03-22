@@ -8,7 +8,7 @@
  * exercised at a structural level only since emitToAll is mocked.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Mock WebSocket emitter - notifications.ts calls emitToAll for realtime delivery
 vi.mock('../../../src/utils/chat/ws', () => ({
@@ -25,6 +25,7 @@ import {
   sendTaskCompletionNotification,
   sendProcrastinationWarning,
   scheduleTaskReminders,
+  registerUserConnection,
 } from '../../../src/services/notifications'
 
 // ---------------------------------------------------------------------------
@@ -33,12 +34,70 @@ import {
 
 /**
  * The notifications module uses module-level arrays.
- * We clear them between tests by cancelling everything scheduled.
- * Since we can't directly access the private arrays, we use the public API.
+ * We track created user ids and close handlers so each test can clean up
+ * state through the public API without touching private internals.
  */
 function makeScheduledTime(offsetMs: number): number {
   return Date.now() + offsetMs
 }
+
+let testUserSeq = 0
+let trackedUserIds: string[] = []
+let trackedCloseHandlers: Array<() => void> = []
+
+function createTestUserId(prefix = 'user'): string {
+  testUserSeq += 1
+  const userId = `${prefix}-${testUserSeq}`
+  trackedUserIds.push(userId)
+  return userId
+}
+
+function createMockWs() {
+  let closeHandler: (() => void) | undefined
+  const ws: any = {
+    on: vi.fn((event: string, handler: () => void) => {
+      if (event === 'close') {
+        closeHandler = handler
+      }
+    }),
+  }
+
+  return {
+    ws,
+    triggerClose: () => closeHandler?.(),
+  }
+}
+
+function registerTrackedConnection(userId: string) {
+  const { ws, triggerClose } = createMockWs()
+  trackedCloseHandlers.push(triggerClose)
+  registerUserConnection(userId, ws)
+  return { ws, triggerClose }
+}
+
+beforeEach(() => {
+  trackedUserIds = []
+  trackedCloseHandlers = []
+  vi.clearAllMocks()
+})
+
+afterEach(() => {
+  for (const triggerClose of trackedCloseHandlers) {
+    triggerClose()
+  }
+
+  for (const userId of trackedUserIds) {
+    for (const notification of getUserNotifications(userId)) {
+      cancelNotification(notification.id)
+    }
+  }
+
+  trackedCloseHandlers = []
+  trackedUserIds = []
+  vi.clearAllMocks()
+  vi.restoreAllMocks()
+  vi.useRealTimers()
+})
 
 // ---------------------------------------------------------------------------
 // scheduleNotification
@@ -46,7 +105,8 @@ function makeScheduledTime(offsetMs: number): number {
 
 describe('scheduleNotification', () => {
   it('should return a ScheduledNotification object', async () => {
-    const notif = await scheduleNotification('user-1', {
+    const userId = createTestUserId('user-1')
+    const notif = await scheduleNotification(userId, {
       type: 'browser',
       title: 'Test',
       message: 'Hello',
@@ -54,7 +114,7 @@ describe('scheduleNotification', () => {
     })
 
     expect(notif).toHaveProperty('id')
-    expect(notif).toHaveProperty('userId', 'user-1')
+    expect(notif).toHaveProperty('userId', userId)
     expect(notif).toHaveProperty('title', 'Test')
     expect(notif).toHaveProperty('message', 'Hello')
     expect(notif).toHaveProperty('type', 'browser')
@@ -63,13 +123,14 @@ describe('scheduleNotification', () => {
   })
 
   it('should generate a unique id for each notification', async () => {
-    const n1 = await scheduleNotification('user-1', {
+    const userId = createTestUserId('user-unique')
+    const n1 = await scheduleNotification(userId, {
       type: 'browser',
       title: 'A',
       message: 'A',
       scheduledTime: makeScheduledTime(3600000),
     })
-    const n2 = await scheduleNotification('user-1', {
+    const n2 = await scheduleNotification(userId, {
       type: 'browser',
       title: 'B',
       message: 'B',
@@ -80,7 +141,8 @@ describe('scheduleNotification', () => {
   })
 
   it('should include optional taskId when provided', async () => {
-    const notif = await scheduleNotification('user-2', {
+    const userId = createTestUserId('user-2')
+    const notif = await scheduleNotification(userId, {
       taskId: 'task-abc',
       type: 'email',
       title: 'Task Reminder',
@@ -92,16 +154,32 @@ describe('scheduleNotification', () => {
   })
 
   it('should send notification immediately when scheduledTime is in the past', async () => {
+    const { emitToAll } = await import('../../../src/utils/chat/ws')
+    const userId = createTestUserId('user-immediate')
+
+    registerTrackedConnection(userId)
+
     // When scheduledTime is in the past (delayMs <= 0), sendNotification is called immediately
-    const notif = await scheduleNotification('user-immediate', {
-      type: 'browser',
+    const notif = await scheduleNotification(userId, {
+      type: 'email',
       title: 'Immediate',
       message: 'Send now',
       scheduledTime: Date.now() - 1000, // 1 second in the past
     })
 
+    const payloads = vi.mocked(emitToAll).mock.calls.map(call => call[1])
+
     expect(notif).toBeDefined()
     expect(notif.title).toBe('Immediate')
+    expect(payloads).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'notification',
+        notificationType: 'email',
+        title: 'Immediate',
+        message: 'Send now',
+        timestamp: expect.any(Number),
+      }),
+    ]))
   })
 })
 
@@ -116,7 +194,8 @@ describe('cancelNotification', () => {
   })
 
   it('should return true and remove a scheduled notification', async () => {
-    const notif = await scheduleNotification('user-cancel', {
+    const userId = createTestUserId('user-cancel')
+    const notif = await scheduleNotification(userId, {
       type: 'browser',
       title: 'To Cancel',
       message: 'Will be cancelled',
@@ -129,7 +208,8 @@ describe('cancelNotification', () => {
   })
 
   it('should make the notification disappear from getUserNotifications', async () => {
-    const notif = await scheduleNotification('user-cancel-check', {
+    const userId = createTestUserId('user-cancel-check')
+    const notif = await scheduleNotification(userId, {
       type: 'browser',
       title: 'Cancel Me',
       message: 'Bye',
@@ -138,7 +218,7 @@ describe('cancelNotification', () => {
 
     cancelNotification(notif.id)
 
-    const remaining = getUserNotifications('user-cancel-check')
+    const remaining = getUserNotifications(userId)
     const found = remaining.find(n => n.id === notif.id)
     expect(found).toBeUndefined()
   })
@@ -155,16 +235,17 @@ describe('cancelTaskNotifications', () => {
   })
 
   it('should return the number of cancelled notifications', async () => {
+    const userId = createTestUserId('user-bulk')
     const taskId = `task-cancel-bulk-${Date.now()}`
 
-    await scheduleNotification('user-bulk', {
+    await scheduleNotification(userId, {
       taskId,
       type: 'browser',
       title: 'Reminder 1',
       message: 'First',
       scheduledTime: makeScheduledTime(3600000),
     })
-    await scheduleNotification('user-bulk', {
+    await scheduleNotification(userId, {
       taskId,
       type: 'email',
       title: 'Reminder 2',
@@ -177,9 +258,9 @@ describe('cancelTaskNotifications', () => {
   })
 
   it('should only cancel notifications for the specified task', async () => {
+    const userId = createTestUserId('user-specific')
     const taskId = `task-specific-${Date.now()}`
     const otherTaskId = `task-other-${Date.now()}`
-    const userId = `user-specific-${Date.now()}`
 
     await scheduleNotification(userId, {
       taskId,
@@ -212,14 +293,15 @@ describe('cancelTaskNotifications', () => {
 
 describe('getUserNotifications', () => {
   it('should return empty array when user has no notifications', () => {
-    const result = getUserNotifications('user-with-nothing')
+    const userId = createTestUserId('user-with-nothing')
+    const result = getUserNotifications(userId)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBe(0)
   })
 
   it('should return only the specified user notifications', async () => {
-    const userId = `user-isolated-${Date.now()}`
-    const otherUserId = `other-isolated-${Date.now()}`
+    const userId = createTestUserId('user-isolated')
+    const otherUserId = createTestUserId('other-isolated')
 
     await scheduleNotification(userId, {
       type: 'browser',
@@ -240,7 +322,7 @@ describe('getUserNotifications', () => {
   })
 
   it('should return notifications sorted by scheduledTime ascending', async () => {
-    const userId = `user-sorted-${Date.now()}`
+    const userId = createTestUserId('user-sorted')
 
     await scheduleNotification(userId, {
       type: 'browser',
@@ -273,13 +355,14 @@ describe('getUserNotifications', () => {
 
 describe('getUpcomingNotifications', () => {
   it('should return empty array when user has no upcoming notifications', () => {
-    const result = getUpcomingNotifications('user-no-upcoming')
+    const userId = createTestUserId('user-no-upcoming')
+    const result = getUpcomingNotifications(userId)
     expect(Array.isArray(result)).toBe(true)
     expect(result.length).toBe(0)
   })
 
   it('should limit results to the specified count', async () => {
-    const userId = `user-limit-${Date.now()}`
+    const userId = createTestUserId('user-limit')
 
     for (let i = 0; i < 5; i++) {
       await scheduleNotification(userId, {
@@ -296,14 +379,24 @@ describe('getUpcomingNotifications', () => {
   })
 
   it('should use default limit of 10', async () => {
-    const userId = `user-default-limit-${Date.now()}`
-    // result should not throw and should return array
+    const userId = createTestUserId('user-default-limit')
+
+    for (let i = 0; i < 12; i++) {
+      await scheduleNotification(userId, {
+        type: 'browser',
+        title: `Default ${i}`,
+        message: `Default message ${i}`,
+        scheduledTime: makeScheduledTime((i + 1) * 3600000),
+      })
+    }
+
     const result = getUpcomingNotifications(userId)
     expect(Array.isArray(result)).toBe(true)
+    expect(result).toHaveLength(10)
   })
 
   it('should only return future notifications', async () => {
-    const userId = `user-future-${Date.now()}`
+    const userId = createTestUserId('user-future')
 
     await scheduleNotification(userId, {
       type: 'browser',
@@ -334,7 +427,8 @@ describe('getUpcomingNotifications', () => {
 
 describe('sendNotification', () => {
   it('should not throw when user has no WebSocket connections', async () => {
-    const notif = await scheduleNotification('user-no-ws', {
+    const userId = createTestUserId('user-no-ws')
+    const notif = await scheduleNotification(userId, {
       type: 'browser',
       title: 'Test',
       message: 'No WS',
@@ -343,6 +437,73 @@ describe('sendNotification', () => {
 
     // Should not throw even when there are no registered rooms
     expect(() => sendNotification(notif)).not.toThrow()
+  })
+
+  it('should emit a realtime notification when user has a registered connection', async () => {
+    const { emitToAll } = await import('../../../src/utils/chat/ws')
+    const userId = createTestUserId('user-send-ws')
+
+    registerTrackedConnection(userId)
+
+    sendNotification({
+      id: `notif-direct-${Date.now()}`,
+      userId,
+      taskId: 'task-direct',
+      type: 'email',
+      title: 'Direct Notification',
+      message: 'Sent over realtime channel',
+      scheduledTime: Date.now() + 60_000,
+      createdAt: Date.now(),
+    })
+
+    expect(emitToAll).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: 'notification',
+        notificationType: 'email',
+        title: 'Direct Notification',
+        message: 'Sent over realtime channel',
+        taskId: 'task-direct',
+        timestamp: expect.any(Number),
+      })
+    )
+  })
+
+  it('should emit both realtime and browser notification payloads for browser notifications', async () => {
+    const { emitToAll } = await import('../../../src/utils/chat/ws')
+    const userId = createTestUserId('user-browser-send')
+
+    registerTrackedConnection(userId)
+
+    sendNotification({
+      id: `notif-browser-${Date.now()}`,
+      userId,
+      taskId: 'task-browser',
+      type: 'browser',
+      title: 'Browser Notification',
+      message: 'Delivered twice',
+      scheduledTime: Date.now() + 60_000,
+      createdAt: Date.now(),
+    })
+
+    const payloads = vi.mocked(emitToAll).mock.calls.map(call => call[1])
+
+    expect(payloads).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'notification',
+        notificationType: 'browser',
+        title: 'Browser Notification',
+        message: 'Delivered twice',
+        taskId: 'task-browser',
+        timestamp: expect.any(Number),
+      }),
+      expect.objectContaining({
+        type: 'browser.notification',
+        title: 'Browser Notification',
+        message: 'Delivered twice',
+        timestamp: expect.any(Number),
+      }),
+    ]))
   })
 })
 
@@ -356,6 +517,26 @@ describe('sendTaskCompletionNotification', () => {
       sendTaskCompletionNotification('user-no-ws', 'My Task', 45)
     ).not.toThrow()
   })
+
+  it('should call emitToAll with task completion details when user has registered WebSocket connections', async () => {
+    const { emitToAll } = await import('../../../src/utils/chat/ws')
+
+    const userId = createTestUserId('user-completion-ws')
+
+    registerTrackedConnection(userId)
+
+    sendTaskCompletionNotification(userId, 'My Important Task', 60)
+
+    const payloads = vi.mocked(emitToAll).mock.calls.map(call => call[1])
+    expect(payloads).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'task.completed',
+        title: expect.any(String),
+        message: expect.any(String),
+        timestamp: expect.any(Number),
+      }),
+    ]))
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -368,6 +549,45 @@ describe('sendProcrastinationWarning', () => {
       sendProcrastinationWarning('user-no-ws', 'Overdue Task', 2.5)
     ).not.toThrow()
   })
+
+  it('should call emitToAll with procrastination details when user has registered WebSocket connections', async () => {
+    const { emitToAll } = await import('../../../src/utils/chat/ws')
+
+    const userId = createTestUserId('user-procrastination-ws')
+
+    registerTrackedConnection(userId)
+
+    sendProcrastinationWarning(userId, 'Late Assignment', 5)
+
+    const payloads = vi.mocked(emitToAll).mock.calls.map(call => call[1])
+    expect(payloads).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'procrastination.warning',
+        title: expect.any(String),
+        message: expect.any(String),
+        timestamp: expect.any(Number),
+      }),
+    ]))
+  })
+
+  it('should stop emitting after the registered connection is closed', async () => {
+    const { emitToAll } = await import('../../../src/utils/chat/ws')
+
+    const userId = createTestUserId('user-close')
+    const { triggerClose } = registerTrackedConnection(userId)
+
+    sendProcrastinationWarning(userId, 'Late Assignment', 5)
+    const callsBeforeClose = vi.mocked(emitToAll).mock.calls.length
+
+    vi.clearAllMocks()
+    triggerClose()
+
+    sendProcrastinationWarning(userId, 'Late Assignment', 5)
+
+    const payloadsAfterClose = vi.mocked(emitToAll).mock.calls.map(call => call[1])
+    expect(callsBeforeClose).toBeGreaterThan(0)
+    expect(payloadsAfterClose.some(payload => payload.type === 'procrastination.warning')).toBe(false)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -376,29 +596,63 @@ describe('sendProcrastinationWarning', () => {
 
 describe('scheduleTaskReminders', () => {
   it('should return an array', async () => {
+    const userId = createTestUserId('user-task-reminders')
     const futureTime = Date.now() + 48 * 60 * 60 * 1000 // 48 hours from now
-    const result = await scheduleTaskReminders('user-1', 'task-1', 'My Task', futureTime)
+    const result = await scheduleTaskReminders(userId, 'task-1', 'My Task', futureTime)
     expect(Array.isArray(result)).toBe(true)
   })
 
   it('should schedule browser notifications by default', async () => {
+    const userId = createTestUserId('user-sched')
     const futureTime = Date.now() + 48 * 60 * 60 * 1000
-    const result = await scheduleTaskReminders('user-sched', 'task-sched', 'Task Title', futureTime)
+    const result = await scheduleTaskReminders(userId, 'task-sched', 'Task Title', futureTime)
     // At least some notifications should be scheduled for future 48h task
     const browserNotifs = result.filter(n => n.type === 'browser')
     expect(browserNotifs.length).toBeGreaterThan(0)
   })
 
   it('should not schedule email notifications by default', async () => {
+    const userId = createTestUserId('user-email')
     const futureTime = Date.now() + 48 * 60 * 60 * 1000
-    const result = await scheduleTaskReminders('user-email', 'task-email', 'Task', futureTime)
+    const result = await scheduleTaskReminders(userId, 'task-email', 'Task', futureTime)
     const emailNotifs = result.filter(n => n.type === 'email')
     expect(emailNotifs.length).toBe(0)
   })
 
   it('should return empty array when task is overdue', async () => {
+    const userId = createTestUserId('user-past')
     const pastTime = Date.now() - 1000 // already passed
-    const result = await scheduleTaskReminders('user-past', 'task-past', 'Past Task', pastTime)
+    const result = await scheduleTaskReminders(userId, 'task-past', 'Past Task', pastTime)
     expect(result.length).toBe(0)
+  })
+
+  it('should schedule both browser and email notifications when includeEmail is true', async () => {
+    const userId = createTestUserId('user-email-both')
+    const futureTime = Date.now() + 48 * 60 * 60 * 1000 // 48 hours from now
+    const result = await scheduleTaskReminders(
+      userId,
+      'task-email-both',
+      'Email and Browser Task',
+      futureTime,
+      { includeBrowser: true, includeEmail: true }
+    )
+    const browserNotifs = result.filter(n => n.type === 'browser')
+    const emailNotifs = result.filter(n => n.type === 'email')
+    expect(browserNotifs.length).toBeGreaterThan(0)
+    expect(emailNotifs.length).toBeGreaterThan(0)
+  })
+
+  it('should skip browser notifications when includeBrowser is false', async () => {
+    const userId = createTestUserId('user-no-browser')
+    const futureTime = Date.now() + 48 * 60 * 60 * 1000
+    const result = await scheduleTaskReminders(
+      userId,
+      'task-no-browser',
+      'Email Only Task',
+      futureTime,
+      { includeBrowser: false, includeEmail: true }
+    )
+    const browserNotifs = result.filter(n => n.type === 'browser')
+    expect(browserNotifs.length).toBe(0)
   })
 })
