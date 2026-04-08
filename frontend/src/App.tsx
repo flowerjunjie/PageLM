@@ -8,6 +8,7 @@ import i18n from "./i18n/config";
 import Onboarding from "./components/Onboarding";
 import ShortcutHelp from "./components/ShortcutHelp";
 import { ToastProvider } from "./components/Toast";
+import packageJson from "../package.json";
 
 export default function App() {
   const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
@@ -63,6 +64,10 @@ export default function App() {
             <Sidebar />
             <div className="flex-1 relative">
               <Outlet />
+            </div>
+            {/* Version badge - bottom left */}
+            <div className="fixed bottom-2 left-2 text-xs text-stone-600 hover:text-stone-500 z-50">
+              v{packageJson.version}
             </div>
           </div>
           <CompanionDock />

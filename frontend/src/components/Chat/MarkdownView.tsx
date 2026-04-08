@@ -29,6 +29,11 @@ const components: Components = {
   th: (p) => <th className="px-3 py-2 font-semibold text-stone-100" {...p} />,
   td: (p) => <td className="px-3 py-2 align-top" {...p} />,
   code: ({ inline, className, children, ...rest }: any) => {
+    // Sanitize className to prevent XSS - only allow safe syntax highlighting classes
+    const safeClassName = typeof className === 'string'
+      ? className.replace(/[^a-zA-Z0-9\s\-:_]/g, '').slice(0, 200)
+      : undefined;
+
     if (inline) {
       return (
         <code className="px-1.5 py-0.5 rounded bg-stone-800 text-stone-100" {...rest}>
@@ -38,7 +43,7 @@ const components: Components = {
     }
     return (
       <pre className="border border-zinc-800 rounded-lg p-3 overflow-x-auto">
-        <code className={className} {...rest}>
+        <code className={safeClassName} {...rest}>
           {children}
         </code>
       </pre>

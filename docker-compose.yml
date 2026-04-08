@@ -1,35 +1,29 @@
-version: "3.9"
+# PageLM 部署配置 (非 Docker)
+# 注意: 此文件已弃用，请使用直接部署方式
+
+# 后端直接部署说明:
+# cd /var/www/workspace/PageLM
+# npm start
+# 后端运行在 http://38.14.254.51:5000
+
+# 前端直接部署说明:
+# cd /var/www/workspace/PageLM/frontend
+# npm run build  # 构建生产版本
+# npx serve -s dist -l 5173 -p http://38.14.254.51:5000
+# 前端运行在 http://38.14.254.51:5173
+
+version: "3.3"
 
 services:
   backend:
     build:
-      context: .
+      context: /var/www/workspace/PageLM
       dockerfile: backend/Dockerfile
-      target: runtime
     container_name: pagelm-backend
-    env_file:
-      - ./.env
+    network_mode: host
     environment:
       HOST: 0.0.0.0
       PORT: 5000
     volumes:
-      - ./storage:/app/storage
-      - ./.env:/app/.env:ro
-    ports:
-      - "5000:5000"
-
-  frontend:
-    env_file:
-      - .env
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: runtime
-      args:
-        VITE_BACKEND_URL: ${VITE_BACKEND_URL}
-        VITE_TIMEOUT: 90000
-    container_name: pagelm-frontend
-    depends_on:
-      - backend
-    ports:
-      - "5173:5173"
+      - /var/www/workspace/PageLM/storage:/app/storage
+      - /var/www/workspace/PageLM/.env:/app/.env:ro

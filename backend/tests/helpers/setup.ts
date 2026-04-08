@@ -5,6 +5,102 @@
 
 import { vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest'
 
+// Note: langchain mocks removed due to langchain 0.3.x removing root exports
+// The langchain packages now only export subpaths
+
+vi.mock('pdf-lib', () => ({
+  PDFDocument: {
+    create: vi.fn().mockReturnValue({
+      addPage: vi.fn().mockReturnValue({}),
+      embedFont: vi.fn().mockResolvedValue({}),
+      save: vi.fn().mockResolvedValue(Buffer.from('')),
+    }),
+    load: vi.fn().mockResolvedValue({
+      addPage: vi.fn().mockReturnValue({}),
+      save: vi.fn().mockResolvedValue(Buffer.from('')),
+    }),
+  },
+  StandardFonts: {
+    Helvetica: 'helvetica-mock',
+    HelveticaBold: 'helvetica-bold-mock',
+  },
+  rgb: vi.fn().mockReturnValue({ r: 0, g: 0, b: 0 }),
+}))
+
+vi.mock('@pdf-lib/fontkit', () => ({
+  default: {},
+}))
+
+vi.mock('node-edge-tts', () => ({
+  EdgeTTS: class {
+    constructor() {}
+    tts = vi.fn().mockResolvedValue(Buffer.from(''))
+    list = vi.fn().mockResolvedValue([])
+  },
+}))
+
+vi.mock('keyv', () => {
+  const MockKeyv = class Keyv {
+    constructor() {}
+    get = vi.fn().mockResolvedValue(undefined)
+    set = vi.fn().mockResolvedValue(undefined)
+    delete = vi.fn().mockResolvedValue(true)
+    clear = vi.fn().mockResolvedValue(undefined)
+    has = vi.fn().mockResolvedValue(false)
+    iterator = vi.fn()
+  }
+  return { default: MockKeyv }
+})
+
+vi.mock('@keyv/sqlite', () => ({
+  default: class KeyvSQLite {
+    constructor() {}
+  }
+}))
+
+vi.mock('mammoth', () => ({
+  default: {
+    extractRawText: vi.fn().mockResolvedValue({ value: 'mock text content' }),
+  }
+}))
+
+vi.mock('pdf-parse', () => ({
+  default: vi.fn().mockResolvedValue({
+    numpages: 1,
+    numrender: 1,
+    info: { Title: 'Mock PDF' },
+    text: 'mock pdf text content',
+  })
+}))
+
+vi.mock('busboy', () => ({
+  default: class Busboy {
+    constructor() {}
+    on = vi.fn().mockReturnThis()
+    end = vi.fn()
+  }
+}))
+
+vi.mock('marked', () => ({
+  marked: vi.fn().mockReturnValue('<p>mock html</p>'),
+}))
+
+vi.mock('js-yaml', () => ({
+  load: vi.fn().mockReturnValue({}),
+  dump: vi.fn().mockReturnValue(''),
+}))
+
+vi.mock('openai', () => ({
+  OpenAI: class {
+    constructor() {}
+    audio = {
+      transcriptions: {
+        create: vi.fn().mockResolvedValue({ text: 'mock transcription' })
+      }
+    }
+  }
+}))
+
 // Extend global type declarations
 declare global {
   var testUtils: {

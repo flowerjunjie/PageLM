@@ -1,7 +1,7 @@
 import { env } from "../config/env";
 
 export type ChatStartResponse = { ok: true; chatId: string; stream: string };
-export type ChatMessage = { role: "user" | "assistant"; content: string; at: number };
+export type ChatMessage = { id?: string; role: "user" | "assistant"; content: string; at: number };
 export type ChatInfo = { id: string; title?: string; createdAt?: number };
 export type ChatsList = { ok: true; chats: ChatInfo[] };
 export type ChatDetail = { ok: true; chat: ChatInfo; messages: ChatMessage[] };
