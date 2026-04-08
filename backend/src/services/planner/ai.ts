@@ -186,39 +186,8 @@ function parseDateHeuristic(dateStr: string): string {
 const LLM_STEPS_TIMEOUT = 10000; // 10 seconds for step generation
 
 export async function generateSteps(task: Task): Promise<string[]> {
-    const systemPrompt = `Generate a simple numbered list of 3-6 actionable steps to complete this task. Each step should be one clear action.
-
-Task: ${task.title}
-Type: ${task.type || 'homework'}
-Estimated time: ${task.estMins} minutes
-
-Format as:
-1. [First step]
-2. [Second step]
-3. [Third step]
-etc.
-
-Keep steps concise and actionable.`
-
-    try {
-        // Dynamic import to avoid circular dependency
-        const { handleAsk } = await import("../../lib/ai/ask")
-
-        const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('LLM steps timeout')), LLM_STEPS_TIMEOUT)
-        })
-
-        const response = await Promise.race([
-            handleAsk(systemPrompt + (task.notes ? '\nNotes: ' + task.notes : '')),
-            timeoutPromise
-        ])
-
-        const steps = parseNumberedList(response.answer)
-        return steps.length > 0 ? steps : getDefaultSteps(task.type)
-    } catch (error) {
-        console.warn('Step generation failed, using defaults:', error)
-        return getDefaultSteps(task.type)
-    }
+    // Use default steps without calling LLM to avoid timeout issues
+    return getDefaultSteps(task.type)
 }
 
 function parseNumberedList(text: string): string[] {
