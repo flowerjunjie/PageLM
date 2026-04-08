@@ -9,6 +9,9 @@ import { OpenAIEmbeddings } from '@langchain/openai'
 import { config } from '../../../config/env'
 import type { EmbeddingsLike, LLM } from './types'
 
+// Re-export model switching functions
+export { getNextModel, resetModelIndex, shouldSwitchModel, getCurrentModel } from './openai'
+
 type Pair = { llm: LLM; embeddings: EmbeddingsLike }
 
 function pick(p: string) {
@@ -24,9 +27,25 @@ function pick(p: string) {
   }
 }
 
-export function makeModels(): Pair {
-  const mod = pick(config.provider)
-  const llm = mod.makeLLM(config)
+export function makeModels(fallbackModel?: string): Pair {
+  let mod: any
+  let modelConfig: any = config
+
+  // If a fallback model is provided (from getNextModel retry logic),
+  // route to the appropriate module based on model prefix
+  if (fallbackModel) {
+    if (fallbackModel.startsWith('gemini')) {
+      mod = gemini
+      modelConfig = { ...config, gemini_model: fallbackModel }
+    } else {
+      mod = openai
+      modelConfig = { ...config, openai_model: fallbackModel }
+    }
+  } else {
+    mod = pick(config.provider)
+  }
+
+  const llm = mod.makeLLM(modelConfig)
 
   // Use OpenAI-compatible embeddings (阿里云通义)
   let embeddings: EmbeddingsLike

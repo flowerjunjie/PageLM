@@ -29,7 +29,7 @@ vi.mock('../../../src/utils/quiz/promise', () => ({
   withTimeout: vi.fn().mockResolvedValue({ questions: [] }),
 }))
 
-import { examRoutes } from '../../../src/core/routes/examlab'
+import { examRoutes, connectionLimiter } from '../../../src/core/routes/examlab'
 import { loadAllExams } from '../../../src/services/examlab/loader'
 import { handleExam } from '../../../src/services/examlab/generate'
 import { emitToAll, emitLarge } from '../../../src/utils/chat/ws'
@@ -71,6 +71,10 @@ function createMockWs(overrides: Record<string, any> = {}) {
   return {
     close: vi.fn(),
     on: vi.fn((event: string, handler: Function) => {
+      handlers[event] ||= []
+      handlers[event].push(handler)
+    }),
+    addEventListener: vi.fn((event: string, handler: Function) => {
       handlers[event] ||= []
       handlers[event].push(handler)
     }),
@@ -131,6 +135,7 @@ beforeEach(() => {
     queuedImmediates.push(() => callback())
     return 0 as any
   }) as typeof setImmediate)
+  connectionLimiter.reset()
   app = createApp()
   examRoutes(app)
 })
@@ -333,7 +338,7 @@ describe('POST /exam', () => {
     await app.routes['POST /exam'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=single-run-123' })
+    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=single-run-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -367,7 +372,7 @@ describe('POST /exam', () => {
     await app.routes['POST /exam'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=single-error-123' })
+    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=single-error-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -393,7 +398,7 @@ describe('POST /exam', () => {
     await app.routes['POST /exam'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=single-no-msg-123' })
+    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=single-no-msg-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -466,7 +471,7 @@ describe('POST /exams', () => {
     await app.routes['POST /exams'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-empty-123' })
+    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-empty-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -498,7 +503,7 @@ describe('POST /exams', () => {
     await app.routes['POST /exams'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-success-123' })
+    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-success-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -534,7 +539,7 @@ describe('POST /exams', () => {
     await app.routes['POST /exams'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-partial-123' })
+    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-partial-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -558,7 +563,7 @@ describe('POST /exams', () => {
     await app.routes['POST /exams'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-outer-err-123' })
+    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-outer-err-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -583,7 +588,7 @@ describe('POST /exams', () => {
     await app.routes['POST /exams'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-no-msg-123' })
+    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-no-msg-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -603,7 +608,7 @@ describe('POST /exams', () => {
     await app.routes['POST /exams'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-outer-no-msg-123' })
+    app.routes['WS /ws/exams'](mockWs, { url: '/ws/exams?runId=batch-outer-no-msg-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -623,9 +628,10 @@ describe('WS /ws/exams', () => {
     const mockWs: any = {
       close: vi.fn(),
       on: vi.fn(),
+      addEventListener: vi.fn(),
       send: vi.fn(),
     }
-    const mockReqWs = { url: '/ws/exams' }
+    const mockReqWs = { url: '/ws/exams', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/exams'](mockWs, mockReqWs)
 
@@ -638,9 +644,10 @@ describe('WS /ws/exams', () => {
     const mockWs: any = {
       close: vi.fn(),
       on: vi.fn(),
+      addEventListener: vi.fn(),
       send: vi.fn(),
     }
-    const mockReqWs = { url: '/ws/exams?runId=run-id-123' }
+    const mockReqWs = { url: '/ws/exams?runId=run-id-123', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/exams'](mockWs, mockReqWs)
 
@@ -656,8 +663,8 @@ describe('WS /ws/exams', () => {
   it('should handle close event by removing WebSocket and clearing interval', () => {
     vi.useFakeTimers()
 
-    const mockWs: any = { close: vi.fn(), on: vi.fn(), send: vi.fn() }
-    const mockReqWs = { url: '/ws/exams?runId=close-test-run' }
+    const mockWs: any = { close: vi.fn(), on: vi.fn(), addEventListener: vi.fn(), send: vi.fn() }
+    const mockReqWs = { url: '/ws/exams?runId=close-test-run', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/exams'](mockWs, mockReqWs)
 
@@ -680,10 +687,11 @@ describe('WS /ws/exams', () => {
     const mockWs: any = {
       close: vi.fn(),
       on: vi.fn(),
+      addEventListener: vi.fn(),
       send: sendFn,
       readyState: 1, // OPEN
     }
-    const mockReqWs = { url: '/ws/exams?runId=ping-interval-run' }
+    const mockReqWs = { url: '/ws/exams?runId=ping-interval-run', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/exams'](mockWs, mockReqWs)
 
@@ -706,10 +714,11 @@ describe('WS /ws/exams', () => {
     const mockWs: any = {
       close: vi.fn(),
       on: vi.fn(),
+      addEventListener: vi.fn(),
       send: sendFn,
       readyState: 3, // CLOSED
     }
-    const mockReqWs = { url: '/ws/exams?runId=no-ping-run' }
+    const mockReqWs = { url: '/ws/exams?runId=no-ping-run', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/exams'](mockWs, mockReqWs)
 

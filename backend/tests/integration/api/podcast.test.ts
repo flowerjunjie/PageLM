@@ -38,7 +38,7 @@ vi.mock('fs', async (importOriginal) => {
   }
 })
 
-import { podcastRoutes } from '../../../src/core/routes/podcast'
+import { podcastRoutes, connectionLimiter } from '../../../src/core/routes/podcast'
 import { makeAudio, makeScript } from '../../../src/services/podcast'
 import { emitToAll } from '../../../src/utils/chat/ws'
 
@@ -85,6 +85,10 @@ function createMockWs() {
       handlers[event] ||= []
       handlers[event].push(handler)
     }),
+    addEventListener: vi.fn((event: string, handler: Function) => {
+      handlers[event] ||= []
+      handlers[event].push(handler)
+    }),
     send: vi.fn(),
     emit: (event: string, ...args: any[]) => {
       for (const handler of handlers[event] || []) {
@@ -112,6 +116,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   testState.randomValues = []
   vi.spyOn(Math, 'random').mockImplementation(() => testState.randomValues.shift() ?? 0)
+  connectionLimiter.reset()
   app = createApp()
   podcastRoutes(app)
 })
@@ -199,7 +204,7 @@ describe('GET /podcast/download/:pid/:filename', () => {
     const { default: fs } = await import('fs')
     vi.mocked(fs.existsSync).mockReturnValue(false)
 
-    const req = mockReq({ params: { pid: 'nonexistent-pid', filename: 'audio.mp3' } })
+    const req = mockReq({ params: { pid: 'aaaaaaaa-0000-4000-8000-000000000000', filename: 'audio.mp3' } })
     const res = mockRes()
     const next = vi.fn()
 
@@ -214,7 +219,7 @@ describe('GET /podcast/download/:pid/:filename', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true)
     vi.mocked(fs.readdirSync).mockReturnValue([] as any)
 
-    const req = mockReq({ params: { pid: 'podcast-1', filename: 'missing.mp3' } })
+    const req = mockReq({ params: { pid: 'bbbbbbbb-1111-4000-8000-000000000001', filename: 'missing.mp3' } })
     const res = mockRes()
     const next = vi.fn()
 
@@ -227,18 +232,18 @@ describe('GET /podcast/download/:pid/:filename', () => {
     const { default: fs } = await import('fs')
     const stream = { pipe: vi.fn(), on: vi.fn() }
     vi.mocked(fs.existsSync).mockReturnValue(true)
-    vi.mocked(fs.readdirSync).mockReturnValue(['Audio.MP3'] as any)
+    vi.mocked(fs.readdirSync).mockReturnValue(['audio.mp3'] as any)
     vi.mocked(fs.statSync).mockReturnValue({ size: 1024 } as any)
     vi.mocked(fs.createReadStream).mockReturnValue(stream as any)
 
-    const req = mockReq({ params: { pid: 'podcast-1', filename: 'audio.mp3' } })
+    const req = mockReq({ params: { pid: 'cccccccc-2222-4000-8000-000000000002', filename: 'audio.mp3' } })
     const res = mockRes()
     const next = vi.fn()
 
     await app.routes['GET /podcast/download/:pid/:filename'](req, res, next)
 
     expect(res.setHeader).toHaveBeenNthCalledWith(1, 'Content-Type', 'audio/mpeg')
-    expect(res.setHeader).toHaveBeenNthCalledWith(2, 'Content-Disposition', 'attachment; filename="Audio.MP3"')
+    expect(res.setHeader).toHaveBeenNthCalledWith(2, 'Content-Disposition', 'attachment; filename="audio.mp3"')
     expect(res.setHeader).toHaveBeenNthCalledWith(3, 'Content-Length', 1024)
     expect(vi.mocked(fs.createReadStream)).toHaveBeenCalled()
     expect(stream.pipe).toHaveBeenCalledWith(res)
@@ -260,7 +265,7 @@ describe('GET /podcast/download/:pid/:filename', () => {
     vi.mocked(fs.statSync).mockReturnValue({ size: 256 } as any)
     vi.mocked(fs.createReadStream).mockReturnValue(stream as any)
 
-    const req = mockReq({ params: { pid: 'podcast-1', filename: 'audio.mp3' } })
+    const req = mockReq({ params: { pid: 'dddddddd-3333-4000-8000-000000000003', filename: 'audio.mp3' } })
     const res = mockRes()
     const next = vi.fn()
 
@@ -291,7 +296,7 @@ describe('GET /podcast/download/:pid/:filename', () => {
 describe('WS /ws/podcast', () => {
   it('should close WebSocket when pid is missing', () => {
     const mockWs = createMockWs()
-    const mockReqWs = { url: '/ws/podcast' }
+    const mockReqWs = { url: '/ws/podcast', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/podcast'](mockWs, mockReqWs)
 
@@ -302,7 +307,7 @@ describe('WS /ws/podcast', () => {
     vi.useFakeTimers()
 
     const mockWs = createMockWs()
-    const mockReqWs = { url: '/ws/podcast?pid=podcast-ws-123' }
+    const mockReqWs = { url: '/ws/podcast?pid=podcast-ws-123', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/podcast'](mockWs, mockReqWs)
 
@@ -317,7 +322,7 @@ describe('WS /ws/podcast', () => {
     vi.useFakeTimers()
 
     const mockWs = createMockWs()
-    const mockReqWs = { url: '/ws/podcast?pid=close-test-podcast' }
+    const mockReqWs = { url: '/ws/podcast?pid=close-test-podcast', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/podcast'](mockWs, mockReqWs)
 
@@ -345,7 +350,7 @@ describe('WS /ws/podcast', () => {
 
     const pid = postRes._body.pid
     const mockWs = createMockWs()
-    app.routes['WS /ws/podcast'](mockWs, { url: `/ws/podcast?pid=${pid}` })
+    app.routes['WS /ws/podcast'](mockWs, { url: `/ws/podcast?pid=${pid}`, socket: { remoteAddress: '127.0.0.1' } })
 
     await vi.runAllTimersAsync()
 
@@ -381,7 +386,7 @@ describe('WS /ws/podcast', () => {
 
     const pid = postRes._body.pid
     const mockWs = createMockWs()
-    app.routes['WS /ws/podcast'](mockWs, { url: `/ws/podcast?pid=${pid}` })
+    app.routes['WS /ws/podcast'](mockWs, { url: `/ws/podcast?pid=${pid}`, socket: { remoteAddress: '127.0.0.1' } })
 
     await vi.runAllTimersAsync()
 

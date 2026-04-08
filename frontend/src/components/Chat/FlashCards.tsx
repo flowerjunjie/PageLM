@@ -12,14 +12,15 @@ export default function FlashCards({ items = [], onAdd }: Props) {
   return (
     <div className="hidden lg:block">
       <div className="sticky top-6 h-[calc(100vh-8rem)] flex flex-col">
-        <div className="mb-5">
-          <div className="rounded-2xl bg-stone-950/80 border border-zinc-900 px-4 py-3 flex items-center justify-between">
-            <h3 className="text-stone-100 font-semibold tracking-wide">{t("bag.importantTopics")}</h3>
-            <span className="text-xs text-stone-400">{items.length}</span>
+        <div className="flex-1 overflow-y-auto pr-1 custom-scroll">
+          <div className="mb-5">
+            <div className="rounded-2xl bg-stone-950/80 border border-zinc-900 px-4 py-3 flex items-center justify-between">
+              <h3 className="text-stone-100 font-semibold tracking-wide">{t("bag.importantTopics")}</h3>
+              <span className="text-xs text-stone-400">{items.length}</span>
+            </div>
           </div>
-        </div>
 
-        <div className="flex-1 overflow-y-auto pr-1 custom-scroll space-y-4 mb-8">
+          <div className="space-y-4 mb-8">
           {items.length === 0 ? (
             <div className="text-stone-400 text-sm bg-stone-950/60 border border-zinc-900 rounded-2xl p-6 text-center">
               {t("bag.empty")}
@@ -59,6 +60,7 @@ export default function FlashCards({ items = [], onAdd }: Props) {
               );
             })
           )}
+          </div>
         </div>
       </div>
     </div>

@@ -12,13 +12,18 @@ import { createRateLimiter } from './rateLimiter';
  */
 export function securityHeaders(req: AppRequest, res: AppResponse, next: NextFunction): void {
   // Content Security Policy - Restrict sources of content
+  // Content Security Policy - restrict sources of content
+  // Note: 'unsafe-inline' and 'unsafe-eval' removed for security
+  // If you need inline styles/scripts, use nonces or hashes instead
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
-    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    // Allow CDN for static assets but prefer self-hosted alternatives in production
+    `script-src 'self' ${process.env.NODE_ENV === 'development' ? "'unsafe-inline'" : ''} https://cdn.jsdelivr.net`,
+    `style-src 'self' ${process.env.NODE_ENV === 'development' ? "'unsafe-inline'" : ''} https://cdn.jsdelivr.net`,
     "img-src 'self' data: https: blob:",
     "font-src 'self' data: https://cdn.jsdelivr.net",
-    "connect-src 'self' https://api.deepseek.com wss://api.deepseek.com",
+    // Support multiple LLM providers
+    `connect-src 'self' https://*.googleapis.com https://*.openai.com https://*.anthropic.com https://*.grok.com https://*.ollama.ai wss://*`,
     "media-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",

@@ -1,4 +1,4 @@
-//**
+/**
  * WebSocket Mock for Backend Tests
  * Provides mock implementations for WebSocket connections
  */
@@ -13,6 +13,7 @@ export class MockWebSocket extends EventEmitter {
   public readyState: number = 1 // OPEN
   public url: string
   public sentMessages: any[] = []
+  public bufferedAmount: number = 0
 
   static CONNECTING = 0
   static OPEN = 1
@@ -29,9 +30,10 @@ export class MockWebSocket extends EventEmitter {
     })
   }
 
-  send(data: string | Buffer | ArrayBuffer | any[]): void {
+  send(data: string | Buffer | ArrayBuffer | any[], callback?: () => void): void {
     this.sentMessages.push(data)
     this.emit('message', { data: typeof data === 'string' ? data : JSON.stringify(data) })
+    if (callback) callback()
   }
 
   close(code?: number, reason?: string): void {

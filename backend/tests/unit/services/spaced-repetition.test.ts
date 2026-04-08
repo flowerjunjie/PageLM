@@ -33,7 +33,7 @@ import db from '../../../src/utils/database/keyv'
 
 describe('SM-2 Algorithm', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
   })
 
   describe('sm2 function core', () => {

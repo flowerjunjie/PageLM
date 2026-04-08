@@ -30,7 +30,7 @@ import {
   deleteDebateSession,
   surrenderDebate,
 } from '../../../src/services/debate'
-import { debateRoutes } from '../../../src/core/routes/debate'
+import { debateRoutes, connectionLimiter } from '../../../src/core/routes/debate'
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -81,6 +81,7 @@ let app: ReturnType<typeof createApp>
 
 beforeEach(() => {
   vi.clearAllMocks()
+  connectionLimiter.reset()
   app = createApp()
   debateRoutes(app)
 })
@@ -511,9 +512,10 @@ describe('WS /ws/debate', () => {
     const mockWs: any = {
       close: vi.fn(),
       on: vi.fn(),
+      addEventListener: vi.fn(),
       send: vi.fn(),
     }
-    const mockReqWs = { url: '/ws/debate' }
+    const mockReqWs = { url: '/ws/debate', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/debate'](mockWs, mockReqWs)
 
@@ -524,9 +526,10 @@ describe('WS /ws/debate', () => {
     const mockWs: any = {
       close: vi.fn(),
       on: vi.fn(),
+      addEventListener: vi.fn(),
       send: vi.fn(),
     }
-    const mockReqWs = { url: '/ws/debate?debateId=debate-ws-test' }
+    const mockReqWs = { url: '/ws/debate?debateId=debate-ws-test', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/debate'](mockWs, mockReqWs)
 
@@ -538,8 +541,8 @@ describe('WS /ws/debate', () => {
   })
 
   it('should handle close event by removing WebSocket from set', () => {
-    const mockWs: any = { close: vi.fn(), on: vi.fn(), send: vi.fn() }
-    const mockReqWs = { url: '/ws/debate?debateId=close-debate-test' }
+    const mockWs: any = { close: vi.fn(), on: vi.fn(), addEventListener: vi.fn(), send: vi.fn() }
+    const mockReqWs = { url: '/ws/debate?debateId=close-debate-test', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/debate'](mockWs, mockReqWs)
 
@@ -562,9 +565,10 @@ describe('WS /ws/debate/analyze', () => {
     const mockWs: any = {
       close: vi.fn(),
       on: vi.fn(),
+      addEventListener: vi.fn(),
       send: vi.fn(),
     }
-    const mockReqWs = { url: '/ws/debate/analyze' }
+    const mockReqWs = { url: '/ws/debate/analyze', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/debate/analyze'](mockWs, mockReqWs)
 
@@ -575,9 +579,10 @@ describe('WS /ws/debate/analyze', () => {
     const mockWs: any = {
       close: vi.fn(),
       on: vi.fn(),
+      addEventListener: vi.fn(),
       send: vi.fn(),
     }
-    const mockReqWs = { url: '/ws/debate/analyze?debateId=analyze-ws-test' }
+    const mockReqWs = { url: '/ws/debate/analyze?debateId=analyze-ws-test', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/debate/analyze'](mockWs, mockReqWs)
 

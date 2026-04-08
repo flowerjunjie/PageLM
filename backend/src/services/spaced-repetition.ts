@@ -257,7 +257,8 @@ export async function getReviewStats(userId: string = 'default'): Promise<{
   }
 
   // Calculate streak (simplified - consecutive days with reviews)
-  const streak = await calculateStreak(userId)
+  // Pass schedules to avoid duplicate batchGetSchedules call
+  const streak = await calculateStreakWithSchedules(schedules)
 
   return {
     totalCards: validCards,
@@ -269,14 +270,10 @@ export async function getReviewStats(userId: string = 'default'): Promise<{
 }
 
 /**
- * Calculate review streak
+ * Calculate review streak from schedules (avoids duplicate batchGetSchedules call)
  */
-async function calculateStreak(userId: string): Promise<number> {
-  const userReviews: string[] = (await db.get(`user-reviews:${userId}`)) || []
+async function calculateStreakWithSchedules(schedules: ReviewSchedule[]): Promise<number> {
   const reviewDays = new Set<number>()
-
-  // Batch-fetch all schedules in parallel
-  const schedules = await batchGetSchedules(userReviews)
 
   for (const schedule of schedules) {
     for (const history of schedule.reviewHistory) {
@@ -311,6 +308,18 @@ async function calculateStreak(userId: string): Promise<number> {
   }
 
   return streak
+}
+
+/**
+ * Calculate review streak (legacy - fetches schedules internally)
+ */
+async function calculateStreak(userId: string): Promise<number> {
+  const userReviews: string[] = (await db.get(`user-reviews:${userId}`)) || []
+
+  // Batch-fetch all schedules in parallel
+  const schedules = await batchGetSchedules(userReviews)
+
+  return calculateStreakWithSchedules(schedules)
 }
 
 /**

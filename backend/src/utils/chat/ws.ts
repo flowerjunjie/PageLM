@@ -9,14 +9,25 @@ export function emitToAll(set: Set<any> | undefined, payload: any) {
     console.error("[emitToAll] stringify failed", e)
     return
   }
-  for (const ws of set) {
-    if (!ws || ws.readyState !== 1) continue
-    try {
-      ws.send(msg)
-    } catch (err) {
-      console.warn("[emitToAll] ws.send failed:", err)
-    }
-  }
+
+  // Filter valid sockets and send in parallel
+  const validSockets = Array.from(set).filter(ws => ws && ws.readyState === 1)
+  if (validSockets.length === 0) return
+
+  // Send to all sockets in parallel for better performance
+  Promise.all(
+    validSockets.map(ws => {
+      try {
+        ws.send(msg)
+        return true
+      } catch (err) {
+        console.warn("[emitToAll] ws.send failed:", err)
+        return false
+      }
+    })
+  ).catch(err => {
+    console.warn("[emitToAll] Promise.all error:", err)
+  })
 }
 
 async function safeSend(ws: any, data: string, hi = 512 * 1024) {

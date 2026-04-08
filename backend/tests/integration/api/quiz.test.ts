@@ -20,7 +20,7 @@ vi.mock('../../../src/utils/quiz/promise', () => ({
   withTimeout: vi.fn().mockResolvedValue([]),
 }))
 
-import { quizRoutes } from '../../../src/core/routes/quiz'
+import { quizRoutes, connectionLimiter } from '../../../src/core/routes/quiz'
 import { handleQuiz } from '../../../src/services/quiz'
 import { emitToAll } from '../../../src/utils/chat/ws'
 import { withTimeout } from '../../../src/utils/quiz/promise'
@@ -60,6 +60,10 @@ function createMockWs(overrides: Record<string, any> = {}) {
   return {
     close: vi.fn(),
     on: vi.fn((event: string, handler: Function) => {
+      handlers[event] ||= []
+      handlers[event].push(handler)
+    }),
+    addEventListener: vi.fn((event: string, handler: Function) => {
       handlers[event] ||= []
       handlers[event].push(handler)
     }),
@@ -104,6 +108,7 @@ beforeEach(() => {
     queuedImmediates.push(() => callback())
     return 0 as any
   }) as typeof setImmediate)
+  connectionLimiter.reset()
   app = createApp()
   quizRoutes(app)
 })
@@ -166,7 +171,7 @@ describe('POST /quiz', () => {
     await app.routes['POST /quiz'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/quiz'](mockWs, { url: '/ws/quiz?quizId=quiz-async-123' })
+    app.routes['WS /ws/quiz'](mockWs, { url: '/ws/quiz?quizId=quiz-async-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -205,7 +210,7 @@ describe('POST /quiz', () => {
     await app.routes['POST /quiz'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/quiz'](mockWs, { url: '/ws/quiz?quizId=quiz-error-123' })
+    app.routes['WS /ws/quiz'](mockWs, { url: '/ws/quiz?quizId=quiz-error-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -242,7 +247,7 @@ describe('POST /quiz', () => {
     await app.routes['POST /quiz'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/quiz'](mockWs, { url: '/ws/quiz?quizId=quiz-no-msg-123' })
+    app.routes['WS /ws/quiz'](mockWs, { url: '/ws/quiz?quizId=quiz-no-msg-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -265,7 +270,7 @@ describe('POST /quiz', () => {
     await app.routes['POST /quiz'](req, res)
 
     const mockWs = createMockWs()
-    app.routes['WS /ws/quiz'](mockWs, { url: '/ws/quiz?quizId=quiz-non-array-123' })
+    app.routes['WS /ws/quiz'](mockWs, { url: '/ws/quiz?quizId=quiz-non-array-123', socket: { remoteAddress: '127.0.0.1' } })
 
     await runQueuedImmediates()
 
@@ -332,6 +337,7 @@ describe('WS /ws/quiz', () => {
     const mockWs = createMockWs()
     const mockReqWs = {
       url: '/ws/quiz',
+      socket: { remoteAddress: '127.0.0.1' },
     }
 
     app.routes['WS /ws/quiz'](mockWs, mockReqWs)
@@ -343,6 +349,7 @@ describe('WS /ws/quiz', () => {
     const mockWs = createMockWs()
     const mockReqWs = {
       url: '/ws/quiz?quizId=test-quiz-id',
+      socket: { remoteAddress: '127.0.0.1' },
     }
 
     app.routes['WS /ws/quiz'](mockWs, mockReqWs)
@@ -358,7 +365,7 @@ describe('WS /ws/quiz', () => {
   it('should add second WebSocket to existing set for same quizId', () => {
     const mockWs1 = createMockWs()
     const mockWs2 = createMockWs()
-    const mockReqWs = { url: '/ws/quiz?quizId=shared-quiz-id' }
+    const mockReqWs = { url: '/ws/quiz?quizId=shared-quiz-id', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/quiz'](mockWs1, mockReqWs)
     app.routes['WS /ws/quiz'](mockWs2, mockReqWs)
@@ -370,7 +377,7 @@ describe('WS /ws/quiz', () => {
   it('should handle close event by removing the final WebSocket from the set', () => {
     const firstWs = createMockWs()
     const secondWs = createMockWs()
-    const mockReqWs = { url: '/ws/quiz?quizId=close-test-quiz' }
+    const mockReqWs = { url: '/ws/quiz?quizId=close-test-quiz', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/quiz'](firstWs, mockReqWs)
     app.routes['WS /ws/quiz'](secondWs, mockReqWs)
@@ -384,7 +391,7 @@ describe('WS /ws/quiz', () => {
 
     const sendFn = vi.fn()
     const mockWs = createMockWs({ send: sendFn, readyState: 1 })
-    const mockReqWs = { url: '/ws/quiz?quizId=interval-test-quiz' }
+    const mockReqWs = { url: '/ws/quiz?quizId=interval-test-quiz', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/quiz'](mockWs, mockReqWs)
 
@@ -401,7 +408,7 @@ describe('WS /ws/quiz', () => {
 
     const sendFn = vi.fn()
     const mockWs = createMockWs({ send: sendFn, readyState: 3 })
-    const mockReqWs = { url: '/ws/quiz?quizId=closed-interval-quiz' }
+    const mockReqWs = { url: '/ws/quiz?quizId=closed-interval-quiz', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/quiz'](mockWs, mockReqWs)
 
@@ -422,7 +429,7 @@ describe('WS /ws/quiz', () => {
       })
 
     const mockWs = createMockWs({ send: sendFn, readyState: 1 })
-    const mockReqWs = { url: '/ws/quiz?quizId=throwing-ping-quiz' }
+    const mockReqWs = { url: '/ws/quiz?quizId=throwing-ping-quiz', socket: { remoteAddress: '127.0.0.1' } }
 
     app.routes['WS /ws/quiz'](mockWs, mockReqWs)
 

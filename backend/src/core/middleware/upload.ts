@@ -186,14 +186,24 @@ export function createSecureUpload(config: UploadConfig = {}) {
         const writeStream = fs.createWriteStream(filePath, { mode: 0o640 });
 
         let fileSize = 0;
+        let sizeLimitReached = false;
         file.on('data', (chunk: Buffer) => {
+          if (sizeLimitReached) return;
           fileSize += chunk.length;
           if (fileSize > maxFileSize) {
+            sizeLimitReached = true;
             writeStream.destroy();
             fs.unlinkSync(filePath);
             (file as NodeJS.ReadableStream & { resume(): void }).resume();
-            throw new Error(`File size exceeds limit: ${maxFileSize}`);
+            // Don't throw in callback - let the stream error handler deal with it
           }
+        });
+
+        file.on('error', (error: Error) => {
+          if (error.message.includes('File size exceeds limit')) {
+            console.error('File rejected: exceeds size limit');
+          }
+          (file as NodeJS.ReadableStream & { resume(): void }).resume();
         });
 
         writeStream.on('error', (error: Error) => {

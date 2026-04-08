@@ -2,11 +2,11 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: false, // Run sequentially for more stable tests
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 1,
-  workers: 1, // Single worker for stability
-  timeout: 30000, // 30s per test
+  retries: process.env.CI ? 2 : 0,
+  workers: 1,
+  timeout: 30000,
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
@@ -14,12 +14,13 @@ export default defineConfig({
     ['list'],
   ],
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:8080',
+    baseURL: process.env.BASE_URL || 'http://38.14.254.51:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     actionTimeout: 10000,
     navigationTimeout: 30000,
+    headless: true,
   },
   projects: [
     {
@@ -27,10 +28,4 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:8080',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
 })

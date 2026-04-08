@@ -1,12 +1,20 @@
 import { Task, TaskType, Slot, PlanPolicy } from "./types"
-import { handleAsk } from "../../lib/ai/ask"
+
+const LLM_PARSE_TIMEOUT = 10000; // 10 seconds for parsing
 
 export async function parseTask(text: string): Promise<Partial<Task>> {
-    const systemPrompt = `Parse this homework/assignment text into structured data. Extract key information like title, due date, estimated time, course, and type. Respond with simple key-value pairs, one per line.
+    // Always use heuristic parsing first (fast, synchronous)
+    // LLM parsing is skipped for /tasks/ingest to avoid timeout issues
+    const fallback = heuristicParse(text)
+    console.log('[parseTask] Using heuristic parsing:', JSON.stringify(fallback).slice(0, 100))
+    return fallback
+}
+
+const systemPrompt = `Parse this homework/assignment text into structured data. Extract key information like title, due date, estimated time, course, and type. Respond with simple key-value pairs, one per line.
 
 Format your response as:
 title: [task title]
-course: [course name if mentioned]  
+course: [course name if mentioned]
 type: [homework/project/lab/essay/exam]
 dueAt: [ISO date string]
 estMins: [estimated minutes as number]
@@ -24,26 +32,6 @@ dueAt: 2025-10-11T17:00:00.000Z
 estMins: 120
 priority: 3
 notes: chapters 6-7`
-
-    try {
-        const response = await handleAsk(systemPrompt + '\n\nText to parse: ' + text)
-        const parsed = parseKeyValueResponse(response.answer)
-        const fallback = heuristicParse(text)
-
-        return {
-            title: parsed.title || fallback.title,
-            dueAt: parsed.dueAt || fallback.dueAt,
-            estMins: parsed.estMins ? parseInt(parsed.estMins) : fallback.estMins,
-            course: parsed.course || fallback.course,
-            type: parsed.type as TaskType || fallback.type,
-            priority: parsed.priority ? parseInt(parsed.priority) as 1 | 2 | 3 | 4 | 5 : fallback.priority,
-            notes: parsed.notes || fallback.notes
-        }
-    } catch (error) {
-        console.warn('LLM parsing failed, using heuristics:', error)
-        return heuristicParse(text)
-    }
-}
 
 function parseKeyValueResponse(text: string): Record<string, string> {
     const result: Record<string, string> = {}
@@ -195,6 +183,8 @@ function parseDateHeuristic(dateStr: string): string {
     return new Date(today.getTime() + 47 * 60 * 60 * 1000).toISOString()
 }
 
+const LLM_STEPS_TIMEOUT = 10000; // 10 seconds for step generation
+
 export async function generateSteps(task: Task): Promise<string[]> {
     const systemPrompt = `Generate a simple numbered list of 3-6 actionable steps to complete this task. Each step should be one clear action.
 
@@ -204,14 +194,25 @@ Estimated time: ${task.estMins} minutes
 
 Format as:
 1. [First step]
-2. [Second step]  
+2. [Second step]
 3. [Third step]
 etc.
 
 Keep steps concise and actionable.`
 
     try {
-        const response = await handleAsk(systemPrompt + (task.notes ? '\nNotes: ' + task.notes : ''))
+        // Dynamic import to avoid circular dependency
+        const { handleAsk } = await import("../../lib/ai/ask")
+
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('LLM steps timeout')), LLM_STEPS_TIMEOUT)
+        })
+
+        const response = await Promise.race([
+            handleAsk(systemPrompt + (task.notes ? '\nNotes: ' + task.notes : '')),
+            timeoutPromise
+        ])
+
         const steps = parseNumberedList(response.answer)
         return steps.length > 0 ? steps : getDefaultSteps(task.type)
     } catch (error) {

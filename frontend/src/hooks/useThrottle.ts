@@ -1,4 +1,13 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
+
+/**
+ * Get current timestamp that is compatible with vi.useFakeTimers()
+ * Uses performance.now() instead of Date.now() because fake timers
+ * do not affect Date.now() but DO affect performance.now()
+ */
+function getFakeTimerCompatibleTimestamp(): number {
+  return performance.now();
+}
 
 /**
  * Throttle a value to update at most once every specified delay.
@@ -24,18 +33,18 @@ import { useRef, useEffect, useMemo } from 'react';
  */
 export function useThrottle<T>(value: T, delay: number = 500): T {
   const [throttledValue, setThrottledValue] = useState(value);
-  const lastExecuted = useRef(Date.now());
+  const lastExecuted = useRef(getFakeTimerCompatibleTimestamp());
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      const now = Date.now();
+      const now = getFakeTimerCompatibleTimestamp();
       const timeElapsed = now - lastExecuted.current;
 
       if (timeElapsed >= delay) {
         setThrottledValue(value);
         lastExecuted.current = now;
       }
-    }, delay - (Date.now() - lastExecuted.current));
+    }, delay - (getFakeTimerCompatibleTimestamp() - lastExecuted.current));
 
     return () => clearTimeout(handler);
   }, [value, delay]);
@@ -68,7 +77,7 @@ export function useThrottledCallback<T extends (...args: any[]) => any>(
   callback: T,
   delay: number = 500
 ): T {
-  const lastRun = useRef(Date.now());
+  const lastRun = useRef<number | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -81,18 +90,17 @@ export function useThrottledCallback<T extends (...args: any[]) => any>(
 
   return useMemo(() => {
     return ((...args: Parameters<T>) => {
-      const now = Date.now();
-      const timeElapsed = now - lastRun.current;
+      const now = getFakeTimerCompatibleTimestamp();
 
-      if (timeElapsed >= delay) {
-        // Enough time has passed, execute immediately
+      // First call or enough time has passed - execute immediately
+      if (lastRun.current === null || now - lastRun.current >= delay) {
         lastRun.current = now;
         callback(...args);
       } else if (!timeoutRef.current) {
         // Set up timeout to execute after remaining delay
-        const remainingDelay = delay - timeElapsed;
+        const remainingDelay = delay - (now - lastRun.current);
         timeoutRef.current = setTimeout(() => {
-          lastRun.current = Date.now();
+          lastRun.current = getFakeTimerCompatibleTimestamp();
           callback(...args);
           timeoutRef.current = null;
         }, remainingDelay);
@@ -122,7 +130,7 @@ export function useThrottledCallbackWithFinalCall<T extends (...args: any[]) => 
   callback: T,
   delay: number = 500
 ): T {
-  const lastRun = useRef(Date.now());
+  const lastRun = useRef<number | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastArgs = useRef<Parameters<T> | null>(null);
 
@@ -139,19 +147,18 @@ export function useThrottledCallbackWithFinalCall<T extends (...args: any[]) => 
       // Store the latest arguments
       lastArgs.current = args;
 
-      const now = Date.now();
-      const timeElapsed = now - lastRun.current;
+      const now = getFakeTimerCompatibleTimestamp();
 
       const executeCallback = () => {
         if (lastArgs.current) {
           callback(...lastArgs.current);
           lastArgs.current = null;
         }
-        lastRun.current = Date.now();
+        lastRun.current = getFakeTimerCompatibleTimestamp();
       };
 
-      if (timeElapsed >= delay) {
-        // Enough time has passed, execute immediately
+      // First call or enough time has passed - execute immediately
+      if (lastRun.current === null || now - lastRun.current >= delay) {
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
           timeoutRef.current = null;
@@ -159,7 +166,7 @@ export function useThrottledCallbackWithFinalCall<T extends (...args: any[]) => 
         executeCallback();
       } else if (!timeoutRef.current) {
         // Set up timeout to execute after remaining delay
-        const remainingDelay = delay - timeElapsed;
+        const remainingDelay = delay - (now - lastRun.current);
         timeoutRef.current = setTimeout(() => {
           executeCallback();
           timeoutRef.current = null;
@@ -169,4 +176,3 @@ export function useThrottledCallbackWithFinalCall<T extends (...args: any[]) => 
   }, [callback, delay]);
 }
 
-import { useState } from 'react';

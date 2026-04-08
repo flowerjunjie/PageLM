@@ -13,7 +13,7 @@ FROM base AS deps
 
 COPY package*.json pnpm*.yaml ./
 
-RUN pnpm i --frozen-lockfile
+RUN pnpm install
 
 # build
 FROM base AS build

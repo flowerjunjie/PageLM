@@ -166,12 +166,17 @@ export async function generateWeeklyReport(
     return completed >= prevStart && completed < prevEnd
   })
 
+  const prevWeekChats = chats.filter((c: any) => {
+    const created = c.createdAt || Date.now()
+    return created >= prevStart && created < prevEnd
+  })
+
   const studyDays = new Set(weekChats.map((c: any) => {
     return new Date(c.createdAt || Date.now()).toISOString().split('T')[0]
   })).size
 
   const totalStudyTime = weekChats.length * 15
-  const prevStudyTime = prevWeekFlashcards.length * 15
+  const prevStudyTime = prevWeekChats.length * 15
   const studyTimeChange = prevStudyTime > 0
     ? Math.round(((totalStudyTime - prevStudyTime) / prevStudyTime) * 100)
     : 0

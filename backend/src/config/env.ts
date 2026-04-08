@@ -22,7 +22,22 @@ let loadedFromPath: string | null = null
 for (const envPath of possibleEnvPaths) {
   try {
     if (fs.existsSync(envPath)) {
-      process.loadEnvFile(envPath)
+      // Read and parse .env file manually using Node.js fs
+      const fileContent = fs.readFileSync(envPath, 'utf-8')
+      fileContent.split('\n').forEach(line => {
+        const trimmed = line.trim()
+        if (trimmed && !trimmed.startsWith('#')) {
+          const eqIndex = trimmed.indexOf('=')
+          if (eqIndex > 0) {
+            const key = trimmed.slice(0, eqIndex)
+            const value = trimmed.slice(eqIndex + 1)
+            // Only set if not already defined in environment
+            if (process.env[key] === undefined) {
+              process.env[key] = value
+            }
+          }
+        }
+      })
       console.log('[env] Loaded from:', envPath)
       envLoaded = true
       loadedFromPath = envPath
@@ -72,6 +87,9 @@ export const config = {
   port: parseNumber(process.env.PORT, 5000),
   baseUrl: process.env.VITE_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000',
   frontendUrl: process.env.VITE_FRONTEND_URL || process.env.FRONTEND_URL || 'http://localhost:5173',
+
+  // JWT 配置 (用于 WebSocket 认证)
+  jwtSecret: process.env.JWT_SECRET || '',
 
   // LLM 提供商配置
   provider: process.env.LLM_PROVIDER || 'bigmodel',

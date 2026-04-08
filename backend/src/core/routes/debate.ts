@@ -9,12 +9,32 @@ import {
     analyzeDebate,
     DebateSession,
 } from "../../services/debate";
+import { config } from "../../config/env";
+import { createWebSocketAuth, createWebSocketRateLimiter } from "../middleware/websocket";
 
 const debateSockets = new Map<string, Set<any>>();
 const analysisSockets = new Map<string, Set<any>>();
 
+// Initialize WebSocket auth middleware if JWT secret is configured
+const wsAuth = config.jwtSecret
+  ? createWebSocketAuth({ secret: config.jwtSecret })
+  : null;
+
+export const connectionLimiter = createWebSocketRateLimiter(5, 60000);
+
 export function debateRoutes(app: any) {
     app.ws("/ws/debate", (ws: any, req: any) => {
+        // Apply connection rate limiting
+        if (!connectionLimiter(ws, req)) {
+            return;
+        }
+
+        // Apply authentication if configured
+        if (wsAuth && !wsAuth(ws, req)) {
+            console.warn('[debate] WebSocket auth failed');
+            return;
+        }
+
         const url = new URL(req.url, "http://localhost");
         const debateId = url.searchParams.get("debateId");
         if (!debateId) {
@@ -37,6 +57,17 @@ export function debateRoutes(app: any) {
     });
 
     app.ws("/ws/debate/analyze", (ws: any, req: any) => {
+        // Apply connection rate limiting
+        if (!connectionLimiter(ws, req)) {
+            return;
+        }
+
+        // Apply authentication if configured
+        if (wsAuth && !wsAuth(ws, req)) {
+            console.warn('[debate] WebSocket auth failed');
+            return;
+        }
+
         const url = new URL(req.url, "http://localhost");
         const debateId = url.searchParams.get("debateId");
         if (!debateId) {

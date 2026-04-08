@@ -3,9 +3,18 @@ import { emitToAll, emitLarge } from "../../utils/chat/ws"
 import { withTimeout } from "../../utils/quiz/promise"
 import { handleExam } from "../../services/examlab/generate"
 import { loadAllExams } from "../../services/examlab/loader"
+import { config } from "../../config/env"
+import { createWebSocketAuth, createWebSocketRateLimiter } from "../middleware/websocket"
 
 const streams = new Map<string, Set<any>>()
 const log = (...a: any) => console.log("[exam]", ...a)
+
+// Initialize WebSocket auth middleware if JWT secret is configured
+const wsAuth = config.jwtSecret
+  ? createWebSocketAuth({ secret: config.jwtSecret })
+  : null;
+
+export const connectionLimiter = createWebSocketRateLimiter(5, 60000);
 
 function okSpec(x: any) {
   return x && typeof x.id === "string" && typeof x.name === "string" && Array.isArray(x.sections) && x.sections.every((s: any) => s?.gen?.type)
@@ -13,6 +22,17 @@ function okSpec(x: any) {
 
 export function examRoutes(app: any) {
   app.ws("/ws/exams", (ws: any, req: any) => {
+    // Apply connection rate limiting
+    if (!connectionLimiter(ws, req)) {
+      return;
+    }
+
+    // Apply authentication if configured
+    if (wsAuth && !wsAuth(ws, req)) {
+      console.warn('[exam] WebSocket auth failed');
+      return;
+    }
+
     const u = new URL(req.url, "http://localhost")
     const runId = u.searchParams.get("runId")
     if (!runId) return ws.close(1008, "runId required")

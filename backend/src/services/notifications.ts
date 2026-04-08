@@ -29,6 +29,9 @@ export interface ScheduledNotification {
 
 const scheduledNotifications: ScheduledNotification[] = []
 
+// Maximum number of notifications to keep in memory (prevents memory leaks)
+const MAX_SCHEDULED_NOTIFICATIONS = 10000
+
 /**
  * Schedule a notification to be sent at a specific time
  */
@@ -53,6 +56,14 @@ export async function scheduleNotification(
         message: payload.message,
         scheduledTime: payload.scheduledTime,
         createdAt: Date.now()
+    }
+
+    // Prevent memory leak: remove oldest entries if limit exceeded
+    if (scheduledNotifications.length >= MAX_SCHEDULED_NOTIFICATIONS) {
+        // Sort by scheduledTime and remove the oldest 10%
+        scheduledNotifications.sort((a, b) => a.scheduledTime - b.scheduledTime)
+        const toRemove = Math.ceil(MAX_SCHEDULED_NOTIFICATIONS * 0.1)
+        scheduledNotifications.splice(0, toRemove)
     }
 
     scheduledNotifications.push(notification)
@@ -292,15 +303,30 @@ export function sendProcrastinationWarning(
 }
 
 // Cleanup function for expired notifications
-setInterval(() => {
+const notificationCleanupInterval = setInterval(() => {
     const now = Date.now()
     const expiredThreshold = now - 24 * 60 * 60 * 1000 // 24 hours ago
 
     for (let i = scheduledNotifications.length - 1; i >= 0; i--) {
         const notification = scheduledNotifications[i]
         if (notification.scheduledTime < expiredThreshold) {
+            // Clear the actual setTimeout to prevent memory leak
+            const timeout = scheduledReminders.get(notification.id)
+            if (timeout) {
+                clearTimeout(timeout)
+                scheduledReminders.delete(notification.id)
+            }
             scheduledNotifications.splice(i, 1)
-            scheduledReminders.delete(notification.id)
         }
     }
 }, 60 * 60 * 1000) // Run every hour
+
+// Cleanup interval on module unload
+const cleanupNotificationsInterval = () => {
+    if (notificationCleanupInterval) {
+        clearInterval(notificationCleanupInterval)
+    }
+}
+
+process.on('SIGTERM', cleanupNotificationsInterval)
+process.on('SIGINT', cleanupNotificationsInterval)

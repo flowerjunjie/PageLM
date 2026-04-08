@@ -203,11 +203,12 @@ export async function getLearningStats(): Promise<LearningStats> {
 
   const dailyActivity = (await db.get('daily_activity')) || {}
   let streakDays = 0
-  for (let i = 0; i < 365; i++) {
+  // Start from i=1 (yesterday) to skip today which might be incomplete
+  for (let i = 1; i < 365; i++) {
     const date = new Date(now - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     if (dailyActivity[date]) {
       streakDays++
-    } else if (i > 0) {
+    } else {
       break
     }
   }

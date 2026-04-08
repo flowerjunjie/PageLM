@@ -53,7 +53,7 @@ function makeSchedule(overrides: Partial<ReviewSchedule> = {}): ReviewSchedule {
 
 describe('FlashcardService (SM-2 spaced-repetition)', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2025-01-15T12:00:00Z'))
   })
@@ -528,17 +528,15 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
       const fc1 = makeSchedule({ flashcardId: 'fc-1', nextReviewAt: now - 1000 })
       const fc2 = makeSchedule({ flashcardId: 'fc-2', nextReviewAt: now + 86400000 })
       const fc3 = makeSchedule({ flashcardId: 'fc-3', nextReviewAt: now - 5000 })
-      mockGet
-        // Round 1
-        .mockResolvedValueOnce(['fc-1', 'fc-2', 'fc-3'])
-        .mockResolvedValueOnce(fc1)
-        .mockResolvedValueOnce(fc2)
-        .mockResolvedValueOnce(fc3)
-        // Round 2 (calculateStreak)
-        .mockResolvedValueOnce(['fc-1', 'fc-2', 'fc-3'])
-        .mockResolvedValueOnce(fc1)
-        .mockResolvedValueOnce(fc2)
-        .mockResolvedValueOnce(fc3)
+      // Use mockImplementation for key-based returns since batchGetSchedules uses Promise.all
+      // with parallel db.get calls, making mockResolvedValueOnce ordering unpredictable
+      mockGet.mockImplementation((key: string) => {
+        if (key === 'user-reviews:user-due') return Promise.resolve(['fc-1', 'fc-2', 'fc-3'])
+        if (key === 'review:fc-1') return Promise.resolve(fc1)
+        if (key === 'review:fc-2') return Promise.resolve(fc2)
+        if (key === 'review:fc-3') return Promise.resolve(fc3)
+        return Promise.resolve(undefined)
+      })
 
       const result = await getReviewStats('user-due')
 
@@ -549,13 +547,13 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
       const now = Date.now()
       const fc1 = makeSchedule({ flashcardId: 'fc-1', easiness: 2.0, nextReviewAt: now + 86400000 })
       const fc2 = makeSchedule({ flashcardId: 'fc-2', easiness: 3.0, nextReviewAt: now + 86400000 })
-      mockGet
-        .mockResolvedValueOnce(['fc-1', 'fc-2'])
-        .mockResolvedValueOnce(fc1)
-        .mockResolvedValueOnce(fc2)
-        .mockResolvedValueOnce(['fc-1', 'fc-2'])
-        .mockResolvedValueOnce(fc1)
-        .mockResolvedValueOnce(fc2)
+      // Use mockImplementation for key-based returns since batchGetSchedules uses Promise.all
+      mockGet.mockImplementation((key: string) => {
+        if (key === 'user-reviews:user-ef') return Promise.resolve(['fc-1', 'fc-2'])
+        if (key === 'review:fc-1') return Promise.resolve(fc1)
+        if (key === 'review:fc-2') return Promise.resolve(fc2)
+        return Promise.resolve(undefined)
+      })
 
       const result = await getReviewStats('user-ef')
 
@@ -574,12 +572,12 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
           { date: todayStart - 86400000, quality: 3 }, // yesterday – should not count
         ],
       })
-      mockGet
-        .mockResolvedValueOnce(['fc-1'])
-        .mockResolvedValueOnce(fc1)
-        // calculateStreak round
-        .mockResolvedValueOnce(['fc-1'])
-        .mockResolvedValueOnce(fc1)
+      // Use mockImplementation for key-based returns
+      mockGet.mockImplementation((key: string) => {
+        if (key === 'user-reviews:user-today') return Promise.resolve(['fc-1'])
+        if (key === 'review:fc-1') return Promise.resolve(fc1)
+        return Promise.resolve(undefined)
+      })
 
       const result = await getReviewStats('user-today')
 
@@ -587,7 +585,10 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
     })
 
     it('should include a streak field in the result', async () => {
-      mockGet.mockResolvedValue([])
+      mockGet.mockImplementation((key: string) => {
+        if (key.startsWith('user-reviews:')) return Promise.resolve([])
+        return Promise.resolve(undefined)
+      })
 
       const result = await getReviewStats('streak-user')
 
@@ -605,11 +606,12 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
           { date: todayStart + 1000, quality: 5 }, // today
         ],
       })
-      mockGet
-        .mockResolvedValueOnce(['fc-streak'])
-        .mockResolvedValueOnce(fc1)
-        .mockResolvedValueOnce(['fc-streak'])
-        .mockResolvedValueOnce(fc1)
+      // Use mockImplementation for key-based returns
+      mockGet.mockImplementation((key: string) => {
+        if (key === 'user-reviews:user-streak') return Promise.resolve(['fc-streak'])
+        if (key === 'review:fc-streak') return Promise.resolve(fc1)
+        return Promise.resolve(undefined)
+      })
 
       const result = await getReviewStats('user-streak')
 
@@ -632,6 +634,7 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
     })
 
     it('should remove the card from the user review list', async () => {
+      // db.get is called twice: once for review:fc-del, once for user-reviews:user-rem
       mockGet.mockResolvedValue(['fc-del', 'fc-keep'])
       mockDelete.mockResolvedValue(undefined)
       mockSet.mockResolvedValue(undefined)

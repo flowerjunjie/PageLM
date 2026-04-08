@@ -4,6 +4,7 @@ import { parseTask, generateSteps, makeSlots, replan, calculateUrgencyScore } fr
 import { planTask, planTasks, weeklyPlan, defaultPolicy } from "./scheduler"
 import { handleAsk } from "../../lib/ai/ask"
 import crypto from "crypto"
+import fs from "fs"
 
 export class PlannerService {
     private policy: PlanPolicy
@@ -37,9 +38,17 @@ export class PlannerService {
             }
         }
 
-        const tempTask = { ...taskData, id: 'temp' } as Task
-        const steps = await generateSteps(tempTask)
-        taskData.steps = steps
+        // Generate steps with proper error handling
+        let steps: string[] = []
+        try {
+            const tempTask = { ...taskData, id: 'temp' } as Task
+            steps = (await generateSteps(tempTask)) || []
+            taskData.steps = steps
+        } catch (err) {
+            console.warn('[planner] Failed to generate steps, using defaults:', err)
+            // Use empty steps rather than failing completely
+            taskData.steps = []
+        }
 
         const task = await createTask({
             title: taskData.title || "Untitled Task",
@@ -322,7 +331,7 @@ export class PlannerService {
                 filename: file.filename,
                 originalName: file.filename,
                 mimeType: file.mimeType,
-                size: require('fs').statSync(file.path).size,
+                size: (await fs.promises.stat(file.path)).size,
                 uploadedAt: new Date().toISOString()
             }
 

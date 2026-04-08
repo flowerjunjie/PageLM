@@ -100,7 +100,7 @@ function defaultTokenExtractor(req: any): string | null {
 export function createWebSocketRateLimiter(maxConnections: number = 10, windowMs: number = 60000) {
   const connections = new Map<string, { count: number; resetTime: number }>();
 
-  return (ws: AuthenticatedWebSocket, req: any): boolean => {
+  const limiter = (ws: AuthenticatedWebSocket, req: any): boolean => {
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     const now = Date.now();
 
@@ -122,9 +122,9 @@ export function createWebSocketRateLimiter(maxConnections: number = 10, windowMs
       return false;
     }
 
-    // Cleanup on close
+    // Cleanup on close - guard against multiple close events
     ws.addEventListener('close', () => {
-      if (entry) {
+      if (entry && entry.count > 0) {
         entry.count--;
         if (entry.count <= 0) {
           connections.delete(ip);
@@ -134,6 +134,11 @@ export function createWebSocketRateLimiter(maxConnections: number = 10, windowMs
 
     return true;
   };
+
+  // Reset function for testing
+  limiter.reset = () => connections.clear();
+
+  return limiter;
 }
 
 /**

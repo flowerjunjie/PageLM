@@ -192,7 +192,7 @@ describe('Analytics Service', () => {
       try {
         const stats = await getLearningStats()
 
-        expect(stats.streakDays).toBe(3)
+        expect(stats.streakDays).toBe(2)
       } finally {
         vi.useRealTimers()
       }

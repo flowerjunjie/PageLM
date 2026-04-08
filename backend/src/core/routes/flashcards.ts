@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import db from '../../utils/database/keyv'
 import { scheduleReview, deleteReviewSchedule } from '../../services/spaced-repetition'
 

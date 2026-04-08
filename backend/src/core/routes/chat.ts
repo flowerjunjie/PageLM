@@ -8,6 +8,15 @@ import {
   getMsgs,
 } from "../../utils/chat/chat";
 import { emitToAll } from "../../utils/chat/ws";
+import { config } from "../../config/env";
+import { createWebSocketAuth, createWebSocketRateLimiter } from "../middleware/websocket";
+
+// Initialize WebSocket auth middleware if JWT secret is configured
+const wsAuth = config.jwtSecret
+  ? createWebSocketAuth({ secret: config.jwtSecret })
+  : null;
+
+const connectionLimiter = createWebSocketRateLimiter(5, 60000);
 
 type UpFile = { path: string; filename: string; mimeType: string };
 
@@ -15,6 +24,17 @@ const chatSockets = new Map<string, Set<any>>();
 
 export function chatRoutes(app: any) {
   app.ws("/ws/chat", (ws: any, req: any) => {
+    // Apply connection rate limiting
+    if (!connectionLimiter(ws, req)) {
+      return;
+    }
+
+    // Apply authentication if configured
+    if (wsAuth && !wsAuth(ws, req)) {
+      console.warn('[chat] WebSocket auth failed for connection');
+      return;
+    }
+
     const url = new URL(req.url, "http://localhost");
     const chatId = url.searchParams.get("chatId");
     if (!chatId) {
@@ -28,7 +48,17 @@ export function chatRoutes(app: any) {
     }
     set.add(ws);
 
+    // Heartbeat to detect dead connections
+    const iv = setInterval(() => {
+      try {
+        if (ws.readyState === 1) {
+          ws.send(JSON.stringify({ type: "ping", t: Date.now() }));
+        }
+      } catch {}
+    }, 15000);
+
     ws.on("close", (code: number, reason: string) => {
+      clearInterval(iv);
       set!.delete(ws);
       if (set!.size === 0) chatSockets.delete(chatId);
     });
@@ -37,17 +67,19 @@ export function chatRoutes(app: any) {
   });
 
   app.post("/chat", async (req: any, res: any, next: any) => {
-    const t0 = Date.now();
     try {
       const ct = String(req.headers["content-type"] || "");
       const isMp = ct.includes("multipart/form-data");
+
+      // Input validation constants
+      const MAX_QUESTION_LENGTH = 10000;
+      const CHAT_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
 
       let q = "";
       let chatId: string | undefined;
       let files: UpFile[] = [];
 
       if (isMp) {
-        const tMp = Date.now();
         const { q: mq, chatId: mcid, files: mf } = await parseMultipart(req);
         q = mq;
         chatId = mcid;
@@ -58,6 +90,21 @@ export function chatRoutes(app: any) {
         q = req.body?.q || "";
         chatId = req.body?.chatId;
         if (!q) return res.status(400).send({ error: "q required" });
+      }
+
+      // Input validation
+      if (q.length > MAX_QUESTION_LENGTH) {
+        return res.status(400).send({
+          error: "Question too long",
+          message: `Maximum length is ${MAX_QUESTION_LENGTH} characters`
+        });
+      }
+
+      if (chatId && !CHAT_ID_PATTERN.test(chatId)) {
+        return res.status(400).send({
+          error: "Invalid chatId format",
+          message: "chatId must be 1-64 alphanumeric characters, underscores, or hyphens"
+        });
       }
 
       let chat = chatId ? await getChat(chatId) : undefined;
@@ -75,7 +122,6 @@ export function chatRoutes(app: any) {
               type: "phase",
               value: "upload_start",
             });
-            const tUp = Date.now();
             for (const f of files) {
               emitToAll(chatSockets.get(id), {
                 type: "file",
@@ -95,7 +141,6 @@ export function chatRoutes(app: any) {
             });
           }
 
-          const tUser = Date.now();
           await addMsg(id, { role: "user", content: q, at: Date.now() });
           emitToAll(chatSockets.get(id), {
             type: "phase",
@@ -148,13 +193,11 @@ export function chatRoutes(app: any) {
   });
 
   app.get("/chats", async (_: any, res: any) => {
-    const t = Date.now();
     const chats = await listChats();
     res.send({ ok: true, chats });
   });
 
   app.get("/chats/:id", async (req: any, res: any) => {
-    const t = Date.now();
     const id = req.params.id;
     const chat = await getChat(id);
     if (!chat) {

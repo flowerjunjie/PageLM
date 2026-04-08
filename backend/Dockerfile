@@ -6,10 +6,12 @@ WORKDIR /app
 # builder
 FROM base AS builder
 
+# Copy root package files for all dependencies
 COPY package*.json ./
 
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
+# Copy backend source
 COPY backend/ ./backend/
 
 RUN npm run build

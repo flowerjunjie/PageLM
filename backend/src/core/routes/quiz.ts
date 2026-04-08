@@ -1,13 +1,36 @@
 import { handleQuiz } from "../../services/quiz";
 import { emitToAll } from "../../utils/chat/ws";
 import { withTimeout } from "../../utils/quiz/promise";
+import { config } from "../../config/env";
+import { createWebSocketAuth, createWebSocketRateLimiter } from "../middleware/websocket";
 import crypto from "crypto";
 
 const qs = new Map<string, Set<any>>();
 const qlog = (...a: any) => console.log("[quiz]", ...a);
 
+// Initialize WebSocket auth middleware if JWT secret is configured
+const wsAuth = config.jwtSecret
+  ? createWebSocketAuth({ secret: config.jwtSecret })
+  : null;
+
+const connectionLimiter = createWebSocketRateLimiter(5, 60000);
+
+// Export for testing
+export { connectionLimiter };
+
 export function quizRoutes(app: any) {
   app.ws("/ws/quiz", (ws: any, req: any) => {
+    // Apply connection rate limiting
+    if (!connectionLimiter(ws, req)) {
+      return;
+    }
+
+    // Apply authentication if configured
+    if (wsAuth && !wsAuth(ws, req)) {
+      console.warn('[quiz] WebSocket auth failed');
+      return;
+    }
+
     const u = new URL(req.url, "http://localhost");
     const id = u.searchParams.get("quizId");
     if (!id) return ws.close(1008, "quizId required");

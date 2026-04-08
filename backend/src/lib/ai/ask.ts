@@ -1,7 +1,7 @@
 import fs from "fs"
 import path from "path"
 import crypto from "crypto"
-import { makeModels } from "../../utils/llm/models"
+import { makeModels, getNextModel, resetModelIndex } from "../../utils/llm/models"
 import { execDirect } from "../../agents/runtime"
 import { normalizeTopic } from "../../utils/text/normalize"
 import { config } from "../../config/env"
@@ -18,6 +18,30 @@ try {
 } catch (error: any) {
   llmInitError = error
   console.error('[ask] Failed to initialize LLM:', error.message)
+}
+
+// 重新初始化 LLM（用于模型切换）
+function reinitLLM(fallbackModel?: string): void {
+  try {
+    const models = makeModels(fallbackModel)
+    llm = models.llm
+    console.log('[ask] LLM reinitialized with new model:', fallbackModel || 'default')
+  } catch (error: any) {
+    llmInitError = error
+    console.error('[ask] Failed to reinitialize LLM:', error.message)
+  }
+}
+
+// 检查是否应该切换模型
+function shouldSwitchToNextModel(error: any): boolean {
+  if (!error) return false
+  const message = error.message || String(error)
+  return message.includes('429') ||
+         message.includes('rate limit') ||
+         message.includes('quota') ||
+         message.includes('额度') ||
+         message.includes('TOO_MANY_REQUESTS') ||
+         message.includes('resource has been exhausted')
 }
 
 export type AskCard = { q: string; a: string; tags?: string[] }
@@ -393,6 +417,37 @@ export async function askWithContext(opts: AskWithContextOptions): Promise<AskPa
     return out
   } catch (error: any) {
     console.error('[chat] LLM call failed:', error.message)
+
+    // 检查是否应该切换到下一个模型
+    if (shouldSwitchToNextModel(error)) {
+      console.log('[chat] Rate limit detected, trying next model...')
+      const nextModel = getNextModel()
+      reinitLLM(nextModel)
+      // 重新获取 llm 引用，因为 reinitLLM() 更新了模块级别的 llm 变量
+      llm = llm
+      // 使用新模型重试一次
+      try {
+        const res = await Promise.race([
+          llm.call(messages as any),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('LLM timeout after 60s')), 60000))
+        ]) as any
+        console.log('[chat] LLM response received with fallback model in', Date.now() - llmStart, 'ms')
+        const draft = toText(res).trim()
+        const jsonStr = extractFirstJsonObject(draft) || draft
+        const parsed = tryParse<any>(jsonStr)
+        if (parsed && typeof parsed === "object") {
+          const out: AskPayload = {
+            topic: typeof parsed.topic === "string" ? parsed.topic : topic,
+            answer: typeof parsed.answer === "string" ? parsed.answer : "",
+            flashcards: Array.isArray(parsed.flashcards) ? (parsed.flashcards as AskCard[]) : [],
+          }
+          writeCache(ck, out)
+          return out
+        }
+      } catch (retryError: any) {
+        console.error('[chat] Retry with fallback model also failed:', retryError.message)
+      }
+    }
 
     // 根据错误类型提供友好的错误消息
     let errorMessage = 'AI服务暂时不可用'

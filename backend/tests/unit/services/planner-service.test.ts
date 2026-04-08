@@ -545,3 +545,46 @@ describe('PlannerService.generateMaterials', () => {
     await expect(service.generateMaterials('task-1', { type: 'invalid' as any })).rejects.toThrow('Invalid material type')
   })
 })
+
+// ---------------------------------------------------------------------------
+// createTaskFromRequest - Error handling for generateSteps failure
+// ---------------------------------------------------------------------------
+
+describe('PlannerService.createTaskFromRequest - generateSteps error handling', () => {
+  it('should create task with empty steps when generateSteps fails', async () => {
+    vi.mocked(generateSteps).mockRejectedValue(new Error('LLM unavailable'))
+    vi.mocked(createTask).mockResolvedValue(makeTask())
+
+    const result = await service.createTaskFromRequest({
+      title: 'Test Task',
+      dueAt: new Date().toISOString(),
+      estMins: 60,
+      priority: 3,
+    })
+
+    // Task should still be created with empty steps
+    expect(createTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Test Task',
+        steps: []
+      })
+    )
+    expect(result).toBeDefined()
+  })
+
+  it('should handle generateSteps returning undefined', async () => {
+    vi.mocked(generateSteps).mockResolvedValue(undefined as any)
+    vi.mocked(createTask).mockResolvedValue(makeTask())
+
+    await service.createTaskFromRequest({
+      title: 'Test Task',
+    })
+
+    // Should use empty array as fallback
+    expect(createTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        steps: []
+      })
+    )
+  })
+})

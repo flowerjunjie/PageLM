@@ -6,13 +6,33 @@ import { emitLarge } from "../../utils/chat/ws"
 import { parseMultipart } from "../../lib/parser/upload"
 import { parseHomework, priorityToNumber } from "../../services/homework-parser"
 import { scheduleTaskReminders, cancelTaskNotifications, getUserNotifications, sendTaskCompletionNotification } from "../../services/notifications"
+import { config } from "../../config/env"
+import { createWebSocketAuth, createWebSocketRateLimiter } from "../middleware/websocket"
 import crypto from "crypto"
+
+// Initialize WebSocket auth middleware if JWT secret is configured
+const wsAuth = config.jwtSecret
+  ? createWebSocketAuth({ secret: config.jwtSecret })
+  : null;
+
+const connectionLimiter = createWebSocketRateLimiter(5, 60000);
 
 const rooms = new Map<string, Set<any>>()
 const log = (...a: any[]) => console.log("[planner]", ...a)
 
 export function plannerRoutes(app: any) {
     app.ws("/ws/planner", (ws: any, req: any) => {
+        // Apply connection rate limiting
+        if (!connectionLimiter(ws, req)) {
+            return;
+        }
+
+        // Apply authentication if configured
+        if (wsAuth && !wsAuth(ws, req)) {
+            console.warn('[planner] WebSocket auth failed');
+            return;
+        }
+
         const u = new URL(req.url, "http://localhost")
         const sid = u.searchParams.get("sid") || "default"
         let set = rooms.get(sid)
@@ -514,7 +534,7 @@ export function plannerRoutes(app: any) {
 let lastDigest = ""
 let lastBreakReminder = 0
 
-setInterval(async () => {
+const plannerReminderInterval = setInterval(async () => {
     try {
         const now = new Date()
         const hh = now.getHours()
@@ -568,3 +588,13 @@ setInterval(async () => {
         }
     } catch { }
 }, 60000)
+
+// Cleanup interval on module unload (SIGTERM/SIGINT)
+const cleanupPlannerInterval = () => {
+    if (plannerReminderInterval) {
+        clearInterval(plannerReminderInterval)
+    }
+}
+
+process.on('SIGTERM', cleanupPlannerInterval)
+process.on('SIGINT', cleanupPlannerInterval)

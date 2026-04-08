@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback, memo } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { env } from "../config/env";
@@ -16,6 +16,29 @@ import { useCompanion } from "../components/Companion/CompanionProvider";
 import GeneratedMaterials, { type GeneratedMaterialRef } from "../components/Chat/GeneratedMaterials";
 
 type BagItem = { id: string; kind: "flashcard" | "note"; title: string; content: string };
+
+// Memoized message bubble components for performance
+const UserBubble = memo(function UserBubble({ content }: { content: string }) {
+  return (
+    <div className="w-full flex justify-start">
+      <div className="inline-block max-w-[85%] bg-stone-900/70 border border-zinc-800 rounded-2xl px-4 py-3">
+        <div className="text-stone-200 whitespace-pre-wrap leading-relaxed">{content}</div>
+      </div>
+    </div>
+  );
+});
+
+const AssistantBubble = memo(function AssistantBubble({ content }: { content: string }) {
+  return (
+    <div className="w-full flex justify-start">
+      <div className="w-full mx-auto rounded-3xl bg-stone-950/90 border border-zinc-900 shadow-[0_10px_30px_rgba(0,0,0,0.45)] ring-1 ring-black/10 backdrop-blur px-6 md:px-8 py-6 md:py-8 max-w-[min(100%,1000px)]">
+        <div className="animate-[fadeIn_300ms_ease-out] leading-7 md:leading-8">
+          <MarkdownView md={content} />
+        </div>
+      </div>
+    </div>
+  );
+});
 
 function extractFirstJsonObject(s: string): string {
   let depth = 0, start = -1;
@@ -314,25 +337,10 @@ export default function Chat() {
           <div className="w-full max-w-5xl mx-auto p-4 pt-2 pb-28">
             <div className="space-y-6">
               {list.map((m, i) => {
-                const userBubble = "inline-block max-w-[85%] bg-stone-900/70 border border-zinc-800 rounded-2xl px-4 py-3";
                 if (m.role === "assistant") {
-                  return (
-                    <div key={i} className="w-full flex justify-start">
-                      <div className="w-full mx-auto rounded-3xl bg-stone-950/90 border border-zinc-900 shadow-[0_10px_30px_rgba(0,0,0,0.45)] ring-1 ring-black/10 backdrop-blur px-6 md:px-8 py-6 md:py-8 max-w-[min(100%,1000px)]">
-                        <div className="animate-[fadeIn_300ms_ease-out] leading-7 md:leading-8">
-                          <MarkdownView md={m.content} />
-                        </div>
-                      </div>
-                    </div>
-                  );
+                  return <AssistantBubble key={m.id || i} content={m.content} />;
                 }
-                return (
-                  <div key={i} className="w-full flex justify-start">
-                    <div className={userBubble}>
-                      <div className="text-stone-200 whitespace-pre-wrap leading-relaxed">{m.content}</div>
-                    </div>
-                  </div>
-                );
+                return <UserBubble key={m.id || i} content={m.content} />;
               })}
               {(connecting || awaitingAnswer) && (
                 <div className="w-full flex justify-start">
