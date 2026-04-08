@@ -281,22 +281,19 @@ describe('generateSteps', () => {
 // ---------------------------------------------------------------------------
 
 describe('parseTask', () => {
-  it('should use LLM parsed values when successful', async () => {
-    mockHandleAsk.mockResolvedValue({
-      answer: 'title: Math Homework 5\ncourse: Calculus\ndueAt: 2026-03-25T17:00:00.000Z\nestMins: 120\npriority: 4',
-    })
-
+  it('should use heuristic parsing for basic input', async () => {
+    // LLM parsing is disabled - all parsing uses heuristics
     const result = await parseTask('Calc HW 5 due Fri ~2h')
 
-    expect(result.title).toBe('Math Homework 5')
-    expect(result.course).toBe('Calculus')
+    // Heuristic extracts course from first word
+    expect(result.course).toBe('Calc')
+    // Heuristic detects ~2h as 120 minutes
     expect(result.estMins).toBe(120)
-    expect(result.priority).toBe(4)
+    // Heuristic detects "homework" in text
+    expect(result.type).toBe('homework')
   })
 
-  it('should fall back to heuristic parsing when LLM fails', async () => {
-    mockHandleAsk.mockRejectedValue(new Error('API error'))
-
+  it('should parse heuristic due date correctly', async () => {
     const result = await parseTask('Do homework due tomorrow')
 
     // Heuristic should detect "homework" type
@@ -369,20 +366,16 @@ describe('parseTask', () => {
     expect(Math.abs(dueDate.getTime() - sevenDaysFromNow.getTime())).toBeLessThan(24 * 60 * 60 * 1000)
   })
 
-  it('should merge LLM values with heuristic fallbacks', async () => {
-    // LLM returns partial data (no title, no dueAt)
-    mockHandleAsk.mockResolvedValue({
-      answer: 'course: Math\nestMins: 90',
-    })
+  it('should use heuristic parsing when LLM is disabled', async () => {
+    // LLM parsing is disabled - only heuristic parsing is used
+    const result = await parseTask('Homework due tomorrow ~2h')
 
-    const result = await parseTask('Homework due tomorrow ~1.5h')
-
-    // estMins from LLM
-    expect(result.estMins).toBe(90)
-    // course from LLM
-    expect(result.course).toBe('Math')
-    // title falls back to heuristic (the text itself)
-    expect(result.title).toBeDefined()
+    // Heuristic parses ~2h as 120 minutes
+    expect(result.estMins).toBe(120)
+    // title from heuristic (the text itself)
+    expect(result.title).toBe('Homework due tomorrow ~2h')
+    // type from heuristic
+    expect(result.type).toBe('homework')
   })
 })
 
