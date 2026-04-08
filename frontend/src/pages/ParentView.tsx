@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import { BarChart, PieChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, GridComponent, LegendComponent, GraphicComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { getSharedReport, type WeeklyReport } from '../lib/api'
+
+echarts.use([
+  BarChart, PieChart,
+  TitleComponent, TooltipComponent, GridComponent, LegendComponent, GraphicComponent,
+  CanvasRenderer
+])
 
 interface StatCardProps {
   label: string

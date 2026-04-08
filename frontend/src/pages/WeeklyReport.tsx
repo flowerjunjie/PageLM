@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import { BarChart, PieChart, LineChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, GridComponent, LegendComponent, GraphicComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { getWeeklyReport, getAvailableWeeks, createShareLink, type WeeklyReport } from '../lib/api'
 import ShareReportModal from '../components/ShareReportModal'
+
+echarts.use([
+  BarChart, PieChart, LineChart,
+  TitleComponent, TooltipComponent, GridComponent, LegendComponent, GraphicComponent,
+  CanvasRenderer
+])
 
 interface ChartContainerProps {
   title: string

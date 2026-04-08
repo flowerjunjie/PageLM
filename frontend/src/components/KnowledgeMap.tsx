@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import * as echarts from 'echarts';
+import * as echarts from 'echarts/core';
+import { GraphChart } from 'echarts/charts';
+import { TitleComponent, TooltipComponent, GridComponent, LegendComponent, GraphicComponent } from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import { KnowledgeNode, KnowledgeEdge, Subject } from '../lib/api';
+
+echarts.use([
+  GraphChart,
+  TitleComponent, TooltipComponent, GridComponent, LegendComponent, GraphicComponent,
+  CanvasRenderer
+]);
 
 interface KnowledgeMapProps {
   nodes: KnowledgeNode[];
