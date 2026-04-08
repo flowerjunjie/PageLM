@@ -23,6 +23,7 @@ export const makeLLM: MkLLM = (cfg: any) => {
     apiKey,
     temperature: cfg.temp ?? 0.7,
     maxTokens: cfg.max_tokens ?? 8192,
+    streaming: false, // Disable streaming for DeepSeek
     configuration: {
       baseURL,
     }
