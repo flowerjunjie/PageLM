@@ -208,20 +208,7 @@ describe('replan', () => {
 // ---------------------------------------------------------------------------
 
 describe('generateSteps', () => {
-  it('should parse numbered list from AI response', async () => {
-    mockHandleAsk.mockResolvedValue({ answer: '1. Research the topic\n2. Write outline\n3. Draft\n4. Review' })
-
-    const task = makeTask()
-    const steps = await generateSteps(task)
-
-    expect(steps).toHaveLength(4)
-    expect(steps[0]).toBe('Research the topic')
-    expect(steps[1]).toBe('Write outline')
-  })
-
-  it('should return default steps when LLM fails', async () => {
-    mockHandleAsk.mockRejectedValue(new Error('LLM error'))
-
+  it('should return default steps for homework type', async () => {
     const task = makeTask({ type: 'homework' })
     const steps = await generateSteps(task)
 
@@ -229,9 +216,7 @@ describe('generateSteps', () => {
     expect(steps).toContain('Review notes')
   })
 
-  it('should return default steps when response has no numbered list', async () => {
-    mockHandleAsk.mockResolvedValue({ answer: 'No numbered steps here at all' })
-
+  it('should return default steps for essay type', async () => {
     const task = makeTask({ type: 'essay' })
     const steps = await generateSteps(task)
 
@@ -240,8 +225,6 @@ describe('generateSteps', () => {
   })
 
   it('should use task-specific default steps for exam type', async () => {
-    mockHandleAsk.mockRejectedValue(new Error('fail'))
-
     const task = makeTask({ type: 'exam' })
     const steps = await generateSteps(task)
 
@@ -249,8 +232,6 @@ describe('generateSteps', () => {
   })
 
   it('should use task-specific default steps for project type', async () => {
-    mockHandleAsk.mockRejectedValue(new Error('fail'))
-
     const task = makeTask({ type: 'project' })
     const steps = await generateSteps(task)
 
@@ -258,8 +239,6 @@ describe('generateSteps', () => {
   })
 
   it('should use task-specific default steps for lab type', async () => {
-    mockHandleAsk.mockRejectedValue(new Error('fail'))
-
     const task = makeTask({ type: 'lab' })
     const steps = await generateSteps(task)
 
@@ -267,8 +246,6 @@ describe('generateSteps', () => {
   })
 
   it('should use default fallback steps for unknown type', async () => {
-    mockHandleAsk.mockRejectedValue(new Error('fail'))
-
     const task = makeTask({ type: undefined })
     const steps = await generateSteps(task)
 
