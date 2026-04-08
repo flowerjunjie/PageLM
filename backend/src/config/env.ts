@@ -121,6 +121,11 @@ export const config = {
   grok_model: process.env.GROK_MODEL || 'grok-2-latest',
   grok_base: process.env.GROK_BASE || 'https://api.x.ai/v1',
 
+  // DeepSeek 配置
+  deepseek: process.env.DEEPSEEK_API_KEY || '',
+  deepseek_base: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1',
+  deepseek_model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+
   // 智谱AI配置 - 支持多种配置方式
   // 方式1: 使用 BIGMODEL_KEY_1~4 单独配置
   // 方式2: 使用 BIGMODEL_KEYS 逗号分隔配置

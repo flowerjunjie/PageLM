@@ -5,6 +5,7 @@ import * as grok from './grok'
 import * as claude from './claude'
 import * as openrouter from './openrouter'
 import * as bigmodel from './bigmodel'
+import * as deepseek from './deepseek'
 import { OpenAIEmbeddings } from '@langchain/openai'
 import { config } from '../../../config/env'
 import type { EmbeddingsLike, LLM } from './types'
@@ -23,6 +24,7 @@ function pick(p: string) {
     case 'claude': return claude
     case 'openrouter': return openrouter
     case 'bigmodel': return bigmodel
+    case 'deepseek': return deepseek
     default: return bigmodel
   }
 }
@@ -47,29 +49,18 @@ export function makeModels(fallbackModel?: string): Pair {
 
   const llm = mod.makeLLM(modelConfig)
 
-  // Use OpenAI-compatible embeddings (阿里云通义)
-  let embeddings: EmbeddingsLike
-  try {
-    embeddings = new OpenAIEmbeddings({
-      model: config.openai_embed_model || 'text-embedding-v2',
-      apiKey: config.openai_embed,
-      configuration: {
-        baseURL: config.openai_embed_base
-      }
-    })
-    console.log('[models] Using OpenAI-compatible embeddings:', config.openai_embed_model)
-  } catch (err: any) {
-    console.error('[models] Failed to initialize embeddings:', err.message)
-    // Fallback to dummy embeddings
-    embeddings = {
-      embedDocuments: async (texts: string[]) => {
-        return texts.map(() => new Array(1536).fill(0))
-      },
-      embedQuery: async (_text: string) => {
-        return new Array(1536).fill(0)
-      }
-    } as any
+  // Use dummy embeddings for now (RAG will be skipped)
+  // TODO: Fix Gemini embeddings model name
+  const embeddings: EmbeddingsLike = {
+    embedDocuments: async (texts: string[]) => {
+      console.log('[models] Using dummy embeddings for', texts.length, 'documents')
+      return texts.map(() => new Array(1536).fill(0))
+    },
+    embedQuery: async (_text: string) => {
+      return new Array(1536).fill(0)
+    }
   }
+  console.log('[models] Using dummy embeddings (RAG disabled)')
 
   return { llm, embeddings }
 }
