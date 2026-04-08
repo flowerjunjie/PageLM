@@ -432,10 +432,10 @@ test.describe('Exam/ExamLabs Page', () => {
   })
 
   test('should display exam practice interface', async ({ page }) => {
-    const interface = page.locator('[class*="exam"], [class*="practice"]').or(
+    const interfaceLocator = page.locator('[class*="exam"], [class*="practice"]').or(
       page.locator('text=/practice|mode|模式|练习/i')
     )
-    const count = await interface.count()
+    const count = await interfaceLocator.count()
     expect(count).toBeGreaterThan(0)
   })
 })
