@@ -43,10 +43,10 @@ function createMockApp(): MockApp {
 
   return {
     routes,
-    get: (path, handler) => { routes[`GET ${path}`] = handler as any },
-    post: (path, handler) => { routes[`POST ${path}`] = handler as any },
-    delete: (path, handler) => { routes[`DELETE ${path}`] = handler as any },
-    ws: (path, handler) => { routes[`WS ${path}`] = handler as any },
+    get: (path, ...handlers) => { routes[`GET ${path}`] = handlers[handlers.length - 1] as any },
+    post: (path, ...handlers) => { routes[`POST ${path}`] = handlers[handlers.length - 1] as any },
+    delete: (path, ...handlers) => { routes[`DELETE ${path}`] = handlers[handlers.length - 1] as any },
+    ws: (path, ...handlers) => { routes[`WS ${path}`] = handlers[handlers.length - 1] as any },
   }
 }
 

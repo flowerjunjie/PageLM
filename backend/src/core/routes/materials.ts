@@ -68,16 +68,12 @@ export async function saveLearningMaterials(
 // Get materials by chat ID
 export async function getMaterialsByChat(chatId: string): Promise<StoredMaterials[]> {
   const materialIds = (await db.get(STORAGE_KEYS.materialsByChat(chatId))) || []
-  const materials: StoredMaterials[] = []
 
-  for (const id of materialIds) {
-    const material = await db.get(STORAGE_KEYS.materialById(id))
-    if (material) {
-      materials.push(material)
-    }
-  }
+  const materials = await Promise.all(
+    materialIds.map(id => db.get(STORAGE_KEYS.materialById(id)))
+  )
 
-  return materials.sort((a, b) => b.createdAt - a.createdAt)
+  return materials.filter(Boolean).sort((a: any, b: any) => b.createdAt - a.createdAt)
 }
 
 // Get single material by ID
@@ -91,18 +87,23 @@ export async function deleteMaterials(id: string): Promise<boolean> {
   const material = await getMaterialById(id)
   if (!material) return false
 
+  // Parallel read of both indexes
+  const [chatMaterials, globalIndex] = await Promise.all([
+    db.get(STORAGE_KEYS.materialsByChat(material.chatId)),
+    db.get(STORAGE_KEYS.materialsIndex),
+  ])
+
   // Remove from chat index
-  const chatMaterials = (await db.get(STORAGE_KEYS.materialsByChat(material.chatId))) || []
-  const updatedChatMaterials = chatMaterials.filter((mid: string) => mid !== id)
-  await db.set(STORAGE_KEYS.materialsByChat(material.chatId), updatedChatMaterials)
-
+  const updatedChatMaterials = ((chatMaterials as string[]) || []).filter((mid: string) => mid !== id)
   // Remove from global index
-  const globalIndex = (await db.get(STORAGE_KEYS.materialsIndex)) || []
-  const updatedGlobalIndex = globalIndex.filter((mid: string) => mid !== id)
-  await db.set(STORAGE_KEYS.materialsIndex, updatedGlobalIndex)
+  const updatedGlobalIndex = ((globalIndex as string[]) || []).filter((mid: string) => mid !== id)
 
-  // Delete material
-  await db.delete(STORAGE_KEYS.materialById(id))
+  // Parallel writes
+  await Promise.all([
+    db.set(STORAGE_KEYS.materialsByChat(material.chatId), updatedChatMaterials),
+    db.set(STORAGE_KEYS.materialsIndex, updatedGlobalIndex),
+    db.delete(STORAGE_KEYS.materialById(id)),
+  ])
 
   return true
 }
@@ -250,17 +251,13 @@ export function materialsRoutes(app: any) {
       const globalIndex = (await db.get(STORAGE_KEYS.materialsIndex)) || []
       const paginatedIds = globalIndex.slice(offset, offset + limit)
 
-      const materials: StoredMaterials[] = []
-      for (const id of paginatedIds) {
-        const material = await db.get(STORAGE_KEYS.materialById(id))
-        if (material) {
-          materials.push(material)
-        }
-      }
+      const materials = await Promise.all(
+        paginatedIds.map(id => db.get(STORAGE_KEYS.materialById(id)))
+      )
 
       res.send({
         ok: true,
-        materials,
+        materials: materials.filter(Boolean),
         pagination: {
           total: globalIndex.length,
           limit,
