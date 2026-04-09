@@ -8,6 +8,54 @@ import { config } from "../../config/env"
 import { generateAllMaterials } from "./learning-materials"
 import { saveLearningMaterials } from "../../core/routes/materials"
 
+// Input validation constants for security
+const MAX_QUESTION_LENGTH = 2000
+const MAX_TOPIC_LENGTH = 500
+const MAX_HISTORY_LENGTH = 10
+
+// Prompt injection patterns to detect
+const INJECTION_PATTERNS = [
+  /^(system|prompt|instructions?|角色扮演)[\s:：]/im,
+  /\[(SYSTEM|PROMPT|INSTRUCTIONS)\]/i,
+  /\x00/, // null bytes
+  /[\u202E\u202D]/, // right-to-left override/embedding
+  /(?:https?:\/\/)?(?:www\.)?(?:promptinjection|evilurl)\.com/i,
+]
+
+// Input validation helpers
+function validateQuestionInput(question: string): { valid: boolean; error?: string; sanitized?: string } {
+  if (!question || typeof question !== 'string') {
+    return { valid: false, error: 'Question must be a non-empty string' }
+  }
+
+  // Check for prompt injection patterns
+  for (const pattern of INJECTION_PATTERNS) {
+    if (pattern.test(question)) {
+      console.warn('[ask] Prompt injection pattern detected, sanitizing input')
+      // Return sanitized version, don't reject outright
+      const sanitized = question.replace(pattern, '')
+      return { valid: true, sanitized }
+    }
+  }
+
+  return { valid: true }
+}
+
+function sanitizeAndTruncate(input: string, maxLength: number): string {
+  // Remove control characters except common whitespace
+  let cleaned = input
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .replace(/[\u202E\u202D]/g, '') // remove RTL override
+    .trim()
+
+  // Truncate to max length
+  if (cleaned.length > maxLength) {
+    cleaned = cleaned.slice(0, maxLength)
+  }
+
+  return cleaned
+}
+
 // 初始化 LLM
 let llm: any = null
 let llmInitError: Error | null = null
@@ -362,11 +410,14 @@ export async function askWithContext(opts: AskWithContextOptions): Promise<AskPa
   const rawQuestion = typeof opts.question === "string" ? opts.question : String(opts.question ?? "")
   const safeQ = normalizeTopic(rawQuestion)
   const ctx = typeof opts.context === "string" && opts.context.trim() ? opts.context : "NO_CONTEXT"
-  const topic = typeof opts.topic === "string" && opts.topic.trim()
+  const rawTopic = typeof opts.topic === "string" && opts.topic.trim()
     ? opts.topic.trim()
     : guessTopic(safeQ) || "General"
+  // Truncate topic to max length
+  const topic = rawTopic.length > MAX_TOPIC_LENGTH ? rawTopic.slice(0, MAX_TOPIC_LENGTH) : rawTopic
   const systemPrompt = opts.systemPrompt?.trim() || BASE_SYSTEM_PROMPT
-  const historyArr = Array.isArray(opts.history) ? opts.history : undefined
+  // Limit history to prevent resource exhaustion
+  const historyArr = Array.isArray(opts.history) ? opts.history.slice(-MAX_HISTORY_LENGTH) : undefined
   const historyCache = serializeHistoryForCache(historyArr)
 
   const ck = { t: opts.cacheScope || "ask_ctx", q: safeQ, ctx, topic, sys: systemPrompt, hist: historyCache }
@@ -488,8 +539,26 @@ export async function handleAsk(
   }
 
   const questionRaw = typeof q === "string" ? q : String(q ?? "")
-  const safeQ = normalizeTopic(questionRaw)
+
+  // Input validation and sanitization
+  const validation = validateQuestionInput(questionRaw)
+  if (!validation.valid) {
+    throw new Error(validation.error || 'Invalid input')
+  }
+
+  // Sanitize and truncate question
+  const sanitizedQuestion = sanitizeAndTruncate(
+    validation.sanitized || questionRaw,
+    MAX_QUESTION_LENGTH
+  )
+
+  const safeQ = normalizeTopic(sanitizedQuestion)
   const nsFinal = typeof ns === "string" && ns.trim() ? ns : "pagelm"
+
+  // Limit history length to prevent resource exhaustion
+  const safeHistory = Array.isArray(historyArg)
+    ? historyArg.slice(-MAX_HISTORY_LENGTH)
+    : undefined
 
   let ctxDocs: Array<{ text?: string }> = []
 
@@ -509,10 +578,10 @@ export async function handleAsk(
   const topic = guessTopic(safeQ) || "General"
 
   const result = await askWithContext({
-    question: questionRaw,
+    question: sanitizedQuestion,
     context: ctx,
-    topic,
-    history: historyArg,
+    topic: sanitizeAndTruncate(topic, MAX_TOPIC_LENGTH),
+    history: safeHistory,
     systemPrompt: BASE_SYSTEM_PROMPT,
     cacheScope: `ans:${nsFinal}`
   })
