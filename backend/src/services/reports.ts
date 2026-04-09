@@ -1,4 +1,5 @@
 import db from '../utils/database/keyv'
+import { userKey } from '../core/middleware/auth-keyv'
 import crypto from 'crypto'
 
 export type { Subject } from '../types/subject'
@@ -141,9 +142,11 @@ export async function generateWeeklyReport(
   const prevWeek = getPreviousWeek(week)
   const { start: prevStart, end: prevEnd } = getWeekRange(prevWeek)
 
-  const flashcards = (await db.get('flashcards')) || []
-  const chats = (await db.get('chats')) || []
-  const quizResults = (await db.get('quiz_results')) || []
+  const flashcardsKey = userKey(userId, 'flashcards')
+  const chatsKey = userKey(userId, 'chats')
+  const flashcards = (await db.get(flashcardsKey)) || []
+  const chats = (await db.get(chatsKey)) || []
+  const quizResults = (await db.get('quiz_results')) || []  // quiz_results may still be global
   const notes = (await db.get('smartnotes_results')) || []
 
   const weekFlashcards = flashcards.filter((f: any) => {
