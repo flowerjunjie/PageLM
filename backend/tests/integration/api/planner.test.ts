@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import jwt from 'jsonwebtoken'
 
 // ---------------------------------------------------------------------------
 // Mocks (must be before imports that use them)
@@ -57,6 +58,12 @@ vi.mock('../../../src/services/notifications', () => ({
   cancelNotification: vi.fn().mockReturnValue(true),
 }))
 
+vi.mock('../../../src/config/env', () => ({
+  config: {
+    jwtSecret: 'test-secret-key-for-testing-only',
+  }
+}))
+
 import { plannerService } from '../../../src/services/planner/service'
 import { parseMultipart } from '../../../src/lib/parser/upload'
 import { emitToAll, emitLarge } from '../../../src/utils/chat/ws'
@@ -67,22 +74,23 @@ import {
 } from '../../../src/services/notifications'
 import { parseHomework } from '../../../src/services/homework-parser'
 import { plannerRoutes } from '../../../src/core/routes/planner'
+import { config } from '../../../src/config/env'
 
 // ---------------------------------------------------------------------------
 // Mock helpers
 // ---------------------------------------------------------------------------
 
-type Handler = (req: any, res: any) => any
+type Handler = (req: any, res: any, next?: any) => any
 
 function createApp() {
-  const routes: Record<string, Handler> = {}
+  const routes: Record<string, Handler[]> = {}
   return {
     routes,
-    get: (path: string, handler: Handler) => { routes[`GET ${path}`] = handler },
-    post: (path: string, handler: Handler) => { routes[`POST ${path}`] = handler },
-    patch: (path: string, handler: Handler) => { routes[`PATCH ${path}`] = handler },
-    delete: (path: string, handler: Handler) => { routes[`DELETE ${path}`] = handler },
-    ws: (path: string, handler: Handler) => { routes[`WS ${path}`] = handler },
+    get: (path: string, ...handlers: Handler[]) => { routes[`GET ${path}`] = handlers },
+    post: (path: string, ...handlers: Handler[]) => { routes[`POST ${path}`] = handlers },
+    patch: (path: string, ...handlers: Handler[]) => { routes[`PATCH ${path}`] = handlers },
+    delete: (path: string, ...handlers: Handler[]) => { routes[`DELETE ${path}`] = handlers },
+    ws: (path: string, handler: Handler) => { routes[`WS ${path}`] = [handler] },
   }
 }
 
@@ -99,8 +107,50 @@ function mockRes() {
   return res
 }
 
+// Create a valid JWT token for testing
+function createTestToken(userId: string): string {
+  return jwt.sign({ userId }, config.jwtSecret, { algorithm: 'HS256' })
+}
+
+// Create mock request with auth token
 function mockReq(overrides: any = {}) {
-  return { body: {}, params: {}, query: {}, headers: {}, ...overrides }
+  const userId = overrides.userId || 'test-user'
+  const token = createTestToken(userId)
+  const headers = { authorization: `Bearer ${token}`, ...overrides.headers }
+  return {
+    body: {},
+    params: {},
+    query: {},
+    headers,
+    user: { id: userId },
+    userId,
+    ...overrides,
+    headers,
+  }
+}
+
+// Execute middleware chain and call final handler
+async function exec(req: any, res: any, handlers: Handler[]) {
+  let index = 0
+  const next = () => { index++ }
+  while (index < handlers.length) {
+    const handler = handlers[index]
+    if (handler.length > 2) {
+      await new Promise<void>(resolve => {
+        const nextCb = () => { resolve() }
+        const result = handler(req, res, nextCb)
+        if (result && typeof result.then === 'function') {
+          result.then(() => { if (res.headersSent) resolve() })
+        }
+        if (res.headersSent) resolve()
+      })
+    } else {
+      await handler(req, res)
+      break
+    }
+    index++
+    if (res.headersSent) break
+  }
 }
 
 const sampleTask = {
@@ -137,7 +187,7 @@ describe('POST /tasks', () => {
     const req = mockReq({ body: { title: 'New Task', dueAt: sampleTask.dueAt, estMins: 60, priority: 3 } })
     const res = mockRes()
 
-    await app.routes['POST /tasks'](req, res)
+    await exec(req, res, app.routes['POST /tasks'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.task).toBeDefined()
@@ -150,7 +200,7 @@ describe('POST /tasks', () => {
     const req = mockReq({ body: { title: 'Task' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks'](req, res)
+    await exec(req, res, app.routes['POST /tasks'])
 
     expect(res._status).toBe(500)
     expect(res._body.ok).toBe(false)
@@ -164,7 +214,7 @@ describe('POST /tasks', () => {
     const req = mockReq({ headers: { 'content-type': 'multipart/form-data; boundary=xxxx' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks'](req, res)
+    await exec(req, res, app.routes['POST /tasks'])
 
     expect(res._body.ok).toBe(true)
     expect(vi.mocked(parseMultipart)).toHaveBeenCalledWith(req)
@@ -179,7 +229,7 @@ describe('POST /tasks', () => {
     const req = mockReq({ headers: { 'content-type': 'multipart/form-data; boundary=xxxx' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks'](req, res)
+    await exec(req, res, app.routes['POST /tasks'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'failed' })
