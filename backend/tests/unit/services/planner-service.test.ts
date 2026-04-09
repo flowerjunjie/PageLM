@@ -140,7 +140,8 @@ describe('PlannerService.createTaskFromRequest', () => {
     await service.createTaskFromRequest({ text: 'Do something', title: 'Override Title' })
 
     expect(createTask).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Override Title' })
+      expect.objectContaining({ title: 'Override Title' }),
+      'default'
     )
   })
 
@@ -151,7 +152,8 @@ describe('PlannerService.createTaskFromRequest', () => {
     await service.createTaskFromRequest({})
 
     expect(createTask).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Untitled Task' })
+      expect.objectContaining({ title: 'Untitled Task' }),
+      'default'
     )
   })
 })
@@ -167,7 +169,7 @@ describe('PlannerService.getTask', () => {
     const result = await service.getTask('task-1')
 
     expect(result).toBeDefined()
-    expect(getTask).toHaveBeenCalledWith('task-1')
+    expect(getTask).toHaveBeenCalledWith('task-1', undefined)
   })
 
   it('should return null when task not found', async () => {
@@ -223,7 +225,7 @@ describe('PlannerService.deleteTask', () => {
     const result = await service.deleteTask('task-1')
 
     expect(result).toBe(true)
-    expect(deleteTask).toHaveBeenCalledWith('task-1')
+    expect(deleteTask).toHaveBeenCalledWith('task-1', undefined)
   })
 
   it('should return false when task not found', async () => {
@@ -246,7 +248,7 @@ describe('PlannerService.listTasks', () => {
     const result = await service.listTasks()
 
     expect(result).toHaveLength(2)
-    expect(listTasks).toHaveBeenCalledWith(undefined)
+    expect(listTasks).toHaveBeenCalledWith(undefined, undefined)
   })
 
   it('should pass filter to store', async () => {
@@ -254,7 +256,7 @@ describe('PlannerService.listTasks', () => {
 
     await service.listTasks({ status: 'done', course: 'math' })
 
-    expect(listTasks).toHaveBeenCalledWith({ status: 'done', course: 'math' })
+    expect(listTasks).toHaveBeenCalledWith({ status: 'done', course: 'math' }, undefined)
   })
 })
 
@@ -281,7 +283,7 @@ describe('PlannerService.planSingleTask', () => {
     const result = await service.planSingleTask('task-1')
 
     expect(planTask).toHaveBeenCalledWith(task, expect.any(Object))
-    expect(updateTask).toHaveBeenCalledWith('task-1', expect.objectContaining({ plan: plannedTask.plan }))
+    expect(updateTask).toHaveBeenCalledWith('task-1', expect.objectContaining({ plan: plannedTask.plan }), undefined)
     expect(result).toBeDefined()
   })
 })
@@ -302,7 +304,7 @@ describe('PlannerService.generateWeeklyPlan', () => {
 
     expect(result).toHaveProperty('tasks')
     expect(result).toHaveProperty('plan')
-    expect(listTasks).toHaveBeenCalledWith({ status: 'todo' })
+    expect(listTasks).toHaveBeenCalledWith({ status: 'todo' }, undefined)
   })
 })
 
@@ -456,7 +458,7 @@ describe('PlannerService.updateSlot', () => {
       plan: expect.objectContaining({
         slots: expect.arrayContaining([expect.objectContaining({ done: true })])
       })
-    }))
+    }), undefined)
   })
 })
 
@@ -568,7 +570,8 @@ describe('PlannerService.createTaskFromRequest - generateSteps error handling', 
       expect.objectContaining({
         title: 'Test Task',
         steps: []
-      })
+      }),
+      'default'
     )
     expect(result).toBeDefined()
   })
@@ -585,7 +588,8 @@ describe('PlannerService.createTaskFromRequest - generateSteps error handling', 
     expect(createTask).toHaveBeenCalledWith(
       expect.objectContaining({
         steps: []
-      })
+      }),
+      'default'
     )
   })
 })

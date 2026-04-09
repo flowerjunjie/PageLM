@@ -5,41 +5,52 @@ import { Task, TaskFile } from "./types"
 const LIST_KEY = "planner:tasks"
 const FILES_LIST_KEY = "planner:task_files"
 
-export async function createTask(t: Omit<Task, "id" | "createdAt" | "updatedAt">): Promise<Task> {
+export async function createTask(t: Omit<Task, "id" | "createdAt" | "updatedAt">, userId: string): Promise<Task> {
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
-    const task: Task = { ...t, id, createdAt: now, updatedAt: now }
+    const task: Task = { ...t, id, userId, createdAt: now, updatedAt: now }
     const list = (await db.get(LIST_KEY)) || []
-    list.push({ id })
+    list.push({ id, userId })
     await db.set(LIST_KEY, list)
     await db.set(`planner:task:${id}`, task)
     return task
 }
 
-export async function getTask(id: string): Promise<Task | null> {
+export async function getTask(id: string, userId?: string): Promise<Task | null> {
     const task = (await db.get(`planner:task:${id}`)) || null
-    if (task) {
-        task.files = await getTaskFiles(id)
+    if (!task) return null
+    // IDOR protection: verify ownership if userId provided
+    if (userId && task.userId !== userId) {
+        console.warn(`[planner] IDOR attempt: user ${userId} tried to access task ${id} owned by ${task.userId}`)
+        return null
     }
+    task.files = await getTaskFiles(id)
     return task
 }
 
-export async function updateTask(id: string, patch: Partial<Task>): Promise<Task | null> {
-    const cur = (await getTask(id))
+export async function updateTask(id: string, patch: Partial<Task>, userId?: string): Promise<Task | null> {
+    const cur = (await getTask(id, userId))
     if (!cur) return null
-    const next: Task = { ...cur, ...patch, id: cur.id, updatedAt: new Date().toISOString() }
+    const next: Task = { ...cur, ...patch, id: cur.id, userId: cur.userId, updatedAt: new Date().toISOString() }
     await db.set(`planner:task:${id}`, next)
     return next
 }
 
-export async function deleteTask(id: string): Promise<boolean> {
+export async function deleteTask(id: string, userId?: string): Promise<boolean> {
+    const task = await getTask(id)
+    if (!task) return false
+    // IDOR protection: verify ownership
+    if (userId && task.userId !== userId) {
+        console.warn(`[planner] IDOR attempt: user ${userId} tried to delete task ${id} owned by ${task.userId}`)
+        return false
+    }
     const list = ((await db.get(LIST_KEY)) || []).filter((x: any) => x.id !== id)
     await db.set(LIST_KEY, list)
     await db.delete(`planner:task:${id}`)
     return true
 }
 
-export async function listTasks(filter?: { status?: string; dueBefore?: string; course?: string }): Promise<Task[]> {
+export async function listTasks(filter?: { status?: string; dueBefore?: string; course?: string }, userId?: string): Promise<Task[]> {
     const list = (await db.get(LIST_KEY)) || []
 
     // Fetch all task records and the shared files index in parallel
@@ -76,6 +87,9 @@ export async function listTasks(filter?: { status?: string; dueBefore?: string; 
     for (const raw of taskRecords) {
         if (!raw) continue
         const t = raw as Task
+
+        // IDOR protection: filter by userId if provided
+        if (userId && t.userId !== userId) continue
 
         // Apply filters before attaching files (avoids unnecessary file lookups)
         if (filter?.status && t.status !== filter.status) continue

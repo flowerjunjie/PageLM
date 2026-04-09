@@ -51,6 +51,7 @@ export type TaskPlan = { slots: Slot[]; policy: PlanPolicy; lastPlannedAt: strin
 
 export type Task = {
     id: string
+    userId: string           // Owner user ID for access control
     course?: string
     title: string
     type?: TaskType

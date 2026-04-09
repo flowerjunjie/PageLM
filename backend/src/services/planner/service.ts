@@ -14,7 +14,7 @@ export class PlannerService {
         this.policy = policy || defaultPolicy()
     }
 
-    async createTaskFromRequest(req: CreateTaskRequest): Promise<Task> {
+    async createTaskFromRequest(req: CreateTaskRequest, userId: string = 'default'): Promise<Task> {
         let taskData: Partial<Task>
 
         if (req.text) {
@@ -60,24 +60,25 @@ export class PlannerService {
             estMins: taskData.estMins || 60,
             priority: taskData.priority || 3,
             status: 'todo',
-            steps: taskData.steps
-        })
+            steps: taskData.steps,
+            userId
+        }, userId)
 
         if (req.files && req.files.length > 0) {
             await this.addFilesToTask(task.id, req.files)
-            const updatedTask = await getTask(task.id)
+            const updatedTask = await getTask(task.id, userId)
             return updatedTask || task
         }
 
         return task
     }
 
-    async getTask(id: string): Promise<Task | null> {
-        return getTask(id)
+    async getTask(id: string, userId?: string): Promise<Task | null> {
+        return getTask(id, userId)
     }
 
-    async updateTask(id: string, req: UpdateTaskRequest): Promise<Task | null> {
-        const existing = await getTask(id)
+    async updateTask(id: string, req: UpdateTaskRequest, userId?: string): Promise<Task | null> {
+        const existing = await getTask(id, userId)
         if (!existing) return null
 
         let steps = existing.steps
@@ -86,36 +87,36 @@ export class PlannerService {
             steps = await generateSteps(updatedTask)
         }
 
-        return updateTask(id, { ...req, steps })
+        return updateTask(id, { ...req, steps }, userId)
     }
 
-    async deleteTask(id: string): Promise<boolean> {
-        return deleteTask(id)
+    async deleteTask(id: string, userId?: string): Promise<boolean> {
+        return deleteTask(id, userId)
     }
 
-    async listTasks(filter?: { status?: string; dueBefore?: string; course?: string }): Promise<Task[]> {
-        return listTasks(filter)
+    async listTasks(filter?: { status?: string; dueBefore?: string; course?: string }, userId?: string): Promise<Task[]> {
+        return listTasks(filter, userId)
     }
 
-    async planSingleTask(taskId: string): Promise<Task | null> {
-        const task = await getTask(taskId)
+    async planSingleTask(taskId: string, userId?: string): Promise<Task | null> {
+        const task = await getTask(taskId, userId)
         if (!task) return null
 
         const plannedTask = planTask(task, this.policy)
-        await updateTask(taskId, { plan: plannedTask.plan })
+        await updateTask(taskId, { plan: plannedTask.plan }, userId)
 
         return plannedTask
     }
 
-    async generateWeeklyPlan(req?: PlannerGenerateRequest): Promise<{ tasks: Task[]; plan: any }> {
+    async generateWeeklyPlan(req?: PlannerGenerateRequest, userId?: string): Promise<{ tasks: Task[]; plan: any }> {
         const policy = { ...this.policy, ...req?.policy }
 
-        const tasks = await listTasks({ status: 'todo' })
+        const tasks = await listTasks({ status: 'todo' }, userId)
 
         const plannedTasks = planTasks(tasks, policy)
 
         for (const task of plannedTasks) {
-            await updateTask(task.id, { plan: task.plan })
+            await updateTask(task.id, { plan: task.plan }, userId)
         }
 
         const plan = weeklyPlan(plannedTasks, policy)
@@ -123,12 +124,12 @@ export class PlannerService {
         return { tasks: plannedTasks, plan }
     }
 
-    async getTodaySessions(): Promise<{ task: Task; slots: Slot[] }[]> {
+    async getTodaySessions(userId?: string): Promise<{ task: Task; slots: Slot[] }[]> {
         const today = new Date()
         today.setHours(0, 0, 0, 0)
         const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
 
-        const tasks = await listTasks({ status: 'todo' })
+        const tasks = await listTasks({ status: 'todo' }, userId)
         const todaySessions: { task: Task; slots: Slot[] }[] = []
 
         for (const task of tasks) {
@@ -151,8 +152,8 @@ export class PlannerService {
         })
     }
 
-    async updateSlot(taskId: string, slotId: string, updates: { done?: boolean; skip?: boolean }): Promise<Task | null> {
-        const task = await getTask(taskId)
+    async updateSlot(taskId: string, slotId: string, updates: { done?: boolean; skip?: boolean }, userId?: string): Promise<Task | null> {
+        const task = await getTask(taskId, userId)
         if (!task?.plan?.slots) return null
 
         const slotIndex = task.plan.slots.findIndex(s => s.id === slotId)
@@ -165,23 +166,23 @@ export class PlannerService {
         }
 
         if (updates.skip) {
-            await this.replanTask(taskId)
-            return getTask(taskId)
+            await this.replanTask(taskId, userId)
+            return getTask(taskId, userId)
         }
 
         const updatedPlan = { ...task.plan, slots: updatedSlots }
-        return updateTask(taskId, { plan: updatedPlan })
+        return updateTask(taskId, { plan: updatedPlan }, userId)
     }
 
-    async replanTask(taskId: string): Promise<Task | null> {
-        const task = await getTask(taskId)
+    async replanTask(taskId: string, userId?: string): Promise<Task | null> {
+        const task = await getTask(taskId, userId)
         if (!task?.plan) return null
 
         const now = new Date()
         const missedSlots = task.plan.slots.filter(s => new Date(s.end) < now && !s.done)
         const remainingSlots = task.plan.slots.filter(s => new Date(s.start) >= now)
 
-        const allTasks = await listTasks({ status: 'todo' })
+        const allTasks = await listTasks({ status: 'todo' }, userId)
 
         const newSlots = replan(missedSlots, remainingSlots, allTasks, task.plan.policy)
         const taskSlots = newSlots.filter(s => s.taskId === taskId)
@@ -192,11 +193,11 @@ export class PlannerService {
             lastPlannedAt: new Date().toISOString()
         }
 
-        return updateTask(taskId, { plan: updatedPlan })
+        return updateTask(taskId, { plan: updatedPlan }, userId)
     }
 
-    async generateMaterials(taskId: string, req: MaterialsRequest): Promise<any> {
-        const task = await getTask(taskId)
+    async generateMaterials(taskId: string, req: MaterialsRequest, userId?: string): Promise<any> {
+        const task = await getTask(taskId, userId)
         if (!task) throw new Error('Task not found')
 
         const content = `${task.title}\n${task.notes || ''}\nSteps: ${task.steps?.join(', ') || ''}`
@@ -265,8 +266,8 @@ export class PlannerService {
         return response.answer
     }
 
-    async getUpcomingDeadlines(): Promise<{ urgent: Task[]; atRisk: Task[]; upcoming: Task[] }> {
-        const tasks = await listTasks({ status: 'todo' })
+    async getUpcomingDeadlines(userId?: string): Promise<{ urgent: Task[]; atRisk: Task[]; upcoming: Task[] }> {
+        const tasks = await listTasks({ status: 'todo' }, userId)
         const now = new Date()
 
         const urgent: Task[] = []
@@ -291,8 +292,8 @@ export class PlannerService {
         return { urgent, atRisk, upcoming }
     }
 
-    async getUserStats(): Promise<any> {
-        const allTasks = await listTasks()
+    async getUserStats(userId?: string): Promise<any> {
+        const allTasks = await listTasks(undefined, userId)
         const completedTasks = allTasks.filter(t => t.status === 'done')
 
         const totalPlannedMinutes = allTasks.reduce((sum, task) => {
@@ -318,8 +319,8 @@ export class PlannerService {
         }
     }
 
-    async addFilesToTask(taskId: string, files: any[]): Promise<any[]> {
-        const task = await getTask(taskId)
+    async addFilesToTask(taskId: string, files: any[], userId?: string): Promise<any[]> {
+        const task = await getTask(taskId, userId)
         if (!task) throw new Error("Task not found")
 
         const { saveTaskFile } = await import("./store")
@@ -343,8 +344,8 @@ export class PlannerService {
         return uploadedFiles
     }
 
-    async removeFileFromTask(taskId: string, fileId: string): Promise<boolean> {
-        const task = await getTask(taskId)
+    async removeFileFromTask(taskId: string, fileId: string, userId?: string): Promise<boolean> {
+        const task = await getTask(taskId, userId)
         if (!task) return false
 
         const { deleteTaskFile } = await import("./store")

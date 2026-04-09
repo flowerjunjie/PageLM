@@ -218,7 +218,7 @@ describe('POST /tasks', () => {
 
     expect(res._body.ok).toBe(true)
     expect(vi.mocked(parseMultipart)).toHaveBeenCalledWith(req)
-    expect(plannerService.createTaskFromRequest).toHaveBeenCalledWith({ text: 'task text', files: [] })
+    expect(plannerService.createTaskFromRequest).toHaveBeenCalledWith({ text: 'task text', files: [] }, 'test-user')
     expect(vi.mocked(emitToAll)).toHaveBeenCalledWith(undefined, { type: 'task.created', task: sampleTask })
   })
 
@@ -272,7 +272,7 @@ describe('POST /tasks/ingest', () => {
 
     expect(res._body.ok).toBe(true)
     expect(res._body.task).toBeDefined()
-    expect(plannerService.createTaskFromRequest).toHaveBeenCalledWith({ text: 'Math homework due Friday' })
+    expect(plannerService.createTaskFromRequest).toHaveBeenCalledWith({ text: 'Math homework due Friday' }, 'test-user')
     expect(vi.mocked(emitToAll)).toHaveBeenCalledWith(undefined, { type: 'task.created', task: sampleTask })
   })
 
@@ -559,7 +559,7 @@ describe('GET /tasks', () => {
 
     await exec(req, res, app.routes['GET /tasks'])
 
-    expect(plannerService.listTasks).toHaveBeenCalledWith(expect.objectContaining({ status: 'done' }))
+    expect(plannerService.listTasks).toHaveBeenCalledWith(expect.objectContaining({ status: 'done' }), 'test-user')
   })
 
   it('should pass dueBefore filter to service', async () => {
@@ -571,7 +571,7 @@ describe('GET /tasks', () => {
 
     await exec(req, res, app.routes['GET /tasks'])
 
-    expect(plannerService.listTasks).toHaveBeenCalledWith(expect.objectContaining({ dueBefore }))
+    expect(plannerService.listTasks).toHaveBeenCalledWith(expect.objectContaining({ dueBefore }), 'test-user')
   })
 
   it('should pass course filter to service', async () => {
@@ -582,7 +582,7 @@ describe('GET /tasks', () => {
 
     await exec(req, res, app.routes['GET /tasks'])
 
-    expect(plannerService.listTasks).toHaveBeenCalledWith(expect.objectContaining({ course: 'math' }))
+    expect(plannerService.listTasks).toHaveBeenCalledWith(expect.objectContaining({ course: 'math' }), 'test-user')
   })
 
   it('should return 500 on service error', async () => {
@@ -728,7 +728,7 @@ describe('POST /tasks/:id/files', () => {
     await exec(req, res, app.routes['POST /tasks/:id/files'])
 
     expect(res._body).toEqual({ ok: true, files })
-    expect(plannerService.addFilesToTask).toHaveBeenCalledWith('task-1', files)
+    expect(plannerService.addFilesToTask).toHaveBeenCalledWith('task-1', files, 'test-user')
     expect(vi.mocked(emitToAll)).toHaveBeenCalledWith(
       undefined,
       { type: 'task.files.added', taskId: 'task-1', files }
@@ -825,7 +825,7 @@ describe('POST /tasks/:id/materials', () => {
     await exec(req, res, app.routes['POST /tasks/:id/materials'])
 
     expect(vi.mocked(emitToAll)).toHaveBeenNthCalledWith(1, undefined, { type: 'phase', value: 'assist' })
-    expect(vi.mocked(plannerService.generateMaterials)).toHaveBeenCalledWith('task-1', { type: 'summary' })
+    expect(vi.mocked(plannerService.generateMaterials)).toHaveBeenCalledWith('task-1', { type: 'summary' }, 'test-user')
     expect(vi.mocked(emitLarge)).toHaveBeenCalledWith(
       undefined,
       'materials',
@@ -844,7 +844,7 @@ describe('POST /tasks/:id/materials', () => {
 
     await exec(req, res, app.routes['POST /tasks/:id/materials'])
 
-    expect(vi.mocked(plannerService.generateMaterials)).toHaveBeenCalledWith('task-1', { type: 'summary' })
+    expect(vi.mocked(plannerService.generateMaterials)).toHaveBeenCalledWith('task-1', { type: 'summary' }, 'test-user')
   })
 
   it('should return 500 and stop before done when large emit fails', async () => {
@@ -890,7 +890,7 @@ describe('PATCH /slots/:taskId/:slotId', () => {
 
     expect(res._body.ok).toBe(true)
     expect(res._body.task).toBeDefined()
-    expect(plannerService.updateSlot).toHaveBeenCalledWith('task-1', 'slot-1', { done: true, skip: undefined })
+    expect(plannerService.updateSlot).toHaveBeenCalledWith('task-1', 'slot-1', { done: true, skip: undefined }, 'test-user')
     expect(vi.mocked(emitToAll)).toHaveBeenCalledWith(undefined, { type: 'slot.update', taskId: 'task-1', slotId: 'slot-1', done: true, skip: undefined })
   })
 
@@ -1194,10 +1194,11 @@ describe('POST /tasks/:id/complete', () => {
         status: 'done',
         actualMins: undefined,
         notes: undefined,
-      }
+      },
+      'test-user'
     )
     expect(vi.mocked(cancelTaskNotifications)).toHaveBeenCalledWith('task-1')
-    expect(vi.mocked(sendTaskCompletionNotification)).toHaveBeenCalledWith('default', sampleTask.title, sampleTask.estMins)
+    expect(vi.mocked(sendTaskCompletionNotification)).toHaveBeenCalledWith('test-user', sampleTask.title, sampleTask.estMins)
     expect(vi.mocked(emitToAll)).toHaveBeenCalledWith(
       undefined,
       { type: 'task.completed', task: completedTask }
@@ -1218,7 +1219,7 @@ describe('POST /tasks/:id/complete', () => {
     expect(res._body.ok).toBe(true)
     expect(res._body.task.status).toBe('done')
     expect(vi.mocked(cancelTaskNotifications)).toHaveBeenCalledWith('task-1')
-    expect(vi.mocked(sendTaskCompletionNotification)).toHaveBeenCalledWith('default', sampleTask.title, 50)
+    expect(vi.mocked(sendTaskCompletionNotification)).toHaveBeenCalledWith('test-user', sampleTask.title, 50)
   })
 
   it('should include completion notes in update', async () => {
@@ -1232,7 +1233,8 @@ describe('POST /tasks/:id/complete', () => {
 
     expect(plannerService.updateTask).toHaveBeenCalledWith(
       'task-1',
-      expect.objectContaining({ notes: expect.stringContaining('Great work done!') })
+      expect.objectContaining({ notes: expect.stringContaining('Great work done!') }),
+      'test-user'
     )
   })
 
@@ -1389,7 +1391,7 @@ describe('POST /tasks/:id/reminders', () => {
     await exec(req, res, app.routes['POST /tasks/:id/reminders'])
 
     expect(vi.mocked(scheduleTaskReminders)).toHaveBeenCalledWith(
-      'default',
+      'test-user',
       sampleTask.id,
       sampleTask.title,
       new Date(sampleTask.dueAt).getTime(),
@@ -1406,7 +1408,8 @@ describe('POST /tasks/:id/reminders', () => {
           type: n.type,
           time: n.scheduledTime,
         })),
-      }
+      },
+      'test-user'
     )
     expect(res._body).toEqual({ ok: true, reminders: notifications })
   })
@@ -1472,7 +1475,7 @@ describe('POST /tasks/:id/reminders', () => {
     await exec(req, res, app.routes['POST /tasks/:id/reminders'])
 
     expect(vi.mocked(scheduleTaskReminders)).toHaveBeenCalledWith(
-      'default',
+      'test-user',
       sampleTask.id,
       sampleTask.title,
       new Date(sampleTask.dueAt).getTime(),
@@ -1489,7 +1492,8 @@ describe('POST /tasks/:id/reminders', () => {
           type: n.type,
           time: n.scheduledTime,
         })),
-      }
+      },
+      'test-user'
     )
     expect(res._body).toEqual({ ok: true, reminders: notifications })
   })
