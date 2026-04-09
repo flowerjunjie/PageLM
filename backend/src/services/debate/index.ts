@@ -9,6 +9,7 @@ export type DebateMessage = {
 
 export type DebateSession = {
     id: string;
+    userId: string;
     topic: string;
     position: "for" | "against";
     messages: DebateMessage[];
@@ -30,7 +31,7 @@ export type DebateAnalysis = {
 
 const DEBATE_LIST_KEY = "debate:sessions";
 
-async function getDebatesList(): Promise<{ id: string }[]> {
+async function getDebatesList(): Promise<{ id: string; userId: string }[]> {
     return (await db.get(DEBATE_LIST_KEY)) || [];
 }
 
@@ -47,10 +48,11 @@ function toText(out: any): string {
     return String(out ?? "");
 }
 
-export async function createDebateSession(topic: string, position: "for" | "against"): Promise<DebateSession> {
+export async function createDebateSession(topic: string, position: "for" | "against", userId: string): Promise<DebateSession> {
     const id = `debate_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
     const session: DebateSession = {
         id,
+        userId,
         topic,
         position,
         messages: [],
@@ -58,16 +60,22 @@ export async function createDebateSession(topic: string, position: "for" | "agai
     };
 
     const list = await getDebatesList();
-    list.push({ id });
+    list.push({ id, userId });
     await db.set(DEBATE_LIST_KEY, list);
 
     await db.set(`debate:session:${id}`, session);
     return session;
 }
 
-export async function getDebateSession(id: string): Promise<DebateSession | null> {
-    const session = await db.get(`debate:session:${id}`);
-    return session || null;
+export async function getDebateSession(id: string, userId?: string): Promise<DebateSession | null> {
+    const session = await db.get(`debate:session:${id}`) as DebateSession | null;
+    if (!session) return null;
+    // IDOR protection
+    if (userId && session.userId !== userId) {
+        console.warn(`[debate] IDOR attempt: user ${userId} tried to access session ${id} owned by ${session.userId}`);
+        return null;
+    }
+    return session;
 }
 
 export async function addDebateMessage(
@@ -156,11 +164,13 @@ Remember: You are in a debate, so be persuasive and competitive while remaining 
     await addDebateMessage(sessionId, "assistant", fullResponse);
 }
 
-export async function listDebateSessions(): Promise<DebateSession[]> {
+export async function listDebateSessions(userId?: string): Promise<DebateSession[]> {
     const list = await getDebatesList();
     const sessions: DebateSession[] = [];
 
     for (const item of list) {
+        // Filter by userId if provided
+        if (userId && item.userId !== userId) continue;
         const session = await getDebateSession(item.id);
         if (session) {
             sessions.push(session);
@@ -170,7 +180,11 @@ export async function listDebateSessions(): Promise<DebateSession[]> {
     return sessions.sort((a, b) => b.createdAt - a.createdAt);
 }
 
-export async function deleteDebateSession(id: string): Promise<boolean> {
+export async function deleteDebateSession(id: string, userId?: string): Promise<boolean> {
+    // IDOR check
+    const session = await getDebateSession(id, userId);
+    if (!session) return false;
+
     const list = await getDebatesList();
     const filteredList = list.filter(item => item.id !== id);
     await db.set(DEBATE_LIST_KEY, filteredList);
@@ -180,13 +194,12 @@ export async function deleteDebateSession(id: string): Promise<boolean> {
     return true;
 }
 
-export async function surrenderDebate(sessionId: string): Promise<void> {
-    const session = await getDebateSession(sessionId);
-    if (session) {
-        session.status = "user_surrendered";
-        session.winner = "ai";
-        await db.set(`debate:session:${sessionId}`, session);
-    }
+export async function surrenderDebate(sessionId: string, userId?: string): Promise<void> {
+    const session = await getDebateSession(sessionId, userId);
+    if (!session) return;
+    session.status = "user_surrendered";
+    session.winner = "ai";
+    await db.set(`debate:session:${sessionId}`, session);
 }
 
 export async function* streamDebateAnalysis(sessionId: string): AsyncGenerator<

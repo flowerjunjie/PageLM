@@ -11,6 +11,7 @@ import { emitToAll } from "../../utils/chat/ws";
 import { config } from "../../config/env";
 import { createWebSocketAuth, createWebSocketRateLimiter } from "../middleware/websocket";
 import { requireAuth } from "../middleware/auth";
+import { getUserId } from "../middleware/auth-keyv";
 
 // Initialize WebSocket auth middleware if JWT secret is configured
 const wsAuth = config.jwtSecret
@@ -69,6 +70,7 @@ export function chatRoutes(app: any) {
 
   app.post("/chat", requireAuth, async (req: any, res: any, next: any) => {
     try {
+      const userId = getUserId(req)
       const ct = String(req.headers["content-type"] || "");
       const isMp = ct.includes("multipart/form-data");
 
@@ -108,8 +110,8 @@ export function chatRoutes(app: any) {
         });
       }
 
-      let chat = chatId ? await getChat(chatId) : undefined;
-      if (!chat) chat = await mkChat(q);
+      let chat = chatId ? await getChat(chatId, userId) : undefined;
+      if (!chat) chat = await mkChat(q, userId);
       const id = chat.id;
       const ns = `chat:${id}`;
 
@@ -142,7 +144,7 @@ export function chatRoutes(app: any) {
             });
           }
 
-          await addMsg(id, { role: "user", content: q, at: Date.now() });
+          await addMsg(id, { role: "user", content: q, at: Date.now() }, userId);
           emitToAll(chatSockets.get(id), {
             type: "phase",
             value: "generating",
@@ -150,7 +152,7 @@ export function chatRoutes(app: any) {
 
           let answer: any = "";
 
-          const msgHistory = await getMsgs(id);
+          const msgHistory = await getMsgs(id, userId);
           const relevantHistory = msgHistory.slice(-20);
 
           answer = await handleAsk({
@@ -164,7 +166,7 @@ export function chatRoutes(app: any) {
             role: "assistant",
             content: answer,
             at: Date.now(),
-          });
+          }, userId);
           emitToAll(chatSockets.get(id), { type: "answer", answer });
 
           // Emit materials if generated
@@ -193,18 +195,20 @@ export function chatRoutes(app: any) {
     }
   });
 
-  app.get("/chats", requireAuth, async (_: any, res: any) => {
-    const chats = await listChats();
+  app.get("/chats", requireAuth, async (req: any, res: any) => {
+    const userId = getUserId(req)
+    const chats = await listChats(userId);
     res.send({ ok: true, chats });
   });
 
   app.get("/chats/:id", requireAuth, async (req: any, res: any) => {
+    const userId = getUserId(req)
     const id = req.params.id;
-    const chat = await getChat(id);
+    const chat = await getChat(id, userId);
     if (!chat) {
       return res.status(404).send({ error: "not found" });
     }
-    const messages = await getMsgs(id);
+    const messages = await getMsgs(id, userId);
     res.send({ ok: true, chat, messages });
   });
 }

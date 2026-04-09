@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import jwt from 'jsonwebtoken'
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -23,6 +24,19 @@ vi.mock('../../../src/services/debate', () => ({
   analyzeDebate: vi.fn(),
 }))
 
+vi.mock('../../../src/config/env', () => ({
+  config: {
+    jwtSecret: 'test-secret-key-for-testing-only',
+  }
+}))
+
+vi.mock('jsonwebtoken', () => ({
+  default: {
+    verify: vi.fn(() => ({ userId: 'test-user', sub: 'test-user' })),
+    sign: vi.fn(() => 'test-token'),
+  },
+}))
+
 import {
   createDebateSession,
   getDebateSession,
@@ -31,22 +45,39 @@ import {
   surrenderDebate,
 } from '../../../src/services/debate'
 import { debateRoutes, connectionLimiter } from '../../../src/core/routes/debate'
+import { config } from '../../../src/config/env'
 
 // ---------------------------------------------------------------------------
 // Mock helpers
 // ---------------------------------------------------------------------------
 
-type Handler = (req: any, res: any) => any
+type Handler = (req: any, res: any, next?: any) => any
 
 function createApp() {
-  const routes: Record<string, Handler> = {}
+  const routes: Record<string, Handler[]> = {}
   return {
     routes,
-    get: (path: string, handler: Handler) => { routes[`GET ${path}`] = handler },
-    post: (path: string, handler: Handler) => { routes[`POST ${path}`] = handler },
-    delete: (path: string, handler: Handler) => { routes[`DELETE ${path}`] = handler },
-    ws: (path: string, handler: Handler) => { routes[`WS ${path}`] = handler },
+    get: (path: string, ...handlers: Handler[]) => { routes[`GET ${path}`] = handlers },
+    post: (path: string, ...handlers: Handler[]) => { routes[`POST ${path}`] = handlers },
+    delete: (path: string, ...handlers: Handler[]) => { routes[`DELETE ${path}`] = handlers },
+    ws: (path: string, handler: Handler) => { routes[`WS ${path}`] = [handler] },
   }
+}
+
+function execRoute(routeHandlers: Handler[], req: any, res: any): any {
+  if (routeHandlers.length === 0) return
+  const [first, ...rest] = routeHandlers
+  if (rest.length === 0) {
+    return first(req, res)
+  }
+  const next = () => { execRoute(rest, req, res) }
+  const result = first(req, res, next)
+  // If first returns a promise (async middleware), wait for it
+  if (result && typeof result.then === 'function') {
+    return result.then(() => execRoute(rest, req, res))
+  }
+  // Sync middleware called next() to schedule rest
+  return execRoute(rest, req, res)
 }
 
 function mockRes() {
@@ -62,11 +93,24 @@ function mockRes() {
 }
 
 function mockReq(overrides: any = {}) {
-  return { body: {}, params: {}, query: {}, ...overrides }
+  const userId = overrides.userId || 'test-user'
+  const token = jwt.sign({ userId }, config.jwtSecret, { algorithm: 'HS256' })
+  const headers = { authorization: `Bearer ${token}`, ...overrides.headers }
+  return {
+    body: {},
+    params: {},
+    query: {},
+    headers,
+    user: { id: userId },
+    userId,
+    ...overrides,
+    headers,
+  }
 }
 
 const sampleSession = {
   id: 'debate-1',
+  userId: 'test-user',
   topic: 'Should AI replace teachers?',
   position: 'for',
   messages: [],
@@ -95,7 +139,7 @@ describe('POST /debate/start', () => {
     const req = mockReq({ body: { position: 'for' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/start'](req, res)
+    await execRoute(app.routes['POST /debate/start'], req, res)
 
     expect(res._status).toBe(400)
     expect(res._body.ok).toBe(false)
@@ -106,7 +150,7 @@ describe('POST /debate/start', () => {
     const req = mockReq({ body: { topic: '   ', position: 'for' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/start'](req, res)
+    await execRoute(app.routes['POST /debate/start'], req, res)
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('Topic is required')
@@ -116,7 +160,7 @@ describe('POST /debate/start', () => {
     const req = mockReq({ body: { topic: 'AI ethics' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/start'](req, res)
+    await execRoute(app.routes['POST /debate/start'], req, res)
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain("Position must be 'for' or 'against'")
@@ -126,7 +170,7 @@ describe('POST /debate/start', () => {
     const req = mockReq({ body: { topic: 'AI ethics', position: 'neutral' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/start'](req, res)
+    await execRoute(app.routes['POST /debate/start'], req, res)
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain("Position must be 'for' or 'against'")
@@ -138,7 +182,7 @@ describe('POST /debate/start', () => {
     const req = mockReq({ body: { topic: 'Should AI replace teachers?', position: 'for' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/start'](req, res)
+    await execRoute(app.routes['POST /debate/start'], req, res)
 
     expect(res._body.ok).toBe(true)
     expect(res._body.debateId).toBe('debate-1')
@@ -151,7 +195,7 @@ describe('POST /debate/start', () => {
     const req = mockReq({ body: { topic: 'AI in education', position: 'against' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/start'](req, res)
+    await execRoute(app.routes['POST /debate/start'], req, res)
 
     expect(res._body.ok).toBe(true)
     expect(res._body.debateId).toBeDefined()
@@ -163,7 +207,7 @@ describe('POST /debate/start', () => {
     const req = mockReq({ body: { topic: 'AI ethics', position: 'for' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/start'](req, res)
+    await execRoute(app.routes['POST /debate/start'], req, res)
 
     expect(res._status).toBe(500)
     expect(res._body.ok).toBe(false)
@@ -175,7 +219,7 @@ describe('POST /debate/start', () => {
     const req = mockReq({ body: { topic: 'AI ethics', position: 'for' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/start'](req, res)
+    await execRoute(app.routes['POST /debate/start'], req, res)
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to start debate' })
@@ -193,7 +237,7 @@ describe('POST /debate/:debateId/argue', () => {
     const req = mockReq({ params: { debateId: 'debate-1' }, body: {} })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/argue'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/argue'], req, res)
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('Argument is required')
@@ -203,7 +247,7 @@ describe('POST /debate/:debateId/argue', () => {
     const req = mockReq({ params: { debateId: 'debate-1' }, body: { argument: '   ' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/argue'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/argue'], req, res)
 
     expect(res._status).toBe(400)
   })
@@ -214,7 +258,7 @@ describe('POST /debate/:debateId/argue', () => {
     const req = mockReq({ params: { debateId: 'nonexistent' }, body: { argument: 'My argument' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/argue'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/argue'], req, res)
 
     expect(res._status).toBe(404)
     expect(res._body.error).toContain('Debate session not found')
@@ -226,7 +270,7 @@ describe('POST /debate/:debateId/argue', () => {
     const req = mockReq({ params: { debateId: 'debate-1' }, body: { argument: 'AI cannot empathize with students' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/argue'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/argue'], req, res)
 
     expect(res._status).toBe(202)
     expect(res._body.ok).toBe(true)
@@ -239,7 +283,7 @@ describe('POST /debate/:debateId/argue', () => {
     }
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/argue'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/argue'], req, res)
 
     expect(res._status).toBe(500)
   })
@@ -256,7 +300,7 @@ describe('GET /debate/:debateId', () => {
     const req = mockReq({ params: { debateId: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['GET /debate/:debateId'](req, res)
+    await execRoute(app.routes['GET /debate/:debateId'], req, res)
 
     expect(res._status).toBe(404)
     expect(res._body.error).toContain('Debate session not found')
@@ -268,7 +312,7 @@ describe('GET /debate/:debateId', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['GET /debate/:debateId'](req, res)
+    await execRoute(app.routes['GET /debate/:debateId'], req, res)
 
     expect(res._body.ok).toBe(true)
     expect(res._body.session.id).toBe('debate-1')
@@ -280,7 +324,7 @@ describe('GET /debate/:debateId', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['GET /debate/:debateId'](req, res)
+    await execRoute(app.routes['GET /debate/:debateId'], req, res)
 
     expect(res._status).toBe(500)
   })
@@ -291,7 +335,7 @@ describe('GET /debate/:debateId', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['GET /debate/:debateId'](req, res)
+    await execRoute(app.routes['GET /debate/:debateId'], req, res)
 
     expect(res._status).toBe(500)
     expect(res._body.error).toContain('Failed to get debate')
@@ -309,7 +353,7 @@ describe('GET /debates', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /debates'](req, res)
+    await execRoute(app.routes['GET /debates'], req, res)
 
     expect(res._body.ok).toBe(true)
     expect(res._body.debates).toEqual([])
@@ -324,7 +368,7 @@ describe('GET /debates', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /debates'](req, res)
+    await execRoute(app.routes['GET /debates'], req, res)
 
     expect(res._body.debates).toHaveLength(1)
     expect(res._body.debates[0].id).toBe('debate-1')
@@ -338,7 +382,7 @@ describe('GET /debates', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /debates'](req, res)
+    await execRoute(app.routes['GET /debates'], req, res)
 
     expect(res._status).toBe(500)
   })
@@ -355,7 +399,7 @@ describe('DELETE /debate/:debateId', () => {
     const req = mockReq({ params: { debateId: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['DELETE /debate/:debateId'](req, res)
+    await execRoute(app.routes['DELETE /debate/:debateId'], req, res)
 
     expect(res._status).toBe(404)
     expect(res._body.error).toContain('Debate session not found')
@@ -367,7 +411,7 @@ describe('DELETE /debate/:debateId', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /debate/:debateId'](req, res)
+    await execRoute(app.routes['DELETE /debate/:debateId'], req, res)
 
     expect(res._body.ok).toBe(true)
     expect(res._body.message).toContain('deleted')
@@ -379,7 +423,7 @@ describe('DELETE /debate/:debateId', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /debate/:debateId'](req, res)
+    await execRoute(app.routes['DELETE /debate/:debateId'], req, res)
 
     expect(res._status).toBe(500)
   })
@@ -390,7 +434,7 @@ describe('DELETE /debate/:debateId', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /debate/:debateId'](req, res)
+    await execRoute(app.routes['DELETE /debate/:debateId'], req, res)
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to delete debate' })
@@ -408,7 +452,7 @@ describe('POST /debate/:debateId/surrender', () => {
     const req = mockReq({ params: { debateId: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/surrender'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/surrender'], req, res)
 
     expect(res._status).toBe(404)
   })
@@ -420,7 +464,7 @@ describe('POST /debate/:debateId/surrender', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/surrender'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/surrender'], req, res)
 
     expect(res._body.ok).toBe(true)
     expect(res._body.message).toContain('surrendered')
@@ -432,7 +476,7 @@ describe('POST /debate/:debateId/surrender', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/surrender'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/surrender'], req, res)
 
     expect(res._status).toBe(500)
   })
@@ -443,7 +487,7 @@ describe('POST /debate/:debateId/surrender', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/surrender'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/surrender'], req, res)
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to surrender debate' })
@@ -461,7 +505,7 @@ describe('POST /debate/:debateId/analyze', () => {
     const req = mockReq({ params: { debateId: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/analyze'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/analyze'], req, res)
 
     expect(res._status).toBe(404)
   })
@@ -472,7 +516,7 @@ describe('POST /debate/:debateId/analyze', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/analyze'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/analyze'], req, res)
 
     expect(res._status).toBe(202)
     expect(res._body.ok).toBe(true)
@@ -485,7 +529,7 @@ describe('POST /debate/:debateId/analyze', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/analyze'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/analyze'], req, res)
 
     expect(res._status).toBe(500)
   })
@@ -496,7 +540,7 @@ describe('POST /debate/:debateId/analyze', () => {
     const req = mockReq({ params: { debateId: 'debate-1' } })
     const res = mockRes()
 
-    await app.routes['POST /debate/:debateId/analyze'](req, res)
+    await execRoute(app.routes['POST /debate/:debateId/analyze'], req, res)
 
     expect(res._status).toBe(500)
     expect(res._body.error).toContain('Failed to analyze debate')
@@ -515,9 +559,13 @@ describe('WS /ws/debate', () => {
       addEventListener: vi.fn(),
       send: vi.fn(),
     }
-    const mockReqWs = { url: '/ws/debate', socket: { remoteAddress: '127.0.0.1' } }
+    const mockReqWs = {
+      url: '/ws/debate',
+      query: { token: 'test-token' },
+      socket: { remoteAddress: '127.0.0.1' }
+    }
 
-    app.routes['WS /ws/debate'](mockWs, mockReqWs)
+    app.routes['WS /ws/debate'][0](mockWs, mockReqWs)
 
     expect(mockWs.close).toHaveBeenCalledWith(1008, 'debateId required')
   })
@@ -529,9 +577,13 @@ describe('WS /ws/debate', () => {
       addEventListener: vi.fn(),
       send: vi.fn(),
     }
-    const mockReqWs = { url: '/ws/debate?debateId=debate-ws-test', socket: { remoteAddress: '127.0.0.1' } }
+    const mockReqWs = {
+      url: '/ws/debate?debateId=debate-ws-test',
+      query: { debateId: 'debate-ws-test', token: 'test-token' },
+      socket: { remoteAddress: '127.0.0.1' }
+    }
 
-    app.routes['WS /ws/debate'](mockWs, mockReqWs)
+    app.routes['WS /ws/debate'][0](mockWs, mockReqWs)
 
     expect(mockWs.close).not.toHaveBeenCalled()
     expect(mockWs.send).toHaveBeenCalledWith(
@@ -542,9 +594,13 @@ describe('WS /ws/debate', () => {
 
   it('should handle close event by removing WebSocket from set', () => {
     const mockWs: any = { close: vi.fn(), on: vi.fn(), addEventListener: vi.fn(), send: vi.fn() }
-    const mockReqWs = { url: '/ws/debate?debateId=close-debate-test', socket: { remoteAddress: '127.0.0.1' } }
+    const mockReqWs = {
+      url: '/ws/debate?debateId=close-debate-test',
+      query: { debateId: 'close-debate-test', token: 'test-token' },
+      socket: { remoteAddress: '127.0.0.1' }
+    }
 
-    app.routes['WS /ws/debate'](mockWs, mockReqWs)
+    app.routes['WS /ws/debate'][0](mockWs, mockReqWs)
 
     const closeHandlers = mockWs.on.mock.calls
       .filter((call: any[]) => call[0] === 'close')
@@ -568,9 +624,13 @@ describe('WS /ws/debate/analyze', () => {
       addEventListener: vi.fn(),
       send: vi.fn(),
     }
-    const mockReqWs = { url: '/ws/debate/analyze', socket: { remoteAddress: '127.0.0.1' } }
+    const mockReqWs = {
+      url: '/ws/debate/analyze',
+      query: { token: 'test-token' },
+      socket: { remoteAddress: '127.0.0.1' }
+    }
 
-    app.routes['WS /ws/debate/analyze'](mockWs, mockReqWs)
+    app.routes['WS /ws/debate/analyze'][0](mockWs, mockReqWs)
 
     expect(mockWs.close).toHaveBeenCalledWith(1008, 'debateId required')
   })
@@ -582,9 +642,13 @@ describe('WS /ws/debate/analyze', () => {
       addEventListener: vi.fn(),
       send: vi.fn(),
     }
-    const mockReqWs = { url: '/ws/debate/analyze?debateId=analyze-ws-test', socket: { remoteAddress: '127.0.0.1' } }
+    const mockReqWs = {
+      url: '/ws/debate/analyze?debateId=analyze-ws-test',
+      query: { debateId: 'analyze-ws-test', token: 'test-token' },
+      socket: { remoteAddress: '127.0.0.1' }
+    }
 
-    app.routes['WS /ws/debate/analyze'](mockWs, mockReqWs)
+    app.routes['WS /ws/debate/analyze'][0](mockWs, mockReqWs)
 
     expect(mockWs.close).not.toHaveBeenCalled()
     expect(mockWs.send).toHaveBeenCalledWith(

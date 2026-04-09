@@ -11,6 +11,8 @@ import {
 } from "../../services/debate";
 import { config } from "../../config/env";
 import { createWebSocketAuth, createWebSocketRateLimiter } from "../middleware/websocket";
+import { requireAuth } from "../middleware/auth";
+import { getUserId } from "../middleware/auth-keyv";
 
 const debateSockets = new Map<string, Set<any>>();
 const analysisSockets = new Map<string, Set<any>>();
@@ -89,8 +91,9 @@ export function debateRoutes(app: any) {
         ws.send(JSON.stringify({ type: "ready", debateId }));
     });
 
-    app.post("/debate/start", async (req: any, res: any) => {
+    app.post("/debate/start", requireAuth, async (req: any, res: any) => {
         try {
+            const userId = getUserId(req)
             const { topic, position } = req.body;
 
             if (!topic || !topic.trim()) {
@@ -107,7 +110,7 @@ export function debateRoutes(app: any) {
                 });
             }
 
-            const session = await createDebateSession(topic.trim(), position);
+            const session = await createDebateSession(topic.trim(), position, userId);
 
             res.json({
                 ok: true,
@@ -129,8 +132,9 @@ export function debateRoutes(app: any) {
         }
     });
 
-    app.post("/debate/:debateId/argue", async (req: any, res: any) => {
+    app.post("/debate/:debateId/argue", requireAuth, async (req: any, res: any) => {
         try {
+            const userId = getUserId(req)
             const { debateId } = req.params;
             const { argument } = req.body;
 
@@ -141,7 +145,7 @@ export function debateRoutes(app: any) {
                 });
             }
 
-            const session = await getDebateSession(debateId);
+            const session = await getDebateSession(debateId, userId);
             if (!session) {
                 return res.status(404).json({
                     ok: false,
@@ -209,10 +213,11 @@ export function debateRoutes(app: any) {
         }
     });
 
-    app.get("/debate/:debateId", async (req: any, res: any) => {
+    app.get("/debate/:debateId", requireAuth, async (req: any, res: any) => {
         try {
+            const userId = getUserId(req)
             const { debateId } = req.params;
-            const session = await getDebateSession(debateId);
+            const session = await getDebateSession(debateId, userId);
 
             if (!session) {
                 return res.status(404).json({
@@ -234,9 +239,10 @@ export function debateRoutes(app: any) {
         }
     });
 
-    app.get("/debates", async (req: any, res: any) => {
+    app.get("/debates", requireAuth, async (req: any, res: any) => {
         try {
-            const sessions = await listDebateSessions();
+            const userId = getUserId(req)
+            const sessions = await listDebateSessions(userId);
             res.json({
                 ok: true,
                 debates: sessions.map((s) => ({
@@ -256,10 +262,11 @@ export function debateRoutes(app: any) {
         }
     });
 
-    app.delete("/debate/:debateId", async (req: any, res: any) => {
+    app.delete("/debate/:debateId", requireAuth, async (req: any, res: any) => {
         try {
+            const userId = getUserId(req)
             const { debateId } = req.params;
-            const deleted = await deleteDebateSession(debateId);
+            const deleted = await deleteDebateSession(debateId, userId);
 
             if (!deleted) {
                 return res.status(404).json({
@@ -281,10 +288,11 @@ export function debateRoutes(app: any) {
         }
     });
 
-    app.post("/debate/:debateId/surrender", async (req: any, res: any) => {
+    app.post("/debate/:debateId/surrender", requireAuth, async (req: any, res: any) => {
         try {
+            const userId = getUserId(req)
             const { debateId } = req.params;
-            const session = await getDebateSession(debateId);
+            const session = await getDebateSession(debateId, userId);
 
             if (!session) {
                 return res.status(404).json({
@@ -293,7 +301,7 @@ export function debateRoutes(app: any) {
                 });
             }
 
-            await surrenderDebate(debateId);
+            await surrenderDebate(debateId, userId);
 
             res.json({
                 ok: true,
@@ -308,10 +316,11 @@ export function debateRoutes(app: any) {
         }
     });
 
-    app.post("/debate/:debateId/analyze", async (req: any, res: any) => {
+    app.post("/debate/:debateId/analyze", requireAuth, async (req: any, res: any) => {
         try {
+            const userId = getUserId(req)
             const { debateId } = req.params;
-            const session = await getDebateSession(debateId);
+            const session = await getDebateSession(debateId, userId);
 
             if (!session) {
                 return res.status(404).json({

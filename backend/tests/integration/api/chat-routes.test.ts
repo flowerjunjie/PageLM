@@ -182,7 +182,7 @@ describe('POST /chat (routes/chat.ts)', () => {
     const res = mockRes()
     await exec(req, res, app.routes['POST /chat'])
 
-    expect(getChat).toHaveBeenCalledWith('existing-chat')
+    expect(getChat).toHaveBeenCalledWith('existing-chat', 'test-user')
     expect(res._body.chatId).toBe('existing-chat')
   })
 
@@ -192,7 +192,7 @@ describe('POST /chat (routes/chat.ts)', () => {
     const res = mockRes()
     await exec(req, res, app.routes['POST /chat'])
 
-    expect(mkChat).toHaveBeenCalledWith('Hello')
+    expect(mkChat).toHaveBeenCalledWith('Hello', 'test-user')
   })
 
   it('should return 400 when q is missing in multipart form', async () => {
