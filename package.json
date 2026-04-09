@@ -59,5 +59,6 @@
   "overrides": {
     "expr-eval": "npm:expr-eval-fork@^3.0.0",
     "fast-xml-parser": "^5.4.1"
-  }
+  },
+  "version": "0.0.1"
 }
