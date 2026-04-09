@@ -32,6 +32,9 @@ const mockGet = vi.mocked(db.get)
 const mockSet = vi.mocked(db.set)
 const mockDelete = vi.mocked(db.delete)
 
+// Test user ID for isolation
+const USER = 'test-user'
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixture builders
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,6 +83,7 @@ function makeLearningMaterials(overrides: Partial<LearningMaterials> = {}): Lear
 function makeStoredMaterials(overrides: Partial<StoredMaterials> = {}): StoredMaterials {
   return {
     id: 'mat-fixture',
+    userId: USER,
     chatId: 'chat-fixture',
     flashcards: [makeFlashcard()],
     notes: makeNoteSummary(),
@@ -102,19 +106,20 @@ describe('MaterialsService', () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      const result = await saveLearningMaterials('chat-1', makeLearningMaterials())
+      const result = await saveLearningMaterials(USER, 'chat-1', makeLearningMaterials())
 
       expect(result).toHaveProperty('id')
       expect(typeof result.id).toBe('string')
       expect(result.id.length).toBeGreaterThan(0)
     })
 
-    it('should attach the provided chatId', async () => {
+    it('should attach the provided userId and chatId', async () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      const result = await saveLearningMaterials('chat-abc', makeLearningMaterials())
+      const result = await saveLearningMaterials(USER, 'chat-abc', makeLearningMaterials())
 
+      expect(result.userId).toBe(USER)
       expect(result.chatId).toBe('chat-abc')
     })
 
@@ -123,7 +128,7 @@ describe('MaterialsService', () => {
       mockSet.mockResolvedValue(undefined)
 
       const materials = makeLearningMaterials()
-      const result = await saveLearningMaterials('chat-2', materials)
+      const result = await saveLearningMaterials(USER, 'chat-2', materials)
 
       expect(result.flashcards).toEqual(materials.flashcards)
       expect(result.notes).toEqual(materials.notes)
@@ -134,7 +139,7 @@ describe('MaterialsService', () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      const result = await saveLearningMaterials('chat-3', makeLearningMaterials(), 'msg-xyz')
+      const result = await saveLearningMaterials(USER, 'chat-3', makeLearningMaterials(), 'msg-xyz')
 
       expect(result.messageId).toBe('msg-xyz')
     })
@@ -143,7 +148,7 @@ describe('MaterialsService', () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      const result = await saveLearningMaterials('chat-4', makeLearningMaterials())
+      const result = await saveLearningMaterials(USER, 'chat-4', makeLearningMaterials())
 
       expect(result.messageId).toBeUndefined()
     })
@@ -153,53 +158,53 @@ describe('MaterialsService', () => {
       mockSet.mockResolvedValue(undefined)
 
       const before = Date.now()
-      const result = await saveLearningMaterials('chat-5', makeLearningMaterials())
+      const result = await saveLearningMaterials(USER, 'chat-5', makeLearningMaterials())
 
       expect(result.createdAt).toBeGreaterThanOrEqual(before)
     })
 
-    it('should persist the material under key material:<id>', async () => {
+    it('should persist the material under user-isolated key', async () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      const result = await saveLearningMaterials('chat-6', makeLearningMaterials())
+      const result = await saveLearningMaterials(USER, 'chat-6', makeLearningMaterials())
 
-      const materialKey = `material:${result.id}`
+      const materialKey = `user:${USER}:material:${result.id}`
       expect(mockSet).toHaveBeenCalledWith(materialKey, expect.objectContaining({ id: result.id }))
     })
 
-    it('should append the new id to the chat materials index', async () => {
+    it('should append the new id to the user chat materials index', async () => {
       const existingIds = ['old-mat-1']
       mockGet.mockResolvedValue(existingIds)
       mockSet.mockResolvedValue(undefined)
 
-      await saveLearningMaterials('chat-7', makeLearningMaterials())
+      await saveLearningMaterials(USER, 'chat-7', makeLearningMaterials())
 
       expect(mockSet).toHaveBeenCalledWith(
-        'materials:chat:chat-7',
+        `user:${USER}:materials:chat:chat-7`,
         expect.arrayContaining([expect.any(String), 'old-mat-1'])
       )
     })
 
-    it('should prepend the new id to the global index', async () => {
+    it('should prepend the new id to the user index', async () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      const result = await saveLearningMaterials('chat-8', makeLearningMaterials())
+      const result = await saveLearningMaterials(USER, 'chat-8', makeLearningMaterials())
 
-      const globalCall = mockSet.mock.calls.find(call => call[0] === 'materials:index')
-      expect(globalCall?.[1][0]).toBe(result.id)
+      const userIndexCall = mockSet.mock.calls.find(call => call[0] === `user:${USER}:materials:index`)
+      expect(userIndexCall?.[1][0]).toBe(result.id)
     })
 
-    it('should cap the global index at 10 000 entries', async () => {
+    it('should cap the user index at 10 000 entries', async () => {
       const largeIndex = Array.from({ length: 10000 }, (_, i) => `mat-${i}`)
       mockGet.mockResolvedValue(largeIndex)
       mockSet.mockResolvedValue(undefined)
 
-      await saveLearningMaterials('chat-9', makeLearningMaterials())
+      await saveLearningMaterials(USER, 'chat-9', makeLearningMaterials())
 
-      const globalCall = mockSet.mock.calls.find(call => call[0] === 'materials:index')
-      expect(globalCall?.[1]).toHaveLength(10000)
+      const userIndexCall = mockSet.mock.calls.find(call => call[0] === `user:${USER}:materials:index`)
+      expect(userIndexCall?.[1]).toHaveLength(10000)
     })
 
     it('should handle empty flashcards array', async () => {
@@ -207,7 +212,7 @@ describe('MaterialsService', () => {
       mockSet.mockResolvedValue(undefined)
 
       const materials = makeLearningMaterials({ flashcards: [] })
-      const result = await saveLearningMaterials('chat-10', materials)
+      const result = await saveLearningMaterials(USER, 'chat-10', materials)
 
       expect(result.flashcards).toEqual([])
     })
@@ -222,7 +227,7 @@ describe('MaterialsService', () => {
           { id: 'q-2', question: 'Q2?', type: 'short_answer', answer: 'A2', explanation: 'E2' },
         ],
       })
-      const result = await saveLearningMaterials('chat-11', makeLearningMaterials({ quiz }))
+      const result = await saveLearningMaterials(USER, 'chat-11', makeLearningMaterials({ quiz }))
 
       expect(result.quiz.questions).toHaveLength(2)
     })
@@ -230,7 +235,7 @@ describe('MaterialsService', () => {
     it('should propagate database errors', async () => {
       mockGet.mockRejectedValue(new Error('DB write failed'))
 
-      await expect(saveLearningMaterials('chat-err', makeLearningMaterials())).rejects.toThrow('DB write failed')
+      await expect(saveLearningMaterials(USER, 'chat-err', makeLearningMaterials())).rejects.toThrow('DB write failed')
     })
   })
 
@@ -246,7 +251,7 @@ describe('MaterialsService', () => {
         .mockResolvedValueOnce(mat1)
         .mockResolvedValueOnce(mat2)
 
-      const result = await getMaterialsByChat('chat-A')
+      const result = await getMaterialsByChat(USER, 'chat-A')
 
       expect(result).toHaveLength(2)
     })
@@ -261,7 +266,7 @@ describe('MaterialsService', () => {
         .mockResolvedValueOnce(mat2)
         .mockResolvedValueOnce(mat3)
 
-      const result = await getMaterialsByChat('chat-B')
+      const result = await getMaterialsByChat(USER, 'chat-B')
 
       expect(result[0].id).toBe('mat-2')   // newest
       expect(result[1].id).toBe('mat-3')
@@ -277,7 +282,7 @@ describe('MaterialsService', () => {
         .mockResolvedValueOnce(null)           // deleted
         .mockResolvedValueOnce(mat3)
 
-      const result = await getMaterialsByChat('chat-C')
+      const result = await getMaterialsByChat(USER, 'chat-C')
 
       expect(result).toHaveLength(2)
       expect(result.map(m => m.id)).not.toContain('mat-missing')
@@ -286,7 +291,7 @@ describe('MaterialsService', () => {
     it('should return empty array when chat has no materials', async () => {
       mockGet.mockResolvedValue([])
 
-      const result = await getMaterialsByChat('chat-empty')
+      const result = await getMaterialsByChat(USER, 'chat-empty')
 
       expect(result).toEqual([])
     })
@@ -294,23 +299,23 @@ describe('MaterialsService', () => {
     it('should return empty array when chat index is null', async () => {
       mockGet.mockResolvedValue(null)
 
-      const result = await getMaterialsByChat('chat-null')
+      const result = await getMaterialsByChat(USER, 'chat-null')
 
       expect(result).toEqual([])
     })
 
-    it('should query using the correct storage key', async () => {
+    it('should query using the correct user-isolated storage key', async () => {
       mockGet.mockResolvedValue([])
 
-      await getMaterialsByChat('chat-key-test')
+      await getMaterialsByChat(USER, 'chat-key-test')
 
-      expect(mockGet).toHaveBeenCalledWith('materials:chat:chat-key-test')
+      expect(mockGet).toHaveBeenCalledWith(`user:${USER}:materials:chat:chat-key-test`)
     })
 
     it('should propagate database errors', async () => {
       mockGet.mockRejectedValue(new Error('Read failed'))
 
-      await expect(getMaterialsByChat('chat-err')).rejects.toThrow('Read failed')
+      await expect(getMaterialsByChat(USER, 'chat-err')).rejects.toThrow('Read failed')
     })
   })
 
@@ -318,27 +323,27 @@ describe('MaterialsService', () => {
   // getMaterialById
   // ─────────────────────────────────────────────────────────────────────────────
   describe('getMaterialById', () => {
-    it('should return the material when found', async () => {
+    it('should return the material when found and owned by user', async () => {
       const mat = makeStoredMaterials({ id: 'mat-found' })
       mockGet.mockResolvedValue(mat)
 
-      const result = await getMaterialById('mat-found')
+      const result = await getMaterialById(USER, 'mat-found')
 
       expect(result).toEqual(mat)
     })
 
-    it('should query using key material:<id>', async () => {
+    it('should query using user-isolated key', async () => {
       mockGet.mockResolvedValue(null)
 
-      await getMaterialById('mat-key-check')
+      await getMaterialById(USER, 'mat-key-check')
 
-      expect(mockGet).toHaveBeenCalledWith('material:mat-key-check')
+      expect(mockGet).toHaveBeenCalledWith(`user:${USER}:material:mat-key-check`)
     })
 
     it('should return null when database returns undefined', async () => {
       mockGet.mockResolvedValue(undefined)
 
-      const result = await getMaterialById('mat-gone')
+      const result = await getMaterialById(USER, 'mat-gone')
 
       expect(result).toBeNull()
     })
@@ -346,7 +351,16 @@ describe('MaterialsService', () => {
     it('should return null when database returns null', async () => {
       mockGet.mockResolvedValue(null)
 
-      const result = await getMaterialById('mat-null')
+      const result = await getMaterialById(USER, 'mat-null')
+
+      expect(result).toBeNull()
+    })
+
+    it('should return null when material belongs to different user (IDOR protection)', async () => {
+      const mat = makeStoredMaterials({ id: 'mat-stolen', userId: 'other-user' })
+      mockGet.mockResolvedValue(mat)
+
+      const result = await getMaterialById(USER, 'mat-stolen')
 
       expect(result).toBeNull()
     })
@@ -354,16 +368,17 @@ describe('MaterialsService', () => {
     it('should propagate database errors', async () => {
       mockGet.mockRejectedValue(new Error('Connection lost'))
 
-      await expect(getMaterialById('mat-err')).rejects.toThrow('Connection lost')
+      await expect(getMaterialById(USER, 'mat-err')).rejects.toThrow('Connection lost')
     })
 
     it('should return a StoredMaterials object with all required fields', async () => {
       const mat = makeStoredMaterials({ id: 'mat-shape' })
       mockGet.mockResolvedValue(mat)
 
-      const result = await getMaterialById('mat-shape')
+      const result = await getMaterialById(USER, 'mat-shape')
 
       expect(result).toHaveProperty('id')
+      expect(result).toHaveProperty('userId')
       expect(result).toHaveProperty('chatId')
       expect(result).toHaveProperty('flashcards')
       expect(result).toHaveProperty('notes')
@@ -379,24 +394,24 @@ describe('MaterialsService', () => {
     it('should return false when material does not exist', async () => {
       mockGet.mockResolvedValue(null)
 
-      const result = await deleteMaterials('mat-ghost')
+      const result = await deleteMaterials(USER, 'mat-ghost')
 
       expect(result).toBe(false)
       expect(mockDelete).not.toHaveBeenCalled()
     })
 
-    it('should delete the record under material:<id>', async () => {
+    it('should delete the record under user-isolated key', async () => {
       const mat = makeStoredMaterials({ id: 'mat-del', chatId: 'chat-del' })
       mockGet
-        .mockResolvedValueOnce(mat)           // getMaterialById
+        .mockResolvedValueOnce(mat)           // check ownership
         .mockResolvedValueOnce(['mat-del'])   // chat index
-        .mockResolvedValueOnce(['mat-del'])   // global index
+        .mockResolvedValueOnce(['mat-del'])   // user index
       mockSet.mockResolvedValue(undefined)
       mockDelete.mockResolvedValue(undefined)
 
-      await deleteMaterials('mat-del')
+      await deleteMaterials(USER, 'mat-del')
 
-      expect(mockDelete).toHaveBeenCalledWith('material:mat-del')
+      expect(mockDelete).toHaveBeenCalledWith(`user:${USER}:material:mat-del`)
     })
 
     it('should remove the id from the chat materials index', async () => {
@@ -408,12 +423,12 @@ describe('MaterialsService', () => {
       mockSet.mockResolvedValue(undefined)
       mockDelete.mockResolvedValue(undefined)
 
-      await deleteMaterials('mat-rm')
+      await deleteMaterials(USER, 'mat-rm')
 
-      expect(mockSet).toHaveBeenCalledWith('materials:chat:chat-rm', ['mat-other'])
+      expect(mockSet).toHaveBeenCalledWith(`user:${USER}:materials:chat:chat-rm`, ['mat-other'])
     })
 
-    it('should remove the id from the global index', async () => {
+    it('should remove the id from the user index', async () => {
       const mat = makeStoredMaterials({ id: 'mat-glob', chatId: 'chat-glob' })
       mockGet
         .mockResolvedValueOnce(mat)
@@ -422,9 +437,9 @@ describe('MaterialsService', () => {
       mockSet.mockResolvedValue(undefined)
       mockDelete.mockResolvedValue(undefined)
 
-      await deleteMaterials('mat-glob')
+      await deleteMaterials(USER, 'mat-glob')
 
-      expect(mockSet).toHaveBeenCalledWith('materials:index', ['mat-global-other'])
+      expect(mockSet).toHaveBeenCalledWith(`user:${USER}:materials:index`, ['mat-global-other'])
     })
 
     it('should return true on successful deletion', async () => {
@@ -436,7 +451,7 @@ describe('MaterialsService', () => {
       mockSet.mockResolvedValue(undefined)
       mockDelete.mockResolvedValue(undefined)
 
-      const result = await deleteMaterials('mat-ok')
+      const result = await deleteMaterials(USER, 'mat-ok')
 
       expect(result).toBe(true)
     })
@@ -446,25 +461,35 @@ describe('MaterialsService', () => {
       mockGet
         .mockResolvedValueOnce(mat)
         .mockResolvedValueOnce([])   // chat index already empty
-        .mockResolvedValueOnce([])   // global index already empty
+        .mockResolvedValueOnce([])   // user index already empty
       mockSet.mockResolvedValue(undefined)
       mockDelete.mockResolvedValue(undefined)
 
-      const result = await deleteMaterials('mat-empty-idx')
+      const result = await deleteMaterials(USER, 'mat-empty-idx')
 
       expect(result).toBe(true)
+    })
+
+    it('should return false when trying to delete another user\'s material (IDOR)', async () => {
+      const mat = makeStoredMaterials({ id: 'mat-stolen', userId: 'other-user' })
+      mockGet.mockResolvedValue(mat)
+
+      const result = await deleteMaterials(USER, 'mat-stolen')
+
+      expect(result).toBe(false)
+      expect(mockDelete).not.toHaveBeenCalled()
     })
 
     it('should propagate database errors from getMaterialById', async () => {
       mockGet.mockRejectedValue(new Error('Delete failed'))
 
-      await expect(deleteMaterials('mat-dberr')).rejects.toThrow('Delete failed')
+      await expect(deleteMaterials(USER, 'mat-dberr')).rejects.toThrow('Delete failed')
     })
 
     it('should not touch the database when material is not found', async () => {
       mockGet.mockResolvedValue(undefined)
 
-      await deleteMaterials('mat-noop')
+      await deleteMaterials(USER, 'mat-noop')
 
       expect(mockSet).not.toHaveBeenCalled()
       expect(mockDelete).not.toHaveBeenCalled()
@@ -481,7 +506,7 @@ describe('MaterialsService', () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      const result = await saveLearningMaterials('chat-shape', materials)
+      const result = await saveLearningMaterials(USER, 'chat-shape', materials)
 
       const stored = result.flashcards[0]
       expect(stored).toHaveProperty('id')
@@ -497,7 +522,7 @@ describe('MaterialsService', () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      const result = await saveLearningMaterials('chat-notes-shape', materials)
+      const result = await saveLearningMaterials(USER, 'chat-notes-shape', materials)
 
       const stored = result.notes
       expect(stored).toHaveProperty('id')
@@ -524,7 +549,7 @@ describe('MaterialsService', () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      const result = await saveLearningMaterials('chat-quiz-shape', materials)
+      const result = await saveLearningMaterials(USER, 'chat-quiz-shape', materials)
 
       const stored = result.quiz
       expect(stored).toHaveProperty('id')
@@ -540,35 +565,35 @@ describe('MaterialsService', () => {
   })
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Storage key format assertions
+  // Storage key format assertions (user-isolated)
   // ─────────────────────────────────────────────────────────────────────────────
   describe('storage key format', () => {
-    it('material should be stored under key starting with "material:"', async () => {
+    it('material should be stored under user-isolated key', async () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      await saveLearningMaterials('chat-key', makeLearningMaterials())
+      await saveLearningMaterials(USER, 'chat-key', makeLearningMaterials())
 
-      const matKey = mockSet.mock.calls.find(call => String(call[0]).startsWith('material:'))
+      const matKey = mockSet.mock.calls.find(call => String(call[0]).startsWith(`user:${USER}:material:`))
       expect(matKey).toBeDefined()
     })
 
-    it('chat index key should be "materials:chat:<chatId>"', async () => {
+    it('chat index key should be user-isolated', async () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      await saveLearningMaterials('chat-xyz', makeLearningMaterials())
+      await saveLearningMaterials(USER, 'chat-xyz', makeLearningMaterials())
 
-      expect(mockSet).toHaveBeenCalledWith('materials:chat:chat-xyz', expect.any(Array))
+      expect(mockSet).toHaveBeenCalledWith(`user:${USER}:materials:chat:chat-xyz`, expect.any(Array))
     })
 
-    it('global index key should be "materials:index"', async () => {
+    it('user index key should be user-isolated', async () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      await saveLearningMaterials('chat-global', makeLearningMaterials())
+      await saveLearningMaterials(USER, 'chat-global', makeLearningMaterials())
 
-      expect(mockSet).toHaveBeenCalledWith('materials:index', expect.any(Array))
+      expect(mockSet).toHaveBeenCalledWith(`user:${USER}:materials:index`, expect.any(Array))
     })
   })
 })

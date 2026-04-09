@@ -120,6 +120,7 @@ const sampleMaterials = {
 
 const storedMaterial = {
   id: 'mat-1',
+  userId: 'test-user',
   chatId: 'chat-1',
   flashcards: sampleMaterials.flashcards,
   notes: sampleMaterials.notes,
@@ -219,11 +220,11 @@ describe('POST /api/materials/generate', () => {
 
     expect(res._body.ok).toBe(true)
     expect(db.set).toHaveBeenCalledWith(
-      'materials:chat:chat-99',
+      'user:test-user:materials:chat:chat-99',
       expect.arrayContaining([expect.any(String)])
     )
     expect(db.set).toHaveBeenCalledWith(
-      'materials:index',
+      'user:test-user:materials:index',
       expect.arrayContaining([expect.any(String)])
     )
   })
@@ -330,8 +331,8 @@ describe('GET /api/materials/by-chat/:chatId', () => {
 
   it('should return materials for specified chat', async () => {
     mockDbGetByKey({
-      'materials:chat:chat-1': ['mat-1'],
-      'material:mat-1': storedMaterial,
+      'user:test-user:materials:chat:chat-1': ['mat-1'],
+      'user:test-user:material:mat-1': storedMaterial,
     })
 
     const req = mockReq({ params: { chatId: 'chat-1' } })
@@ -349,9 +350,9 @@ describe('GET /api/materials/by-chat/:chatId', () => {
     const newerMaterial = { ...storedMaterial, id: 'mat-new', createdAt: 300 }
 
     mockDbGetByKey({
-      'materials:chat:chat-1': ['mat-old', 'mat-missing', 'mat-new'],
-      'material:mat-old': olderMaterial,
-      'material:mat-new': newerMaterial,
+      'user:test-user:materials:chat:chat-1': ['mat-old', 'mat-missing', 'mat-new'],
+      'user:test-user:material:mat-old': olderMaterial,
+      'user:test-user:material:mat-new': newerMaterial,
     })
 
     const req = mockReq({ params: { chatId: 'chat-1' } })
@@ -493,7 +494,7 @@ describe('DELETE /api/materials/:id', () => {
     vi.mocked(db.get)
       .mockResolvedValueOnce(storedMaterial) // getMaterialById
       .mockResolvedValueOnce(['mat-1'])       // chatMaterials
-      .mockResolvedValueOnce(['mat-1'])       // globalIndex
+      .mockResolvedValueOnce(['mat-1'])       // userIndex
 
     const req = mockReq({ params: { id: 'mat-1' } })
     const res = mockRes()
@@ -505,11 +506,11 @@ describe('DELETE /api/materials/:id', () => {
     expect(db.delete).toHaveBeenCalled()
   })
 
-  it('should remove deleted material from chat and global indexes', async () => {
+  it('should remove deleted material from chat and user indexes', async () => {
     mockDbGetByKey({
-      'material:mat-1': storedMaterial,
-      'materials:chat:chat-1': ['mat-1', 'mat-2'],
-      'materials:index': ['mat-3', 'mat-1', 'mat-2'],
+      'user:test-user:material:mat-1': storedMaterial,
+      'user:test-user:materials:chat:chat-1': ['mat-1', 'mat-2'],
+      'user:test-user:materials:index': ['mat-3', 'mat-1', 'mat-2'],
     })
 
     const req = mockReq({ params: { id: 'mat-1' } })
@@ -518,14 +519,14 @@ describe('DELETE /api/materials/:id', () => {
     await exec(req, res, app.routes['DELETE /api/materials/:id'])
 
     expect(res._body.ok).toBe(true)
-    expect(db.set).toHaveBeenCalledWith('materials:chat:chat-1', ['mat-2'])
-    expect(db.set).toHaveBeenCalledWith('materials:index', ['mat-3', 'mat-2'])
-    expect(db.delete).toHaveBeenCalledWith('material:mat-1')
+    expect(db.set).toHaveBeenCalledWith('user:test-user:materials:chat:chat-1', ['mat-2'])
+    expect(db.set).toHaveBeenCalledWith('user:test-user:materials:index', ['mat-3', 'mat-2'])
+    expect(db.delete).toHaveBeenCalledWith('user:test-user:material:mat-1')
   })
 
   it('should delete material when indexes are missing', async () => {
     mockDbGetByKey({
-      'material:mat-1': storedMaterial,
+      'user:test-user:material:mat-1': storedMaterial,
     })
 
     const req = mockReq({ params: { id: 'mat-1' } })
@@ -534,9 +535,9 @@ describe('DELETE /api/materials/:id', () => {
     await exec(req, res, app.routes['DELETE /api/materials/:id'])
 
     expect(res._body.ok).toBe(true)
-    expect(db.set).toHaveBeenCalledWith('materials:chat:chat-1', [])
-    expect(db.set).toHaveBeenCalledWith('materials:index', [])
-    expect(db.delete).toHaveBeenCalledWith('material:mat-1')
+    expect(db.set).toHaveBeenCalledWith('user:test-user:materials:chat:chat-1', [])
+    expect(db.set).toHaveBeenCalledWith('user:test-user:materials:index', [])
+    expect(db.delete).toHaveBeenCalledWith('user:test-user:material:mat-1')
   })
 
   it('should return 500 on database error', async () => {
@@ -599,7 +600,7 @@ describe('GET /api/materials', () => {
 
   it('should return materials with pagination info', async () => {
     vi.mocked(db.get)
-      .mockResolvedValueOnce(['mat-1', 'mat-2'])  // globalIndex
+      .mockResolvedValueOnce(['mat-1', 'mat-2'])  // userIndex
       .mockResolvedValueOnce(storedMaterial)       // materialById mat-1
       .mockResolvedValueOnce({ ...storedMaterial, id: 'mat-2' }) // materialById mat-2
 
@@ -616,9 +617,9 @@ describe('GET /api/materials', () => {
 
   it('should skip missing materials while keeping pagination total from the index', async () => {
     mockDbGetByKey({
-      'materials:index': ['mat-1', 'mat-ghost', 'mat-2'],
-      'material:mat-1': storedMaterial,
-      'material:mat-2': { ...storedMaterial, id: 'mat-2' },
+      'user:test-user:materials:index': ['mat-1', 'mat-ghost', 'mat-2'],
+      'user:test-user:material:mat-1': storedMaterial,
+      'user:test-user:material:mat-2': { ...storedMaterial, id: 'mat-2' },
     })
 
     const req = mockReq({ query: {} })
@@ -633,7 +634,7 @@ describe('GET /api/materials', () => {
 
   it('should respect limit query parameter', async () => {
     vi.mocked(db.get)
-      .mockResolvedValueOnce(['mat-1', 'mat-2', 'mat-3']) // globalIndex with 3 items
+      .mockResolvedValueOnce(['mat-1', 'mat-2', 'mat-3']) // userIndex with 3 items
       .mockResolvedValueOnce(storedMaterial)               // only mat-1 fetched (limit=1)
 
     const req = mockReq({ query: { limit: '1' } })
@@ -647,7 +648,7 @@ describe('GET /api/materials', () => {
 
   it('should respect offset query parameter', async () => {
     vi.mocked(db.get)
-      .mockResolvedValueOnce(['mat-1', 'mat-2']) // globalIndex
+      .mockResolvedValueOnce(['mat-1', 'mat-2']) // userIndex
       .mockResolvedValueOnce(storedMaterial)      // mat-2 (offset=1)
 
     const req = mockReq({ query: { offset: '1' } })

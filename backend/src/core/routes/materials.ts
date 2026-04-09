@@ -12,16 +12,17 @@ import {
 import { requireAuth } from "../middleware/auth"
 import { getUserId } from "../middleware/auth-keyv"
 
-// Storage keys
+// Storage keys - user isolated
 const STORAGE_KEYS = {
-  materialsIndex: "materials:index",
-  materialsByChat: (chatId: string) => `materials:chat:${chatId}`,
-  materialById: (id: string) => `material:${id}`,
+  materialsIndex: (userId: string) => `user:${userId}:materials:index`,
+  materialsByChat: (userId: string, chatId: string) => `user:${userId}:materials:chat:${chatId}`,
+  materialById: (userId: string, id: string) => `user:${userId}:material:${id}`,
 }
 
 // Types for stored materials
 export interface StoredMaterials {
   id: string
+  userId: string
   chatId: string
   messageId?: string
   flashcards: FlashCard[]
@@ -32,6 +33,7 @@ export interface StoredMaterials {
 
 // Save learning materials to database
 export async function saveLearningMaterials(
+  userId: string,
   chatId: string,
   materials: LearningMaterials,
   messageId?: string
@@ -40,6 +42,7 @@ export async function saveLearningMaterials(
 
   const stored: StoredMaterials = {
     id,
+    userId,
     chatId,
     messageId,
     flashcards: materials.flashcards,
@@ -48,61 +51,70 @@ export async function saveLearningMaterials(
     createdAt: Date.now(),
   }
 
-  // Save individual material
-  await db.set(STORAGE_KEYS.materialById(id), stored)
+  // Save individual material (user-isolated key)
+  await db.set(STORAGE_KEYS.materialById(userId, id), stored)
 
-  // Update chat materials index
-  const chatMaterials = (await db.get(STORAGE_KEYS.materialsByChat(chatId))) || []
+  // Update chat materials index (user-isolated)
+  const chatMaterials = (await db.get(STORAGE_KEYS.materialsByChat(userId, chatId))) || []
   chatMaterials.push(id)
-  await db.set(STORAGE_KEYS.materialsByChat(chatId), chatMaterials)
+  await db.set(STORAGE_KEYS.materialsByChat(userId, chatId), chatMaterials)
 
-  // Update global index
-  const globalIndex = (await db.get(STORAGE_KEYS.materialsIndex)) || []
-  globalIndex.unshift(id)
-  await db.set(STORAGE_KEYS.materialsIndex, globalIndex.slice(0, 10000))
+  // Update user materials index
+  const userIndex = (await db.get(STORAGE_KEYS.materialsIndex(userId))) || []
+  userIndex.unshift(id)
+  await db.set(STORAGE_KEYS.materialsIndex(userId), userIndex.slice(0, 10000))
 
-  console.log(`[materials] Saved materials ${id} for chat ${chatId}`)
+  console.log(`[materials] Saved materials ${id} for user ${userId}, chat ${chatId}`)
   return stored
 }
 
-// Get materials by chat ID
-export async function getMaterialsByChat(chatId: string): Promise<StoredMaterials[]> {
-  const materialIds = (await db.get(STORAGE_KEYS.materialsByChat(chatId))) || []
+// Get materials by chat ID (user-isolated)
+export async function getMaterialsByChat(userId: string, chatId: string): Promise<StoredMaterials[]> {
+  const materialIds = (await db.get(STORAGE_KEYS.materialsByChat(userId, chatId))) || []
 
   const materials = await Promise.all(
-    materialIds.map(id => db.get(STORAGE_KEYS.materialById(id)))
+    materialIds.map(id => db.get(STORAGE_KEYS.materialById(userId, id)))
   )
 
   return materials.filter(Boolean).sort((a: any, b: any) => b.createdAt - a.createdAt)
 }
 
-// Get single material by ID
-export async function getMaterialById(id: string): Promise<StoredMaterials | null> {
-  const result = await db.get(STORAGE_KEYS.materialById(id))
-  return result || null
+// Get single material by ID (with ownership verification)
+export async function getMaterialById(userId: string, id: string): Promise<StoredMaterials | null> {
+  const result = await db.get(STORAGE_KEYS.materialById(userId, id))
+  if (!result) return null
+  // IDOR protection: verify ownership
+  if (result.userId !== userId) {
+    console.warn(`[materials] IDOR attempt: user ${userId} tried to access material ${id} owned by ${result.userId}`)
+    return null
+  }
+  return result
 }
 
-// Delete materials
-export async function deleteMaterials(id: string): Promise<boolean> {
-  const material = await getMaterialById(id)
+// Delete materials (with ownership verification)
+export async function deleteMaterials(userId: string, id: string): Promise<boolean> {
+  const material = await db.get(STORAGE_KEYS.materialById(userId, id))
   if (!material) return false
 
-  // Parallel read of both indexes
-  const [chatMaterials, globalIndex] = await Promise.all([
-    db.get(STORAGE_KEYS.materialsByChat(material.chatId)),
-    db.get(STORAGE_KEYS.materialsIndex),
-  ])
+  // IDOR protection: verify ownership
+  if (material.userId !== userId) {
+    console.warn(`[materials] IDOR delete attempt: user ${userId} tried to delete material ${id} owned by ${material.userId}`)
+    return false
+  }
 
   // Remove from chat index
+  const chatMaterials = (await db.get(STORAGE_KEYS.materialsByChat(userId, material.chatId))) || []
   const updatedChatMaterials = ((chatMaterials as string[]) || []).filter((mid: string) => mid !== id)
-  // Remove from global index
-  const updatedGlobalIndex = ((globalIndex as string[]) || []).filter((mid: string) => mid !== id)
+
+  // Remove from user index
+  const userIndex = (await db.get(STORAGE_KEYS.materialsIndex(userId))) || []
+  const updatedUserIndex = ((userIndex as string[]) || []).filter((mid: string) => mid !== id)
 
   // Parallel writes
   await Promise.all([
-    db.set(STORAGE_KEYS.materialsByChat(material.chatId), updatedChatMaterials),
-    db.set(STORAGE_KEYS.materialsIndex, updatedGlobalIndex),
-    db.delete(STORAGE_KEYS.materialById(id)),
+    db.set(STORAGE_KEYS.materialsByChat(userId, material.chatId), updatedChatMaterials),
+    db.set(STORAGE_KEYS.materialsIndex(userId), updatedUserIndex),
+    db.delete(STORAGE_KEYS.materialById(userId, id)),
   ])
 
   return true
@@ -133,7 +145,7 @@ export function materialsRoutes(app: any) {
       // Save if chatId provided
       let stored: StoredMaterials | undefined
       if (chatId) {
-        stored = await saveLearningMaterials(chatId, materials)
+        stored = await saveLearningMaterials(userId, chatId, materials)
       }
 
       res.send({
@@ -161,7 +173,8 @@ export function materialsRoutes(app: any) {
         })
       }
 
-      const materials = await getMaterialsByChat(chatId)
+      const userId = getUserId(req)
+      const materials = await getMaterialsByChat(userId, chatId)
 
       res.send({
         ok: true,
@@ -178,7 +191,7 @@ export function materialsRoutes(app: any) {
     }
   })
 
-  // GET /api/materials/:id - Get single material
+  // GET /api/materials/:id - Get single material (with ownership verification)
   app.get("/api/materials/:id", requireAuth, async (req: any, res: any) => {
     try {
       const { id } = req.params
@@ -189,7 +202,8 @@ export function materialsRoutes(app: any) {
         })
       }
 
-      const material = await getMaterialById(id)
+      const userId = getUserId(req)
+      const material = await getMaterialById(userId, id)
       if (!material) {
         return res.status(404).send({
           ok: false,
@@ -210,7 +224,7 @@ export function materialsRoutes(app: any) {
     }
   })
 
-  // DELETE /api/materials/:id - Delete a material
+  // DELETE /api/materials/:id - Delete a material (with ownership verification)
   app.delete("/api/materials/:id", requireAuth, async (req: any, res: any) => {
     try {
       const { id } = req.params
@@ -221,7 +235,8 @@ export function materialsRoutes(app: any) {
         })
       }
 
-      const deleted = await deleteMaterials(id)
+      const userId = getUserId(req)
+      const deleted = await deleteMaterials(userId, id)
       if (!deleted) {
         return res.status(404).send({
           ok: false,
@@ -242,27 +257,28 @@ export function materialsRoutes(app: any) {
     }
   })
 
-  // GET /api/materials - List all materials (paginated)
+  // GET /api/materials - List all materials for current user (paginated)
   app.get("/api/materials", requireAuth, async (req: any, res: any) => {
     try {
+      const userId = getUserId(req)
       const limit = Math.min(parseInt(req.query.limit) || 50, 100)
       const offset = parseInt(req.query.offset) || 0
 
-      const globalIndex = (await db.get(STORAGE_KEYS.materialsIndex)) || []
-      const paginatedIds = globalIndex.slice(offset, offset + limit)
+      const userIndex = (await db.get(STORAGE_KEYS.materialsIndex(userId))) || []
+      const paginatedIds = userIndex.slice(offset, offset + limit)
 
       const materials = await Promise.all(
-        paginatedIds.map(id => db.get(STORAGE_KEYS.materialById(id)))
+        paginatedIds.map(id => db.get(STORAGE_KEYS.materialById(userId, id)))
       )
 
       res.send({
         ok: true,
         materials: materials.filter(Boolean),
         pagination: {
-          total: globalIndex.length,
+          total: userIndex.length,
           limit,
           offset,
-          hasMore: offset + limit < globalIndex.length,
+          hasMore: offset + limit < userIndex.length,
         },
       })
     } catch (e: any) {
