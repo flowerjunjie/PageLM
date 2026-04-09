@@ -376,27 +376,44 @@ export async function calculateLearningTrend(days = 30): Promise<Array<{ date: s
   const flashcardList = flashcards || []
   const quizList = quizResults || []
 
+  // Pre-group records by date string: O(n)
+  const chatsByDate: Record<string, number> = {}
+  const flashcardsByDate: Record<string, number> = {}
+  const quizCorrectByDate: Record<string, number> = {}
+  const quizTotalByDate: Record<string, number> = {}
+
+  for (const c of chatList) {
+    const dateStr = new Date(c.createdAt).toISOString().split('T')[0]
+    chatsByDate[dateStr] = (chatsByDate[dateStr] || 0) + 1
+  }
+
+  for (const f of flashcardList) {
+    if (f.lastReviewed) {
+      const dateStr = new Date(f.lastReviewed).toISOString().split('T')[0]
+      flashcardsByDate[dateStr] = (flashcardsByDate[dateStr] || 0) + 1
+    }
+  }
+
+  for (const q of quizList) {
+    const dateStr = new Date(q.completedAt).toISOString().split('T')[0]
+    quizCorrectByDate[dateStr] = (quizCorrectByDate[dateStr] || 0) + (q.correctCount || 0)
+    quizTotalByDate[dateStr] = (quizTotalByDate[dateStr] || 0) + (q.totalCount || 0)
+  }
+
   const now = Date.now()
   const trend: Array<{ date: string; studyTime: number; flashcardsReviewed: number; quizScore: number }> = []
 
   for (let i = days - 1; i >= 0; i--) {
     const dayStart = new Date(now - i * 24 * 60 * 60 * 1000)
     dayStart.setHours(0, 0, 0, 0)
-    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
-    const date = dayStart.toISOString().split('T')[0]
-
-    const dayChats = chatList.filter((c: any) => c.createdAt >= dayStart.getTime() && c.createdAt < dayEnd.getTime())
-    const dayFlashcards = flashcardList.filter((f: any) => f.lastReviewed >= dayStart.getTime() && f.lastReviewed < dayEnd.getTime())
-    const dayQuizzes = quizList.filter((q: any) => q.completedAt >= dayStart.getTime() && q.completedAt < dayEnd.getTime())
-
-    const correct = dayQuizzes.reduce((s: number, q: any) => s + (q.correctCount || 0), 0)
-    const total = dayQuizzes.reduce((s: number, q: any) => s + (q.totalCount || 0), 0)
+    const dateStr = dayStart.toISOString().split('T')[0]
 
     trend.push({
-      date,
-      studyTime: dayChats.length * 15,
-      flashcardsReviewed: dayFlashcards.length,
-      quizScore: total > 0 ? Math.round((correct / total) * 100) : 0,
+      date: dateStr,
+      studyTime: (chatsByDate[dateStr] || 0) * 15,
+      flashcardsReviewed: flashcardsByDate[dateStr] || 0,
+      quizScore: (quizTotalByDate[dateStr] || 0) > 0
+        ? Math.round((quizCorrectByDate[dateStr] / quizTotalByDate[dateStr]) * 100) : 0,
     })
   }
 
