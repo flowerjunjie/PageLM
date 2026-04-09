@@ -8,6 +8,7 @@ import { parseHomework, priorityToNumber } from "../../services/homework-parser"
 import { scheduleTaskReminders, cancelTaskNotifications, getUserNotifications, sendTaskCompletionNotification } from "../../services/notifications"
 import { config } from "../../config/env"
 import { createWebSocketAuth, createWebSocketRateLimiter } from "../middleware/websocket"
+import { requireAuth } from "../middleware/auth"
 import crypto from "crypto"
 
 // Initialize WebSocket auth middleware if JWT secret is configured
@@ -42,7 +43,7 @@ export function plannerRoutes(app: any) {
         ws.on("close", () => { set!.delete(ws); if (set!.size === 0) rooms.delete(sid) })
     })
 
-    app.post("/tasks", async (req: any, res: any) => {
+    app.post("/tasks", requireAuth, async (req: any, res: any) => {
         try {
             const ct = req.headers['content-type'] || ''
             const isMultipart = ct.includes("multipart/form-data")
@@ -64,7 +65,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.post("/tasks/ingest", async (req: any, res: any) => {
+    app.post("/tasks/ingest", requireAuth, async (req: any, res: any) => {
         try {
             const text = String(req.body?.text || "").trim()
             if (!text) return res.status(400).send({ ok: false, error: "text required" })
@@ -76,7 +77,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.get("/tasks/:id", async (req: any, res: any) => {
+    app.get("/tasks/:id", requireAuth, async (req: any, res: any) => {
         try {
             const task = await plannerService.getTask(req.params.id)
             if (!task) return res.status(404).send({ ok: false, error: "Task not found" })
@@ -86,7 +87,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.post("/tasks/:id/replan", async (req: any, res: any) => {
+    app.post("/tasks/:id/replan", requireAuth, async (req: any, res: any) => {
         try {
             const task = await plannerService.replanTask(req.params.id)
             if (!task) return res.status(404).send({ ok: false, error: "Task not found" })
@@ -97,7 +98,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.post("/tasks/:id/plan", async (req: any, res: any) => {
+    app.post("/tasks/:id/plan", requireAuth, async (req: any, res: any) => {
         try {
             console.log('Planning task:', req.params.id)
             const task = await plannerService.planSingleTask(req.params.id)
@@ -115,7 +116,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.post("/planner/weekly", async (req: any, res: any) => {
+    app.post("/planner/weekly", requireAuth, async (req: any, res: any) => {
         try {
             const request: PlannerGenerateRequest = req.body
             const result = await plannerService.generateWeeklyPlan(request)
@@ -126,7 +127,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.get("/planner/today", async (req: any, res: any) => {
+    app.get("/planner/today", requireAuth, async (req: any, res: any) => {
         try {
             const sessions = await plannerService.getTodaySessions()
             res.send({ ok: true, sessions })
@@ -135,7 +136,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.get("/planner/deadlines", async (req: any, res: any) => {
+    app.get("/planner/deadlines", requireAuth, async (req: any, res: any) => {
         try {
             const deadlines = await plannerService.getUpcomingDeadlines()
             res.send({ ok: true, ...deadlines })
@@ -144,7 +145,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.get("/planner/stats", async (req: any, res: any) => {
+    app.get("/planner/stats", requireAuth, async (req: any, res: any) => {
         try {
             const stats = await plannerService.getUserStats()
             res.send({ ok: true, stats })
@@ -153,7 +154,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.post("/tasks/:id/materials", async (req: any, res: any) => {
+    app.post("/tasks/:id/materials", requireAuth, async (req: any, res: any) => {
         try {
             const id = req.params.id
             const request: MaterialsRequest = { type: req.body?.type || "summary" }
@@ -167,7 +168,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.patch("/slots/:taskId/:slotId", async (req: any, res: any) => {
+    app.patch("/slots/:taskId/:slotId", requireAuth, async (req: any, res: any) => {
         try {
             const { taskId, slotId } = req.params
             const { done, skip } = req.body
@@ -180,7 +181,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.get("/tasks", async (req: any, res: any) => {
+    app.get("/tasks", requireAuth, async (req: any, res: any) => {
         try {
             const { status, dueBefore, course } = req.query
             const filter: any = {}
@@ -195,7 +196,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.patch("/tasks/:id", async (req: any, res: any) => {
+    app.patch("/tasks/:id", requireAuth, async (req: any, res: any) => {
         try {
             const updates: UpdateTaskRequest = req.body
             const task = await plannerService.updateTask(req.params.id, updates)
@@ -207,7 +208,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.delete("/tasks/:id", async (req: any, res: any) => {
+    app.delete("/tasks/:id", requireAuth, async (req: any, res: any) => {
         try {
             const success = await plannerService.deleteTask(req.params.id)
             if (!success) return res.status(404).send({ ok: false, error: "Task not found" })
@@ -218,7 +219,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.post("/tasks/:id/files", async (req: any, res: any) => {
+    app.post("/tasks/:id/files", requireAuth, async (req: any, res: any) => {
         try {
             const ct = req.headers['content-type'] || ''
             if (!ct.includes("multipart/form-data")) {
@@ -239,7 +240,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.delete("/tasks/:id/files/:fileId", async (req: any, res: any) => {
+    app.delete("/tasks/:id/files/:fileId", requireAuth, async (req: any, res: any) => {
         try {
             const success = await plannerService.removeFileFromTask(req.params.id, req.params.fileId)
             if (!success) return res.status(404).send({ ok: false, error: "File not found" })
@@ -250,7 +251,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.post("/sessions/start", async (req: any, res: any) => {
+    app.post("/sessions/start", requireAuth, async (req: any, res: any) => {
         try {
             const { taskId, slotId } = req.body
             if (!taskId) return res.status(400).send({ ok: false, error: "taskId required" })
@@ -270,7 +271,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.post("/sessions/:id/stop", async (req: any, res: any) => {
+    app.post("/sessions/:id/stop", requireAuth, async (req: any, res: any) => {
         try {
             const sessionId = req.params.id
             const { minutesWorked, completed } = req.body
@@ -290,7 +291,7 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.post("/reminders/schedule", async (req: any, res: any) => {
+    app.post("/reminders/schedule", requireAuth, async (req: any, res: any) => {
         try {
             const { text, scheduledFor, taskId } = req.body
             if (!text || !scheduledFor) {
@@ -324,13 +325,13 @@ export function plannerRoutes(app: any) {
         }
     })
 
-    app.post("/reminders/test", async (_req: any, res: any) => {
+    app.post("/reminders/test", requireAuth, async (_req: any, res: any) => {
         emitToAll(rooms.get("default"), { type: "reminder", text: "Test reminder", at: Date.now() + 60000 })
         res.send({ ok: true })
     })
 
     // Phase 6: Homework parsing endpoint
-    app.post("/planner/parse-homework", async (req: any, res: any) => {
+    app.post("/planner/parse-homework", requireAuth, async (req: any, res: any) => {
         try {
             const { text, imageText } = req.body
             const content = text || imageText
@@ -348,7 +349,7 @@ export function plannerRoutes(app: any) {
     })
 
     // Phase 6: Task completion tracking
-    app.post("/tasks/:id/complete", async (req: any, res: any) => {
+    app.post("/tasks/:id/complete", requireAuth, async (req: any, res: any) => {
         try {
             const { actualMinutes, notes } = req.body
             const existingTask = await plannerService.getTask(req.params.id)
@@ -380,7 +381,7 @@ export function plannerRoutes(app: any) {
     })
 
     // Phase 6: Get task statistics
-    app.get("/planner/stats/detailed", async (req: any, res: any) => {
+    app.get("/planner/stats/detailed", requireAuth, async (req: any, res: any) => {
         try {
             const tasks = await plannerService.listTasks()
             const now = Date.now()
@@ -476,7 +477,7 @@ export function plannerRoutes(app: any) {
     })
 
     // Phase 6: Schedule task reminders
-    app.post("/tasks/:id/reminders", async (req: any, res: any) => {
+    app.post("/tasks/:id/reminders", requireAuth, async (req: any, res: any) => {
         try {
             const task = await plannerService.getTask(req.params.id)
             if (!task) return res.status(404).send({ ok: false, error: "Task not found" })
@@ -510,7 +511,7 @@ export function plannerRoutes(app: any) {
     })
 
     // Phase 6: Get user notifications
-    app.get("/notifications", async (_req: any, res: any) => {
+    app.get("/notifications", requireAuth, async (_req: any, res: any) => {
         try {
             const notifications = getUserNotifications("default")
             res.send({ ok: true, notifications })
@@ -520,7 +521,7 @@ export function plannerRoutes(app: any) {
     })
 
     // Phase 6: Cancel notification
-    app.delete("/notifications/:id", async (req: any, res: any) => {
+    app.delete("/notifications/:id", requireAuth, async (req: any, res: any) => {
         try {
             const { cancelNotification } = await import("../../services/notifications")
             const success = cancelNotification(req.params.id)

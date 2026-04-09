@@ -10,6 +10,7 @@ import {
 import { emitToAll } from "../../utils/chat/ws";
 import { config } from "../../config/env";
 import { createWebSocketAuth, createWebSocketRateLimiter } from "../middleware/websocket";
+import { requireAuth } from "../middleware/auth";
 
 // Initialize WebSocket auth middleware if JWT secret is configured
 const wsAuth = config.jwtSecret
@@ -66,7 +67,7 @@ export function chatRoutes(app: any) {
     ws.send(JSON.stringify({ type: "ready", chatId }));
   });
 
-  app.post("/chat", async (req: any, res: any, next: any) => {
+  app.post("/chat", requireAuth, async (req: any, res: any, next: any) => {
     try {
       const ct = String(req.headers["content-type"] || "");
       const isMp = ct.includes("multipart/form-data");
@@ -192,12 +193,12 @@ export function chatRoutes(app: any) {
     }
   });
 
-  app.get("/chats", async (_: any, res: any) => {
+  app.get("/chats", requireAuth, async (_: any, res: any) => {
     const chats = await listChats();
     res.send({ ok: true, chats });
   });
 
-  app.get("/chats/:id", async (req: any, res: any) => {
+  app.get("/chats/:id", requireAuth, async (req: any, res: any) => {
     const id = req.params.id;
     const chat = await getChat(id);
     if (!chat) {

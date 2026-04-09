@@ -4,15 +4,14 @@ import {
   getWeeklyReportByToken,
   cleanupExpiredTokens
 } from '../../services/reports'
+import { requireAuth, getUserId } from '../middleware/auth'
 
 export function reportRoutes(app: any) {
   // GET /api/reports/weekly - Generate weekly report data
-  app.get('/api/reports/weekly', async (req: any, res: any) => {
+  app.get('/api/reports/weekly', requireAuth, async (req: any, res: any) => {
     try {
       const week = req.query.week as string | undefined
-
-      // For now, use a default userId (in production, get from auth)
-      const userId = req.user?.id || 'default-user'
+      const userId = getUserId(req)
 
       const report = await generateWeeklyReport(userId, week)
 
@@ -30,7 +29,7 @@ export function reportRoutes(app: any) {
   })
 
   // POST /api/reports/share - Create share link
-  app.post('/api/reports/share', async (req: any, res: any) => {
+  app.post('/api/reports/share', requireAuth, async (req: any, res: any) => {
     try {
       const { week } = req.body || {}
 
@@ -50,8 +49,7 @@ export function reportRoutes(app: any) {
         })
       }
 
-      // For now, use a default userId (in production, get from auth)
-      const userId = req.user?.id || 'default-user'
+      const userId = getUserId(req)
 
       // Clean up expired tokens periodically
       await cleanupExpiredTokens()
@@ -123,7 +121,7 @@ export function reportRoutes(app: any) {
   })
 
   // GET /api/reports/available-weeks - Get list of weeks with data
-  app.get('/api/reports/available-weeks', async (req: any, res: any) => {
+  app.get('/api/reports/available-weeks', requireAuth, async (req: any, res: any) => {
     try {
       // For now, return current week and previous 3 weeks
       const weeks: string[] = []

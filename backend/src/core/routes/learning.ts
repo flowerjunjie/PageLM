@@ -7,9 +7,10 @@ import {
   identifyWeakAreas,
   calculateLearningTrend
 } from '../../services/analytics'
+import { requireAuth } from '../middleware/auth'
 
 export function learningRoutes(app: any) {
-  app.get('/api/learning/profile', async (_req: any, res: any) => {
+  app.get('/api/learning/profile', requireAuth, async (req: any, res: any) => {
     try {
       const profile = await getLearningProfile()
       res.send({ ok: true, profile })
@@ -19,7 +20,7 @@ export function learningRoutes(app: any) {
     }
   })
 
-  app.get('/api/learning/stats', async (_req: any, res: any) => {
+  app.get('/api/learning/stats', requireAuth, async (req: any, res: any) => {
     try {
       const stats = await getLearningStats()
       res.send({ ok: true, stats })
@@ -29,7 +30,7 @@ export function learningRoutes(app: any) {
     }
   })
 
-  app.get('/api/learning/knowledge-map', async (_req: any, res: any) => {
+  app.get('/api/learning/knowledge-map', requireAuth, async (req: any, res: any) => {
     try {
       const data = await getKnowledgeMapData()
       res.send({ ok: true, ...data })
@@ -39,7 +40,7 @@ export function learningRoutes(app: any) {
     }
   })
 
-  app.get('/api/learning/subjects', async (_req: any, res: any) => {
+  app.get('/api/learning/subjects', requireAuth, async (req: any, res: any) => {
     try {
       const subjects = await getSubjectStats()
       res.send({ ok: true, subjects })
@@ -49,7 +50,7 @@ export function learningRoutes(app: any) {
     }
   })
 
-  app.get('/api/learning/activity', async (req: any, res: any) => {
+  app.get('/api/learning/activity', requireAuth, async (req: any, res: any) => {
     try {
       const limit = parseInt(req.query.limit) || 10
       const activity = await getRecentActivity(limit)
@@ -60,7 +61,7 @@ export function learningRoutes(app: any) {
     }
   })
 
-  app.get('/api/learning/weak-areas', async (_req: any, res: any) => {
+  app.get('/api/learning/weak-areas', requireAuth, async (req: any, res: any) => {
     try {
       const weakAreas = await identifyWeakAreas()
       res.send({ ok: true, weakAreas })
@@ -70,7 +71,7 @@ export function learningRoutes(app: any) {
     }
   })
 
-  app.get('/api/learning/trend', async (req: any, res: any) => {
+  app.get('/api/learning/trend', requireAuth, async (req: any, res: any) => {
     try {
       const days = parseInt(req.query.days) || 30
       const trend = await calculateLearningTrend(days)

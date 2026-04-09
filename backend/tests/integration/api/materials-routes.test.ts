@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import jwt from 'jsonwebtoken'
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -26,9 +27,16 @@ vi.mock('../../../src/lib/ai/learning-materials', () => ({
   generateQuizQuestions: vi.fn(),
 }))
 
+vi.mock('../../../src/config/env', () => ({
+  config: {
+    jwtSecret: 'test-secret-key-for-testing-only',
+  }
+}))
+
 import db from '../../../src/utils/database/keyv'
 import { generateAllMaterials } from '../../../src/lib/ai/learning-materials'
 import { materialsRoutes } from '../../../src/core/routes/materials'
+import { config } from '../../../src/config/env'
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -37,12 +45,12 @@ import { materialsRoutes } from '../../../src/core/routes/materials'
 type Handler = (req: any, res: any) => any
 
 function createApp() {
-  const routes: Record<string, Handler> = {}
+  const routes: Record<string, Handler[]> = {}
   return {
     routes,
-    get: (path: string, handler: Handler) => { routes[`GET ${path}`] = handler },
-    post: (path: string, handler: Handler) => { routes[`POST ${path}`] = handler },
-    delete: (path: string, handler: Handler) => { routes[`DELETE ${path}`] = handler },
+    get: (path: string, ...handlers: Handler[]) => { routes[`GET ${path}`] = handlers },
+    post: (path: string, ...handlers: Handler[]) => { routes[`POST ${path}`] = handlers },
+    delete: (path: string, ...handlers: Handler[]) => { routes[`DELETE ${path}`] = handlers },
   }
 }
 
@@ -51,14 +59,53 @@ function mockRes() {
     _status: 200,
     _body: undefined,
     statusCode: 200,
-    status: vi.fn(function (code: number) { res._status = code; res.statusCode = code; return res }),
-    send: vi.fn(function (body: any) { res._body = body; return res }),
+    headersSent: false,
+    status: vi.fn(function (code: number) { res._status = code; res.statusCode = code; res.headersSent = true; return res }),
+    send: vi.fn(function (body: any) { res._body = body; res.headersSent = true; return res }),
+    json: vi.fn(function (body: any) { res._body = body; res.headersSent = true; return res }),
   }
   return res
 }
 
+// Create a valid JWT token for testing
+function createTestToken(userId: string): string {
+  return jwt.sign({ userId }, config.jwtSecret, { algorithm: 'HS256' })
+}
+
+// Create mock request with auth token
 function mockReq(overrides: any = {}) {
-  return { body: {}, params: {}, query: {}, ...overrides }
+  const userId = overrides.userId || 'test-user'
+  const token = createTestToken(userId)
+  return {
+    body: {},
+    params: {},
+    query: {},
+    headers: { authorization: `Bearer ${token}` },
+    user: { id: userId },
+    userId,
+    ...overrides
+  }
+}
+
+// Execute middleware chain and call final handler
+async function exec(req: any, res: any, handlers: Handler[]) {
+  let index = 0
+  const next = () => { index++ }
+  while (index < handlers.length) {
+    const handler = handlers[index]
+    if (handler.length > 2) {
+      await new Promise<void>(resolve => {
+        const nextCb = () => { resolve() }
+        handler(req, res, nextCb)
+        if (res.headersSent) resolve()
+      })
+    } else {
+      await handler(req, res)
+      break
+    }
+    index++
+    if (res.headersSent) break
+  }
 }
 
 function mockDbGetByKey(values: Record<string, unknown>) {
@@ -104,7 +151,7 @@ describe('POST /api/materials/generate', () => {
     const req = mockReq({ body: { answer: 'Some answer' } })
     const res = mockRes()
 
-    await app.routes['POST /api/materials/generate'](req, res)
+    await exec(req, res, app.routes['POST /api/materials/generate'])
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('question and answer are required')
@@ -114,7 +161,7 @@ describe('POST /api/materials/generate', () => {
     const req = mockReq({ body: { question: 'What is AI?' } })
     const res = mockRes()
 
-    await app.routes['POST /api/materials/generate'](req, res)
+    await exec(req, res, app.routes['POST /api/materials/generate'])
 
     expect(res._status).toBe(400)
     expect(res._body).toEqual({ ok: false, error: 'question and answer are required' })
@@ -126,7 +173,7 @@ describe('POST /api/materials/generate', () => {
     const req = mockReq({ body: undefined })
     const res = mockRes()
 
-    await app.routes['POST /api/materials/generate'](req, res)
+    await exec(req, res, app.routes['POST /api/materials/generate'])
 
     expect(res._status).toBe(400)
     expect(res._body).toEqual({ ok: false, error: 'question and answer are required' })
@@ -141,7 +188,7 @@ describe('POST /api/materials/generate', () => {
     const req = mockReq({ body: { question: 'What is AI?', answer: 'AI is artificial intelligence' } })
     const res = mockRes()
 
-    await app.routes['POST /api/materials/generate'](req, res)
+    await exec(req, res, app.routes['POST /api/materials/generate'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.materials).toBeDefined()
@@ -155,7 +202,7 @@ describe('POST /api/materials/generate', () => {
     const req = mockReq({ body: { question: 'What is ML?', answer: 'ML is machine learning', chatId: 'chat-42' } })
     const res = mockRes()
 
-    await app.routes['POST /api/materials/generate'](req, res)
+    await exec(req, res, app.routes['POST /api/materials/generate'])
 
     expect(db.set).toHaveBeenCalled()
     expect(res._body.storedId).toBeDefined()
@@ -168,7 +215,7 @@ describe('POST /api/materials/generate', () => {
     const req = mockReq({ body: { question: 'What is DL?', answer: 'Deep learning', chatId: 'chat-99' } })
     const res = mockRes()
 
-    await app.routes['POST /api/materials/generate'](req, res)
+    await exec(req, res, app.routes['POST /api/materials/generate'])
 
     expect(res._body.ok).toBe(true)
     expect(db.set).toHaveBeenCalledWith(
@@ -187,7 +234,7 @@ describe('POST /api/materials/generate', () => {
     const req = mockReq({ body: { question: 'What is AI?', answer: 'Artificial intelligence' } })
     const res = mockRes()
 
-    await app.routes['POST /api/materials/generate'](req, res)
+    await exec(req, res, app.routes['POST /api/materials/generate'])
 
     expect(res._body.storedId).toBeUndefined()
   })
@@ -199,7 +246,7 @@ describe('POST /api/materials/generate', () => {
     const req = mockReq({ body: { question: 'What is AI?', answer: 'Artificial intelligence', chatId: 'chat-1' } })
     const res = mockRes()
 
-    await app.routes['POST /api/materials/generate'](req, res)
+    await exec(req, res, app.routes['POST /api/materials/generate'])
 
     expect(generateAllMaterials).toHaveBeenCalledWith('What is AI?', 'Artificial intelligence')
     expect(res._status).toBe(500)
@@ -212,7 +259,7 @@ describe('POST /api/materials/generate', () => {
     const req = mockReq({ body: { question: 'Q', answer: 'A' } })
     const res = mockRes()
 
-    await app.routes['POST /api/materials/generate'](req, res)
+    await exec(req, res, app.routes['POST /api/materials/generate'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to generate materials' })
@@ -224,11 +271,20 @@ describe('POST /api/materials/generate', () => {
     const req = mockReq({ body: { question: 'Q', answer: 'A' } })
     const res = mockRes()
 
-    await app.routes['POST /api/materials/generate'](req, res)
+    await exec(req, res, app.routes['POST /api/materials/generate'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'LLM error' })
     expect(db.set).not.toHaveBeenCalled()
+  })
+
+  it('should return 401 when no token provided', async () => {
+    const req = { body: { question: 'Q', answer: 'A' }, params: {}, query: {}, headers: {} }
+    const res = mockRes()
+
+    await exec(req, res, app.routes['POST /api/materials/generate'])
+
+    expect(res._status).toBe(401)
   })
 })
 
@@ -241,7 +297,7 @@ describe('GET /api/materials/by-chat/:chatId', () => {
     const req = mockReq({ params: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/by-chat/:chatId'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/by-chat/:chatId'])
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('chatId is required')
@@ -253,7 +309,7 @@ describe('GET /api/materials/by-chat/:chatId', () => {
     const req = mockReq({ params: { chatId: 'chat-1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/by-chat/:chatId'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/by-chat/:chatId'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.materials).toEqual([])
@@ -267,7 +323,7 @@ describe('GET /api/materials/by-chat/:chatId', () => {
     const req = mockReq({ params: { chatId: 'chat-1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/by-chat/:chatId'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/by-chat/:chatId'])
 
     expect(res._body).toEqual({ ok: true, chatId: 'chat-1', materials: [], count: 0 })
   })
@@ -281,7 +337,7 @@ describe('GET /api/materials/by-chat/:chatId', () => {
     const req = mockReq({ params: { chatId: 'chat-1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/by-chat/:chatId'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/by-chat/:chatId'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.materials).toHaveLength(1)
@@ -301,7 +357,7 @@ describe('GET /api/materials/by-chat/:chatId', () => {
     const req = mockReq({ params: { chatId: 'chat-1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/by-chat/:chatId'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/by-chat/:chatId'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.materials.map((material: any) => material.id)).toEqual(['mat-new', 'mat-old'])
@@ -314,7 +370,7 @@ describe('GET /api/materials/by-chat/:chatId', () => {
     const req = mockReq({ params: { chatId: 'chat-1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/by-chat/:chatId'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/by-chat/:chatId'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'DB error' })
@@ -326,10 +382,19 @@ describe('GET /api/materials/by-chat/:chatId', () => {
     const req = mockReq({ params: { chatId: 'chat-1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/by-chat/:chatId'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/by-chat/:chatId'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to retrieve materials' })
+  })
+
+  it('should return 401 when no token provided', async () => {
+    const req = { body: {}, params: { chatId: 'chat-1' }, query: {}, headers: {} }
+    const res = mockRes()
+
+    await exec(req, res, app.routes['GET /api/materials/by-chat/:chatId'])
+
+    expect(res._status).toBe(401)
   })
 })
 
@@ -342,7 +407,7 @@ describe('GET /api/materials/:id', () => {
     const req = mockReq({ params: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/:id'])
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('id is required')
@@ -354,7 +419,7 @@ describe('GET /api/materials/:id', () => {
     const req = mockReq({ params: { id: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/:id'])
 
     expect(res._status).toBe(404)
     expect(res._body.error).toContain('Material not found')
@@ -366,7 +431,7 @@ describe('GET /api/materials/:id', () => {
     const req = mockReq({ params: { id: 'mat-1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/:id'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.material.id).toBe('mat-1')
@@ -378,7 +443,7 @@ describe('GET /api/materials/:id', () => {
     const req = mockReq({ params: { id: 'mat-1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/:id'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'DB error' })
@@ -390,7 +455,7 @@ describe('GET /api/materials/:id', () => {
     const req = mockReq({ params: { id: 'mat-1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['GET /api/materials/:id'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to retrieve material' })
@@ -406,7 +471,7 @@ describe('DELETE /api/materials/:id', () => {
     const req = mockReq({ params: {} })
     const res = mockRes()
 
-    await app.routes['DELETE /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /api/materials/:id'])
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('id is required')
@@ -418,7 +483,7 @@ describe('DELETE /api/materials/:id', () => {
     const req = mockReq({ params: { id: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['DELETE /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /api/materials/:id'])
 
     expect(res._status).toBe(404)
     expect(res._body.error).toContain('Material not found')
@@ -433,7 +498,7 @@ describe('DELETE /api/materials/:id', () => {
     const req = mockReq({ params: { id: 'mat-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /api/materials/:id'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.message).toContain('deleted')
@@ -450,7 +515,7 @@ describe('DELETE /api/materials/:id', () => {
     const req = mockReq({ params: { id: 'mat-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /api/materials/:id'])
 
     expect(res._body.ok).toBe(true)
     expect(db.set).toHaveBeenCalledWith('materials:chat:chat-1', ['mat-2'])
@@ -466,7 +531,7 @@ describe('DELETE /api/materials/:id', () => {
     const req = mockReq({ params: { id: 'mat-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /api/materials/:id'])
 
     expect(res._body.ok).toBe(true)
     expect(db.set).toHaveBeenCalledWith('materials:chat:chat-1', [])
@@ -480,7 +545,7 @@ describe('DELETE /api/materials/:id', () => {
     const req = mockReq({ params: { id: 'mat-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /api/materials/:id'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'DB error' })
@@ -492,7 +557,7 @@ describe('DELETE /api/materials/:id', () => {
     const req = mockReq({ params: { id: 'mat-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /api/materials/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /api/materials/:id'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to delete material' })
@@ -510,7 +575,7 @@ describe('GET /api/materials', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/materials'](req, res)
+    await exec(req, res, app.routes['GET /api/materials'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.materials).toEqual([])
@@ -523,7 +588,7 @@ describe('GET /api/materials', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/materials'](req, res)
+    await exec(req, res, app.routes['GET /api/materials'])
 
     expect(res._body).toEqual({
       ok: true,
@@ -541,7 +606,7 @@ describe('GET /api/materials', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/materials'](req, res)
+    await exec(req, res, app.routes['GET /api/materials'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.materials).toHaveLength(2)
@@ -559,7 +624,7 @@ describe('GET /api/materials', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/materials'](req, res)
+    await exec(req, res, app.routes['GET /api/materials'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.materials.map((material: any) => material.id)).toEqual(['mat-1', 'mat-2'])
@@ -574,7 +639,7 @@ describe('GET /api/materials', () => {
     const req = mockReq({ query: { limit: '1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials'](req, res)
+    await exec(req, res, app.routes['GET /api/materials'])
 
     expect(res._body.pagination.limit).toBe(1)
     expect(res._body.pagination.hasMore).toBe(true)
@@ -588,7 +653,7 @@ describe('GET /api/materials', () => {
     const req = mockReq({ query: { offset: '1' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials'](req, res)
+    await exec(req, res, app.routes['GET /api/materials'])
 
     expect(res._body.pagination.offset).toBe(1)
   })
@@ -599,7 +664,7 @@ describe('GET /api/materials', () => {
     const req = mockReq({ query: { limit: 'abc', offset: 'xyz' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials'](req, res)
+    await exec(req, res, app.routes['GET /api/materials'])
 
     expect(res._body.pagination.limit).toBe(50)
     expect(res._body.pagination.offset).toBe(0)
@@ -611,7 +676,7 @@ describe('GET /api/materials', () => {
     const req = mockReq({ query: { limit: '999' } })
     const res = mockRes()
 
-    await app.routes['GET /api/materials'](req, res)
+    await exec(req, res, app.routes['GET /api/materials'])
 
     expect(res._body.pagination.limit).toBe(100)
   })
@@ -622,7 +687,7 @@ describe('GET /api/materials', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/materials'](req, res)
+    await exec(req, res, app.routes['GET /api/materials'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'DB error' })
@@ -634,7 +699,7 @@ describe('GET /api/materials', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/materials'](req, res)
+    await exec(req, res, app.routes['GET /api/materials'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to list materials' })

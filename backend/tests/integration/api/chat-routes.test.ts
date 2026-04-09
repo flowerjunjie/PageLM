@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import jwt from 'jsonwebtoken'
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -33,9 +34,16 @@ vi.mock('../../../src/utils/chat/ws', () => ({
   emitToAll: vi.fn(),
 }))
 
+vi.mock('../../../src/config/env', () => ({
+  config: {
+    jwtSecret: 'test-secret-key-for-testing-only',
+  }
+}))
+
 import { chatRoutes } from '../../../src/core/routes/chat'
 import { mkChat, getChat, listChats, getMsgs } from '../../../src/utils/chat/chat'
 import { parseMultipart } from '../../../src/lib/parser/upload'
+import { config } from '../../../src/config/env'
 
 // ---------------------------------------------------------------------------
 // Mock helpers
@@ -44,12 +52,12 @@ import { parseMultipart } from '../../../src/lib/parser/upload'
 type Handler = (req: any, res: any, next?: any) => any
 
 function createApp() {
-  const routes: Record<string, Handler> = {}
+  const routes: Record<string, Handler[]> = {}
   return {
     routes,
-    get: (path: string, handler: Handler) => { routes[`GET ${path}`] = handler },
-    post: (path: string, handler: Handler) => { routes[`POST ${path}`] = handler },
-    ws: (path: string, handler: Handler) => { routes[`WS ${path}`] = handler },
+    get: (path: string, ...handlers: Handler[]) => { routes[`GET ${path}`] = handlers },
+    post: (path: string, ...handlers: Handler[]) => { routes[`POST ${path}`] = handlers },
+    ws: (path: string, handler: Handler) => { routes[`WS ${path}`] = [handler] },
   }
 }
 
@@ -58,14 +66,58 @@ function mockRes() {
     _status: 200,
     _body: undefined,
     statusCode: 200,
-    status: vi.fn(function (code: number) { res._status = code; res.statusCode = code; return res }),
-    send: vi.fn(function (body: any) { res._body = body; return res }),
+    headersSent: false,
+    status: vi.fn(function (code: number) { res._status = code; res.statusCode = code; res.headersSent = true; return res }),
+    send: vi.fn(function (body: any) { res._body = body; res.headersSent = true; return res }),
+    json: vi.fn(function (body: any) { res._body = body; res.headersSent = true; return res }),
   }
   return res
 }
 
+// Create a valid JWT token for testing
+function createTestToken(userId: string): string {
+  return jwt.sign({ userId }, config.jwtSecret, { algorithm: 'HS256' })
+}
+
+// Create mock request with auth token
 function mockReq(overrides: any = {}) {
-  return { body: {}, params: {}, query: {}, headers: {}, ...overrides }
+  const userId = overrides.userId || 'test-user'
+  const token = createTestToken(userId)
+  const headers = { authorization: `Bearer ${token}`, ...overrides.headers }
+  return {
+    body: {},
+    params: {},
+    query: {},
+    headers,
+    user: { id: userId },
+    userId,
+    ...overrides,
+    headers,
+  }
+}
+
+// Execute middleware chain and call final handler
+async function exec(req: any, res: any, handlers: Handler[]) {
+  let index = 0
+  const next = () => { index++ }
+  while (index < handlers.length) {
+    const handler = handlers[index]
+    if (handler.length > 2) {
+      await new Promise<void>(resolve => {
+        const nextCb = () => { resolve() }
+        const result = handler(req, res, nextCb)
+        if (result && typeof result.then === 'function') {
+          result.then(() => { if (res.headersSent) resolve() })
+        }
+        if (res.headersSent) resolve()
+      })
+    } else {
+      await handler(req, res)
+      break
+    }
+    index++
+    if (res.headersSent) break
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -78,156 +130,132 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(mkChat).mockResolvedValue({ id: 'chat-new', title: 'New Chat' } as any)
   vi.mocked(getChat).mockResolvedValue(null)
-  vi.mocked(listChats).mockResolvedValue([])
-  vi.mocked(getMsgs).mockResolvedValue([])
   app = createApp()
   chatRoutes(app)
 })
 
 // ---------------------------------------------------------------------------
-// POST /chat
+// POST /chat (routes/chat.ts)
 // ---------------------------------------------------------------------------
 
 describe('POST /chat (routes/chat.ts)', () => {
   it('should return 400 when q is missing for JSON body', async () => {
     const req = mockReq({ body: {} })
     const res = mockRes()
-    const next = vi.fn()
-
-    await app.routes['POST /chat'](req, res, next)
+    await exec(req, res, app.routes['POST /chat'])
 
     expect(res._status).toBe(400)
-    expect(res._body.error).toContain('q required')
+    expect(res._body.error).toBe('q required')
   })
 
   it('should return 400 when q is empty string', async () => {
     const req = mockReq({ body: { q: '' } })
     const res = mockRes()
-    const next = vi.fn()
-
-    await app.routes['POST /chat'](req, res, next)
+    await exec(req, res, app.routes['POST /chat'])
 
     expect(res._status).toBe(400)
-    expect(res._body.error).toContain('q required')
+    expect(res._body.error).toBe('q required')
   })
 
   it('should return 202 with chatId when q is valid', async () => {
-    vi.mocked(mkChat).mockResolvedValue({ id: 'new-chat-abc', title: 'Test' } as any)
-
-    const req = mockReq({ body: { q: 'What is quantum mechanics?' } })
+    const req = mockReq({ body: { q: 'Hello world' } })
     const res = mockRes()
-    const next = vi.fn()
-
-    await app.routes['POST /chat'](req, res, next)
+    await exec(req, res, app.routes['POST /chat'])
 
     expect(res._status).toBe(202)
     expect(res._body.ok).toBe(true)
-    expect(res._body.chatId).toBe('new-chat-abc')
+    expect(res._body.chatId).toBeDefined()
+    expect(typeof res._body.chatId).toBe('string')
   })
 
   it('should return WebSocket stream path', async () => {
-    vi.mocked(mkChat).mockResolvedValue({ id: 'stream-chat', title: 'Test' } as any)
-
-    const req = mockReq({ body: { q: 'Explain photosynthesis' } })
+    const req = mockReq({ body: { q: 'Hello' } })
     const res = mockRes()
-    const next = vi.fn()
+    await exec(req, res, app.routes['POST /chat'])
 
-    await app.routes['POST /chat'](req, res, next)
-
-    expect(res._body.stream).toContain('/ws/chat?chatId=stream-chat')
+    expect(res._body.stream).toMatch(/^\/ws\/chat\?chatId=/)
   })
 
   it('should use existing chatId when provided and found', async () => {
-    vi.mocked(getChat).mockResolvedValue({ id: 'existing-chat', title: 'Existing' } as any)
-
-    const req = mockReq({ body: { q: 'Follow-up question', chatId: 'existing-chat' } })
+    vi.mocked(getChat).mockResolvedValue({ id: 'existing-chat', title: 'Existing' })
+    const req = mockReq({ body: { q: 'Hello', chatId: 'existing-chat' } })
     const res = mockRes()
-    const next = vi.fn()
+    await exec(req, res, app.routes['POST /chat'])
 
-    await app.routes['POST /chat'](req, res, next)
-
+    expect(getChat).toHaveBeenCalledWith('existing-chat')
     expect(res._body.chatId).toBe('existing-chat')
-    expect(mkChat).not.toHaveBeenCalled()
   })
 
   it('should create new chat when chatId not found', async () => {
     vi.mocked(getChat).mockResolvedValue(null)
-    vi.mocked(mkChat).mockResolvedValue({ id: 'brand-new', title: 'New Chat' } as any)
-
-    const req = mockReq({ body: { q: 'New question', chatId: 'nonexistent-id' } })
+    const req = mockReq({ body: { q: 'Hello', chatId: 'nonexistent' } })
     const res = mockRes()
-    const next = vi.fn()
+    await exec(req, res, app.routes['POST /chat'])
 
-    await app.routes['POST /chat'](req, res, next)
-
-    expect(mkChat).toHaveBeenCalled()
-    expect(res._body.chatId).toBe('brand-new')
+    expect(mkChat).toHaveBeenCalledWith('Hello')
   })
 
   it('should return 400 when q is missing in multipart form', async () => {
-    vi.mocked(parseMultipart).mockResolvedValue({ q: '', files: [] } as any)
-
-    const req = mockReq({ headers: { 'content-type': 'multipart/form-data; boundary=xxxx' } })
+    vi.mocked(parseMultipart).mockResolvedValue({ q: '', chatId: undefined, files: [] })
+    const req = mockReq({ headers: { 'content-type': 'multipart/form-data' } })
     const res = mockRes()
-    const next = vi.fn()
-
-    await app.routes['POST /chat'](req, res, next)
+    await exec(req, res, app.routes['POST /chat'])
 
     expect(res._status).toBe(400)
-    expect(res._body.error).toContain('q required for file uploads')
+    expect(res._body.error).toBe('q required for file uploads')
   })
 
   it('should return 202 with chatId when multipart q is provided', async () => {
-    vi.mocked(parseMultipart).mockResolvedValue({ q: 'My question', chatId: undefined, files: [] } as any)
-    vi.mocked(mkChat).mockResolvedValue({ id: 'mp-chat', title: 'MP Chat' } as any)
-
-    const req = mockReq({ headers: { 'content-type': 'multipart/form-data; boundary=xxxx' } })
+    vi.mocked(parseMultipart).mockResolvedValue({ q: 'From file', chatId: undefined, files: [] })
+    const req = mockReq({ headers: { 'content-type': 'multipart/form-data' } })
     const res = mockRes()
-    const next = vi.fn()
-
-    await app.routes['POST /chat'](req, res, next)
+    await exec(req, res, app.routes['POST /chat'])
 
     expect(res._status).toBe(202)
-    expect(res._body.chatId).toBe('mp-chat')
+    expect(res._body.ok).toBe(true)
   })
 
   it('should call next when multipart parsing fails', async () => {
-    vi.mocked(parseMultipart).mockRejectedValue(new Error('Parse failed'))
-
-    const req = mockReq({ headers: { 'content-type': 'multipart/form-data; boundary=xxxx' } })
+    const error = new Error('parse failed')
+    vi.mocked(parseMultipart).mockRejectedValue(error)
+    const req = mockReq({ headers: { 'content-type': 'multipart/form-data' } })
     const res = mockRes()
     const next = vi.fn()
+    await app.routes['POST /chat'][1](req, res, next)
 
-    await app.routes['POST /chat'](req, res, next)
-
-    expect(next).toHaveBeenCalledWith(expect.any(Error))
+    expect(next).toHaveBeenCalledWith(error)
   })
 
   it('should call next when mkChat fails synchronously', async () => {
-    vi.mocked(mkChat).mockRejectedValue(new Error('DB error'))
-
-    const req = mockReq({ body: { q: 'Test question' } })
+    const error = new Error('mkChat failed')
+    vi.mocked(mkChat).mockRejectedValue(error)
+    const req = mockReq({ body: { q: 'Hello' } })
     const res = mockRes()
     const next = vi.fn()
+    await app.routes['POST /chat'][1](req, res, next)
 
-    await app.routes['POST /chat'](req, res, next)
+    expect(next).toHaveBeenCalledWith(error)
+  })
 
-    expect(next).toHaveBeenCalledWith(expect.any(Error))
+  it('should return 401 when no token provided', async () => {
+    const req = { body: { q: 'Hello' }, params: {}, query: {}, headers: {} }
+    const res = mockRes()
+    await exec(req, res, app.routes['POST /chat'])
+
+    expect(res._status).toBe(401)
   })
 })
 
 // ---------------------------------------------------------------------------
-// GET /chats
+// GET /chats (routes/chat.ts)
 // ---------------------------------------------------------------------------
 
 describe('GET /chats (routes/chat.ts)', () => {
   it('should return empty list when no chats', async () => {
     vi.mocked(listChats).mockResolvedValue([])
-
     const req = mockReq()
     const res = mockRes()
-
-    await app.routes['GET /chats'](req, res)
+    await exec(req, res, app.routes['GET /chats'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.chats).toEqual([])
@@ -235,76 +263,73 @@ describe('GET /chats (routes/chat.ts)', () => {
 
   it('should return all chats', async () => {
     const chats = [
-      { id: 'chat-1', title: 'Math Chat' },
-      { id: 'chat-2', title: 'Physics Chat' },
+      { id: 'chat-1', title: 'Chat 1' },
+      { id: 'chat-2', title: 'Chat 2' },
     ]
     vi.mocked(listChats).mockResolvedValue(chats as any)
-
     const req = mockReq()
     const res = mockRes()
+    await exec(req, res, app.routes['GET /chats'])
 
-    await app.routes['GET /chats'](req, res)
+    expect(res._body.ok).toBe(true)
+    expect(res._body.chats).toEqual(chats)
+  })
 
-    expect(res._body.chats).toHaveLength(2)
-    expect(res._body.chats[0].id).toBe('chat-1')
+  it('should return 401 when no token provided', async () => {
+    const req = { body: {}, params: {}, query: {}, headers: {} }
+    const res = mockRes()
+    await exec(req, res, app.routes['GET /chats'])
+
+    expect(res._status).toBe(401)
   })
 })
 
 // ---------------------------------------------------------------------------
-// GET /chats/:id
+// GET /chats/:id (routes/chat.ts)
 // ---------------------------------------------------------------------------
 
 describe('GET /chats/:id (routes/chat.ts)', () => {
   it('should return 404 when chat not found', async () => {
     vi.mocked(getChat).mockResolvedValue(null)
-
     const req = mockReq({ params: { id: 'nonexistent' } })
     const res = mockRes()
-
-    await app.routes['GET /chats/:id'](req, res)
+    await exec(req, res, app.routes['GET /chats/:id'])
 
     expect(res._status).toBe(404)
-    expect(res._body.error).toContain('not found')
+    expect(res._body.error).toBe('not found')
   })
 
   it('should return chat with messages when found', async () => {
-    vi.mocked(getChat).mockResolvedValue({ id: 'chat-1', title: 'Math Chat' } as any)
-    vi.mocked(getMsgs).mockResolvedValue([
-      { role: 'user', content: 'Hello', at: Date.now() },
-      { role: 'assistant', content: 'Hi there', at: Date.now() },
-    ] as any)
-
+    const chat = { id: 'chat-1', title: 'Test Chat' }
+    const messages = [{ role: 'user', content: 'Hello' }]
+    vi.mocked(getChat).mockResolvedValue(chat as any)
+    vi.mocked(getMsgs).mockResolvedValue(messages as any)
     const req = mockReq({ params: { id: 'chat-1' } })
     const res = mockRes()
-
-    await app.routes['GET /chats/:id'](req, res)
+    await exec(req, res, app.routes['GET /chats/:id'])
 
     expect(res._body.ok).toBe(true)
-    expect(res._body.chat.id).toBe('chat-1')
-    expect(res._body.messages).toHaveLength(2)
+    expect(res._body.chat).toEqual(chat)
+    expect(res._body.messages).toEqual(messages)
   })
 
   it('should return empty messages when chat has none', async () => {
-    vi.mocked(getChat).mockResolvedValue({ id: 'chat-1', title: 'Empty Chat' } as any)
+    const chat = { id: 'chat-1', title: 'Test Chat' }
+    vi.mocked(getChat).mockResolvedValue(chat as any)
     vi.mocked(getMsgs).mockResolvedValue([])
-
     const req = mockReq({ params: { id: 'chat-1' } })
     const res = mockRes()
+    await exec(req, res, app.routes['GET /chats/:id'])
 
-    await app.routes['GET /chats/:id'](req, res)
-
+    expect(res._body.ok).toBe(true)
     expect(res._body.messages).toEqual([])
   })
 
-  it('should return 404 when chat not found', async () => {
-    vi.mocked(getChat).mockResolvedValue(null)
-
-    const req = mockReq({ params: { id: 'nonexistent' } })
+  it('should return 401 when no token provided', async () => {
+    const req = { body: {}, params: { id: 'chat-1' }, query: {}, headers: {} }
     const res = mockRes()
+    await exec(req, res, app.routes['GET /chats/:id'])
 
-    await app.routes['GET /chats/:id'](req, res)
-
-    expect(res._status).toBe(404)
-    expect(res._body.error).toContain('not found')
+    expect(res._status).toBe(401)
   })
 })

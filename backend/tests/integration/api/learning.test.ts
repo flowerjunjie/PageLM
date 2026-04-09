@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import jwt from 'jsonwebtoken'
 
 // Mock analytics service
 vi.mock('../../../src/services/analytics', () => ({
@@ -17,6 +18,13 @@ vi.mock('../../../src/services/analytics', () => ({
   calculateLearningTrend: vi.fn(),
 }))
 
+// Mock config
+vi.mock('../../../src/config/env', () => ({
+  config: {
+    jwtSecret: 'test-secret-key-for-testing-only',
+  }
+}))
+
 import {
   getLearningProfile,
   getLearningStats,
@@ -27,19 +35,20 @@ import {
   calculateLearningTrend,
 } from '../../../src/services/analytics'
 import { learningRoutes } from '../../../src/core/routes/learning'
+import { config } from '../../../src/config/env'
 
 // ---------------------------------------------------------------------------
-// Mock helpers
+// Mock app helper
 // ---------------------------------------------------------------------------
 
 type Handler = (req: any, res: any) => any
 
 function createApp() {
-  const routes: Record<string, Handler> = {}
+  const routes: Record<string, Handler[]> = {}
   return {
     routes,
-    get: (path: string, handler: Handler) => { routes[`GET ${path}`] = handler },
-    post: (path: string, handler: Handler) => { routes[`POST ${path}`] = handler },
+    get: (path: string, ...handlers: Handler[]) => { routes[`GET ${path}`] = handlers },
+    post: (path: string, ...handlers: Handler[]) => { routes[`POST ${path}`] = handlers },
   }
 }
 
@@ -48,14 +57,53 @@ function mockRes() {
     _status: 200,
     _body: undefined,
     statusCode: 200,
-    status: vi.fn(function(code: number) { res._status = code; res.statusCode = code; return res }),
-    send: vi.fn(function(body: any) { res._body = body; return res }),
+    headersSent: false,
+    status: vi.fn(function(code: number) { res._status = code; res.statusCode = code; res.headersSent = true; return res }),
+    send: vi.fn(function(body: any) { res._body = body; res.headersSent = true; return res }),
+    json: vi.fn(function(body: any) { res._body = body; res.headersSent = true; return res }),
   }
   return res
 }
 
+// Create a valid JWT token for testing
+function createTestToken(userId: string): string {
+  return jwt.sign({ userId }, config.jwtSecret, { algorithm: 'HS256' })
+}
+
+// Create mock request with auth token
 function mockReq(overrides: any = {}) {
-  return { body: {}, params: {}, query: {}, ...overrides }
+  const userId = overrides.userId || 'test-user'
+  const token = createTestToken(userId)
+  return {
+    body: {},
+    params: {},
+    query: {},
+    headers: { authorization: `Bearer ${token}` },
+    user: { id: userId },
+    userId,
+    ...overrides
+  }
+}
+
+// Execute middleware chain and call final handler
+async function exec(req: any, res: any, handlers: Handler[]) {
+  let index = 0
+  const next = () => { index++ }
+  while (index < handlers.length) {
+    const handler = handlers[index]
+    if (handler.length > 2) {
+      await new Promise<void>(resolve => {
+        const nextCb = () => { resolve() }
+        handler(req, res, nextCb)
+        if (res.headersSent) resolve()
+      })
+    } else {
+      await handler(req, res)
+      break
+    }
+    index++
+    if (res.headersSent) break
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -79,8 +127,9 @@ describe('GET /api/learning/profile', () => {
     const profile = { stats: { totalStudyTime: 120 }, subjects: [], recentActivity: [] }
     vi.mocked(getLearningProfile).mockResolvedValue(profile as any)
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/profile'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/profile'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.profile).toEqual(profile)
@@ -89,8 +138,9 @@ describe('GET /api/learning/profile', () => {
   it('should return 500 on service error', async () => {
     vi.mocked(getLearningProfile).mockRejectedValue(new Error('Analytics error'))
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/profile'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/profile'])
 
     expect(res._status).toBe(500)
     expect(res._body.ok).toBe(false)
@@ -99,11 +149,21 @@ describe('GET /api/learning/profile', () => {
   it('should return 500 when service rejects without a message', async () => {
     vi.mocked(getLearningProfile).mockRejectedValue('plain failure')
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/profile'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/profile'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to load learning profile' })
+  })
+
+  it('should return 401 when no token provided', async () => {
+    const req = { body: {}, params: {}, query: {}, headers: {} }
+    const res = mockRes()
+
+    await exec(req, res, app.routes['GET /api/learning/profile'])
+
+    expect(res._status).toBe(401)
   })
 })
 
@@ -116,8 +176,9 @@ describe('GET /api/learning/stats', () => {
     const stats = { totalStudyTime: 300, weeklyStudyTime: 120, totalFlashcards: 50 }
     vi.mocked(getLearningStats).mockResolvedValue(stats as any)
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/stats'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/stats'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.stats).toEqual(stats)
@@ -126,8 +187,9 @@ describe('GET /api/learning/stats', () => {
   it('should return 500 on service error', async () => {
     vi.mocked(getLearningStats).mockRejectedValue(new Error('Stats error'))
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/stats'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/stats'])
 
     expect(res._status).toBe(500)
   })
@@ -135,8 +197,9 @@ describe('GET /api/learning/stats', () => {
   it('should return 500 when stats service rejects without a message', async () => {
     vi.mocked(getLearningStats).mockRejectedValue('plain failure')
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/stats'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/stats'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to load learning stats' })
@@ -145,8 +208,9 @@ describe('GET /api/learning/stats', () => {
   it('should return 500 when stats service rejects with undefined', async () => {
     vi.mocked(getLearningStats).mockRejectedValue(undefined)
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/stats'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/stats'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to load learning stats' })
@@ -162,8 +226,9 @@ describe('GET /api/learning/knowledge-map', () => {
     const mapData = { nodes: [{ id: 'n1', label: 'Physics' }], edges: [] }
     vi.mocked(getKnowledgeMapData).mockResolvedValue(mapData as any)
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/knowledge-map'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/knowledge-map'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.nodes).toBeDefined()
@@ -172,8 +237,9 @@ describe('GET /api/learning/knowledge-map', () => {
   it('should return 500 on service error', async () => {
     vi.mocked(getKnowledgeMapData).mockRejectedValue(new Error('Map error'))
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/knowledge-map'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/knowledge-map'])
 
     expect(res._status).toBe(500)
   })
@@ -181,8 +247,9 @@ describe('GET /api/learning/knowledge-map', () => {
   it('should return 500 when knowledge map service rejects without a message', async () => {
     vi.mocked(getKnowledgeMapData).mockRejectedValue('plain failure')
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/knowledge-map'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/knowledge-map'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to load knowledge map' })
@@ -191,8 +258,9 @@ describe('GET /api/learning/knowledge-map', () => {
   it('should return 500 when knowledge map service rejects with undefined', async () => {
     vi.mocked(getKnowledgeMapData).mockRejectedValue(undefined)
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/knowledge-map'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/knowledge-map'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to load knowledge map' })
@@ -208,8 +276,9 @@ describe('GET /api/learning/subjects', () => {
     const subjects = [{ subject: 'math', flashcardCount: 10, nodeCount: 5 }]
     vi.mocked(getSubjectStats).mockResolvedValue(subjects as any)
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/subjects'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/subjects'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.subjects).toEqual(subjects)
@@ -218,8 +287,9 @@ describe('GET /api/learning/subjects', () => {
   it('should return 500 on service error', async () => {
     vi.mocked(getSubjectStats).mockRejectedValue(new Error('Subjects error'))
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/subjects'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/subjects'])
 
     expect(res._status).toBe(500)
   })
@@ -227,8 +297,9 @@ describe('GET /api/learning/subjects', () => {
   it('should return 500 when subject stats service rejects without a message', async () => {
     vi.mocked(getSubjectStats).mockRejectedValue('plain failure')
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/subjects'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/subjects'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to load subject stats' })
@@ -237,8 +308,9 @@ describe('GET /api/learning/subjects', () => {
   it('should return 500 when subject stats service rejects with undefined', async () => {
     vi.mocked(getSubjectStats).mockRejectedValue(undefined)
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/subjects'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/subjects'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to load subject stats' })
@@ -254,8 +326,9 @@ describe('GET /api/learning/activity', () => {
     const activity = [{ type: 'quiz', timestamp: Date.now() }]
     vi.mocked(getRecentActivity).mockResolvedValue(activity as any)
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/activity'](mockReq({ query: {} }), res)
+    await exec(req, res, app.routes['GET /api/learning/activity'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.activity).toEqual(activity)
@@ -264,8 +337,9 @@ describe('GET /api/learning/activity', () => {
   it('should use limit from query parameter', async () => {
     vi.mocked(getRecentActivity).mockResolvedValue([])
 
+    const req = mockReq({ query: { limit: '5' } })
     const res = mockRes()
-    await app.routes['GET /api/learning/activity'](mockReq({ query: { limit: '5' } }), res)
+    await exec(req, res, app.routes['GET /api/learning/activity'])
 
     expect(getRecentActivity).toHaveBeenCalledWith(5)
   })
@@ -273,8 +347,9 @@ describe('GET /api/learning/activity', () => {
   it('should use default limit of 10 when not provided', async () => {
     vi.mocked(getRecentActivity).mockResolvedValue([])
 
+    const req = mockReq({ query: {} })
     const res = mockRes()
-    await app.routes['GET /api/learning/activity'](mockReq({ query: {} }), res)
+    await exec(req, res, app.routes['GET /api/learning/activity'])
 
     expect(getRecentActivity).toHaveBeenCalledWith(10)
   })
@@ -282,8 +357,9 @@ describe('GET /api/learning/activity', () => {
   it('should use default limit when query limit is invalid NaN', async () => {
     vi.mocked(getRecentActivity).mockResolvedValue([])
 
+    const req = mockReq({ query: { limit: 'abc' } })
     const res = mockRes()
-    await app.routes['GET /api/learning/activity'](mockReq({ query: { limit: 'abc' } }), res)
+    await exec(req, res, app.routes['GET /api/learning/activity'])
 
     expect(getRecentActivity).toHaveBeenCalledWith(10)
   })
@@ -291,8 +367,9 @@ describe('GET /api/learning/activity', () => {
   it('should use default limit when query limit is 0', async () => {
     vi.mocked(getRecentActivity).mockResolvedValue([])
 
+    const req = mockReq({ query: { limit: '0' } })
     const res = mockRes()
-    await app.routes['GET /api/learning/activity'](mockReq({ query: { limit: '0' } }), res)
+    await exec(req, res, app.routes['GET /api/learning/activity'])
 
     expect(getRecentActivity).toHaveBeenCalledWith(10)
   })
@@ -300,8 +377,9 @@ describe('GET /api/learning/activity', () => {
   it('should return 500 on service error', async () => {
     vi.mocked(getRecentActivity).mockRejectedValue(new Error('Activity error'))
 
+    const req = mockReq({ query: {} })
     const res = mockRes()
-    await app.routes['GET /api/learning/activity'](mockReq({ query: {} }), res)
+    await exec(req, res, app.routes['GET /api/learning/activity'])
 
     expect(res._status).toBe(500)
   })
@@ -309,8 +387,9 @@ describe('GET /api/learning/activity', () => {
   it('should return 500 when activity service rejects without a message', async () => {
     vi.mocked(getRecentActivity).mockRejectedValue('plain failure')
 
+    const req = mockReq({ query: {} })
     const res = mockRes()
-    await app.routes['GET /api/learning/activity'](mockReq({ query: {} }), res)
+    await exec(req, res, app.routes['GET /api/learning/activity'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to load activity' })
@@ -326,8 +405,9 @@ describe('GET /api/learning/weak-areas', () => {
     const weakAreas = [{ subject: 'calculus', topic: 'integration', score: 30 }]
     vi.mocked(identifyWeakAreas).mockResolvedValue(weakAreas as any)
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/weak-areas'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/weak-areas'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.weakAreas).toEqual(weakAreas)
@@ -336,8 +416,9 @@ describe('GET /api/learning/weak-areas', () => {
   it('should return 500 on service error', async () => {
     vi.mocked(identifyWeakAreas).mockRejectedValue(new Error('Analysis error'))
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/weak-areas'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/weak-areas'])
 
     expect(res._status).toBe(500)
   })
@@ -345,8 +426,9 @@ describe('GET /api/learning/weak-areas', () => {
   it('should return 500 when weak areas service rejects without a message', async () => {
     vi.mocked(identifyWeakAreas).mockRejectedValue('plain failure')
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/weak-areas'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/weak-areas'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to identify weak areas' })
@@ -355,8 +437,9 @@ describe('GET /api/learning/weak-areas', () => {
   it('should return 500 when weak areas service rejects with undefined', async () => {
     vi.mocked(identifyWeakAreas).mockRejectedValue(undefined)
 
+    const req = mockReq()
     const res = mockRes()
-    await app.routes['GET /api/learning/weak-areas'](mockReq(), res)
+    await exec(req, res, app.routes['GET /api/learning/weak-areas'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to identify weak areas' })
@@ -372,8 +455,9 @@ describe('GET /api/learning/trend', () => {
     const trend = [{ date: '2025-01-01', studyTime: 45, flashcardsReviewed: 10, quizScore: 80 }]
     vi.mocked(calculateLearningTrend).mockResolvedValue(trend as any)
 
+    const req = mockReq({ query: {} })
     const res = mockRes()
-    await app.routes['GET /api/learning/trend'](mockReq({ query: {} }), res)
+    await exec(req, res, app.routes['GET /api/learning/trend'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.trend).toEqual(trend)
@@ -382,8 +466,9 @@ describe('GET /api/learning/trend', () => {
   it('should use days from query parameter', async () => {
     vi.mocked(calculateLearningTrend).mockResolvedValue([])
 
+    const req = mockReq({ query: { days: '14' } })
     const res = mockRes()
-    await app.routes['GET /api/learning/trend'](mockReq({ query: { days: '14' } }), res)
+    await exec(req, res, app.routes['GET /api/learning/trend'])
 
     expect(calculateLearningTrend).toHaveBeenCalledWith(14)
   })
@@ -391,8 +476,9 @@ describe('GET /api/learning/trend', () => {
   it('should use default of 30 days when not provided', async () => {
     vi.mocked(calculateLearningTrend).mockResolvedValue([])
 
+    const req = mockReq({ query: {} })
     const res = mockRes()
-    await app.routes['GET /api/learning/trend'](mockReq({ query: {} }), res)
+    await exec(req, res, app.routes['GET /api/learning/trend'])
 
     expect(calculateLearningTrend).toHaveBeenCalledWith(30)
   })
@@ -400,8 +486,9 @@ describe('GET /api/learning/trend', () => {
   it('should use default days when query days is invalid NaN', async () => {
     vi.mocked(calculateLearningTrend).mockResolvedValue([])
 
+    const req = mockReq({ query: { days: 'xyz' } })
     const res = mockRes()
-    await app.routes['GET /api/learning/trend'](mockReq({ query: { days: 'xyz' } }), res)
+    await exec(req, res, app.routes['GET /api/learning/trend'])
 
     expect(calculateLearningTrend).toHaveBeenCalledWith(30)
   })
@@ -409,8 +496,9 @@ describe('GET /api/learning/trend', () => {
   it('should use default days when query days is 0', async () => {
     vi.mocked(calculateLearningTrend).mockResolvedValue([])
 
+    const req = mockReq({ query: { days: '0' } })
     const res = mockRes()
-    await app.routes['GET /api/learning/trend'](mockReq({ query: { days: '0' } }), res)
+    await exec(req, res, app.routes['GET /api/learning/trend'])
 
     expect(calculateLearningTrend).toHaveBeenCalledWith(30)
   })
@@ -418,8 +506,9 @@ describe('GET /api/learning/trend', () => {
   it('should return 500 on service error', async () => {
     vi.mocked(calculateLearningTrend).mockRejectedValue(new Error('Trend error'))
 
+    const req = mockReq({ query: {} })
     const res = mockRes()
-    await app.routes['GET /api/learning/trend'](mockReq({ query: {} }), res)
+    await exec(req, res, app.routes['GET /api/learning/trend'])
 
     expect(res._status).toBe(500)
   })
@@ -427,8 +516,9 @@ describe('GET /api/learning/trend', () => {
   it('should return 500 when trend service rejects without a message', async () => {
     vi.mocked(calculateLearningTrend).mockRejectedValue('plain failure')
 
+    const req = mockReq({ query: {} })
     const res = mockRes()
-    await app.routes['GET /api/learning/trend'](mockReq({ query: {} }), res)
+    await exec(req, res, app.routes['GET /api/learning/trend'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to calculate trend' })

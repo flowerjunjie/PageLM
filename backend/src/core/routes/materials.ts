@@ -9,6 +9,7 @@ import {
   type NoteSummary,
   type Quiz,
 } from "../../lib/ai/learning-materials"
+import { requireAuth } from "../middleware/auth"
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -108,7 +109,7 @@ export async function deleteMaterials(id: string): Promise<boolean> {
 // Routes setup
 export function materialsRoutes(app: any) {
   // POST /api/materials/generate - Manually trigger materials generation
-  app.post("/api/materials/generate", async (req: any, res: any) => {
+  app.post("/api/materials/generate", requireAuth, async (req: any, res: any) => {
     try {
       const { question, answer, chatId } = req.body || {}
 
@@ -145,7 +146,7 @@ export function materialsRoutes(app: any) {
   })
 
   // GET /api/materials/by-chat/:chatId - Get materials for a chat
-  app.get("/api/materials/by-chat/:chatId", async (req: any, res: any) => {
+  app.get("/api/materials/by-chat/:chatId", requireAuth, async (req: any, res: any) => {
     try {
       const { chatId } = req.params
       if (!chatId) {
@@ -173,7 +174,7 @@ export function materialsRoutes(app: any) {
   })
 
   // GET /api/materials/:id - Get single material
-  app.get("/api/materials/:id", async (req: any, res: any) => {
+  app.get("/api/materials/:id", requireAuth, async (req: any, res: any) => {
     try {
       const { id } = req.params
       if (!id) {
@@ -205,7 +206,7 @@ export function materialsRoutes(app: any) {
   })
 
   // DELETE /api/materials/:id - Delete a material
-  app.delete("/api/materials/:id", async (req: any, res: any) => {
+  app.delete("/api/materials/:id", requireAuth, async (req: any, res: any) => {
     try {
       const { id } = req.params
       if (!id) {
@@ -237,7 +238,7 @@ export function materialsRoutes(app: any) {
   })
 
   // GET /api/materials - List all materials (paginated)
-  app.get("/api/materials", async (req: any, res: any) => {
+  app.get("/api/materials", requireAuth, async (req: any, res: any) => {
     try {
       const limit = Math.min(parseInt(req.query.limit) || 50, 100)
       const offset = parseInt(req.query.offset) || 0
