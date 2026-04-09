@@ -320,9 +320,10 @@ describe('PlannerService.getTodaySessions', () => {
   })
 
   it('should return tasks with today slots', async () => {
-    const now = new Date()
-    const todayStart = new Date(now)
-    todayStart.setHours(now.getHours() - 1, 0, 0, 0) // 1 hour ago
+    // Use explicit today dates to avoid timezone/date boundary issues
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStart = new Date(today.getTime() + 10 * 60 * 60 * 1000) // 10:00 today
     const todayEnd = new Date(todayStart.getTime() + 30 * 60 * 1000) // 30 mins later
 
     const taskWithTodaySlots = makeTask({

@@ -115,11 +115,21 @@ function getPreviousWeek(weekStr: string): string {
 }
 
 function formatWeekString(date: Date): string {
-  const year = date.getFullYear()
-  const jan1 = new Date(year, 0, 1)
-  const days = Math.floor((date.getTime() - jan1.getTime()) / 86400000)
-  const weekNum = Math.ceil((days + 1) / 7)
-  return `${year}-W${String(weekNum).padStart(2, '0')}`
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  // Find the Sunday of the current week
+  const dayNum = d.getDay()
+  const sundayDiff = dayNum === 0 ? 0 : -dayNum
+  const weekStart = new Date(d)
+  weekStart.setDate(d.getDate() + sundayDiff)
+  // For the week containing Jan 4, find the first Sunday of week 1
+  const jan4 = new Date(weekStart.getFullYear(), 0, 4)
+  const jan4Day = jan4.getDay()
+  // week1Start is the Sunday on or before Jan 4
+  const week1Start = new Date(jan4.getFullYear(), 0, 4 - jan4Day)
+  const days = Math.floor((weekStart.getTime() - week1Start.getTime()) / 86400000)
+  const weekNum = Math.floor(days / 7) + 1
+  return `${weekStart.getFullYear()}-W${String(weekNum).padStart(2, '0')}`
 }
 
 export async function generateWeeklyReport(
