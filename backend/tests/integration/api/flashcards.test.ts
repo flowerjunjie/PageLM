@@ -273,18 +273,18 @@ describe('DELETE /flashcards/:id', () => {
   })
 
   it('should delete flashcard and return ok: true', async () => {
-    const card = { id: 'fc-del', question: 'Q', answer: 'A', tag: 'math' }
+    const card = { id: 'fc-del', question: 'Q', answer: 'A', tag: 'math', userId: 'test-user' }
     vi.mocked(db.get)
       .mockResolvedValueOnce(card) // flashcard exists check
       .mockResolvedValueOnce([card]) // flashcards list
 
-    const req = mockReq({ params: { id: 'fc-del' } })
+    const req = mockReq({ params: { id: 'fc-del' }, userId: 'test-user' })
     const res = mockRes()
 
     await (app.routes['DELETE /flashcards/:id'] as any)(req, res)
 
     expect(res._body.ok).toBe(true)
-    expect(db.delete).toHaveBeenCalledWith('flashcard:fc-del')
+    expect(db.delete).toHaveBeenCalledWith('user:test-user:flashcard:fc-del')
   })
 
   it('should return 500 on database error', async () => {

@@ -387,76 +387,81 @@ export function plannerRoutes(app: any) {
             const now = Date.now()
             const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000
 
-            // Calculate completion rate
-            const completedTasks = tasks.filter(t => t.status === "done")
-            const completionRate = tasks.length > 0 ? completedTasks.length / tasks.length : 0
-
-            // Calculate weekly stats
-            const thisWeekTasks = tasks.filter(t => t.createdAt && new Date(t.createdAt).getTime() > oneWeekAgo)
-            const thisWeekCompleted = thisWeekTasks.filter(t => t.status === "done")
-
-            // Calculate time estimates accuracy
-            const tasksWithActualTime = completedTasks.filter(t => t.actualMins && t.estMins)
+            // Single pass to compute all stats
+            let totalTasks = 0
+            let completedTasks = 0
+            let thisWeekTasks = 0
+            let thisWeekCompleted = 0
             let totalEstimateAccuracy = 0
             let estimateCount = 0
+            let overdueTasks: any[] = []
+            const subjectStats: Record<string, { total: number; completed: number; totalMinutes: number }> = {}
+            const priorityStats = { high: 0, medium: 0, low: 0 }
+            let totalEstimatedMinutes = 0
+            let totalActualMinutes = 0
 
-            for (const task of tasksWithActualTime) {
-                if (task.actualMins && task.estMins) {
-                    const accuracy = Math.min(task.estMins / task.actualMins, 2) // Cap at 2x
-                    totalEstimateAccuracy += accuracy
+            for (const task of tasks) {
+                totalTasks++
+                totalEstimatedMinutes += task.estMins || 0
+
+                const isDone = task.status === "done"
+                const isThisWeek = task.createdAt && new Date(task.createdAt).getTime() > oneWeekAgo
+
+                if (isDone) {
+                    completedTasks++
+                    totalActualMinutes += task.actualMins || 0
+                }
+
+                if (isThisWeek) {
+                    thisWeekTasks++
+                    if (isDone) thisWeekCompleted++
+                }
+
+                if (isDone && task.actualMins && task.estMins) {
+                    totalEstimateAccuracy += Math.min(task.estMins / task.actualMins, 2)
                     estimateCount++
                 }
-            }
 
-            const avgEstimateAccuracy = estimateCount > 0 ? totalEstimateAccuracy / estimateCount : 1
+                if (!isDone && new Date(task.dueAt).getTime() < now) {
+                    overdueTasks.push(task)
+                }
 
-            // Calculate procrastination stats
-            const overdueTasks = tasks.filter(t => {
-                if (t.status === "done") return false
-                return new Date(t.dueAt).getTime() < now
-            })
-
-            // Subject distribution
-            const subjectStats: Record<string, { total: number; completed: number; totalMinutes: number }> = {}
-            for (const task of tasks) {
                 const subject = task.subject || "other"
                 if (!subjectStats[subject]) {
                     subjectStats[subject] = { total: 0, completed: 0, totalMinutes: 0 }
                 }
                 subjectStats[subject].total++
-                if (task.status === "done") {
-                    subjectStats[subject].completed++
-                }
+                if (isDone) subjectStats[subject].completed++
                 subjectStats[subject].totalMinutes += task.actualMins || task.estMins || 0
+
+                if (task.priority >= 4) priorityStats.high++
+                else if (task.priority === 2 || task.priority === 3) priorityStats.medium++
+                else priorityStats.low++
             }
 
-            // Priority distribution
-            const priorityStats = {
-                high: tasks.filter(t => t.priority >= 4).length,
-                medium: tasks.filter(t => t.priority === 2 || t.priority === 3).length,
-                low: tasks.filter(t => t.priority === 1).length
-            }
+            const completionRate = totalTasks > 0 ? completedTasks / totalTasks : 0
+            const avgEstimateAccuracy = estimateCount > 0 ? totalEstimateAccuracy / estimateCount : 1
 
             res.send({
                 ok: true,
                 stats: {
                     overall: {
-                        totalTasks: tasks.length,
-                        completedTasks: completedTasks.length,
+                        totalTasks,
+                        completedTasks,
                         completionRate: Math.round(completionRate * 100),
                         overdueTasks: overdueTasks.length
                     },
                     weekly: {
-                        total: thisWeekTasks.length,
-                        completed: thisWeekCompleted.length,
-                        completionRate: thisWeekTasks.length > 0
-                            ? Math.round((thisWeekCompleted.length / thisWeekTasks.length) * 100)
+                        total: thisWeekTasks,
+                        completed: thisWeekCompleted,
+                        completionRate: thisWeekTasks > 0
+                            ? Math.round((thisWeekCompleted / thisWeekTasks) * 100)
                             : 0
                     },
                     timeEstimates: {
                         avgAccuracy: Math.round(avgEstimateAccuracy * 100),
-                        totalEstimatedMinutes: tasks.reduce((sum, t) => sum + (t.estMins || 0), 0),
-                        totalActualMinutes: completedTasks.reduce((sum, t) => sum + (t.actualMins || 0), 0)
+                        totalEstimatedMinutes,
+                        totalActualMinutes
                     },
                     subjects: subjectStats,
                     priorities: priorityStats,
