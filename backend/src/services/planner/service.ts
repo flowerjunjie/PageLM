@@ -3,6 +3,7 @@ import { createTask, getTask, updateTask, deleteTask, listTasks } from "./store"
 import { parseTask, generateSteps, makeSlots, replan, calculateUrgencyScore } from "./ai"
 import { planTask, planTasks, weeklyPlan, defaultPolicy } from "./scheduler"
 import { handleAsk } from "../../lib/ai/ask"
+import { withTimeout } from "../../utils/quiz/promise"
 import crypto from "crypto"
 import fs from "fs"
 
@@ -216,7 +217,7 @@ export class PlannerService {
 
     private async generateSummary(content: string): Promise<string> {
         const prompt = `Create a clear, concise summary of this study material that highlights the key concepts and important points:`
-        const response = await handleAsk(prompt + '\n\n' + content)
+        const response = await withTimeout(handleAsk(prompt + '\n\n' + content), 60000, 'generateSummary')
         return response.answer
     }
 
@@ -229,15 +230,15 @@ export class PlannerService {
 
         Format as a structured guide with clear sections:`
 
-        const response = await handleAsk(prompt + '\n\n' + content)
+        const response = await withTimeout(handleAsk(prompt + '\n\n' + content), 60000, 'generateStudyGuide')
         return response.answer
     }
 
     private async generateFlashcards(content: string, task: Task): Promise<Array<{ front: string; back: string }>> {
-        const prompt = `Create 10-15 flashcards for this ${task.type || 'assignment'}. 
+        const prompt = `Create 10-15 flashcards for this ${task.type || 'assignment'}.
         Return as JSON array with "front" and "back" properties.
         Focus on key concepts, definitions, formulas, and important facts.
-        
+
         Example format:
         [
           {"front": "What is the derivative of x^2?", "back": "2x"},
@@ -245,7 +246,7 @@ export class PlannerService {
         ]`
 
         try {
-            const response = await handleAsk(prompt + '\n\n' + content)
+            const response = await withTimeout(handleAsk(prompt + '\n\n' + content), 60000, 'generateFlashcards')
             return JSON.parse(response.answer)
         } catch (error) {
             console.warn('Failed to parse flashcards JSON, returning default')
@@ -260,7 +261,7 @@ export class PlannerService {
         Include multiple choice and short answer questions.
         Focus on testing understanding of key concepts.`
 
-        const response = await handleAsk(prompt + '\n\n' + content)
+        const response = await withTimeout(handleAsk(prompt + '\n\n' + content), 60000, 'generateQuiz')
         return response.answer
     }
 
