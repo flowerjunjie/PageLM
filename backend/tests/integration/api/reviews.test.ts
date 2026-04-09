@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import jwt from 'jsonwebtoken'
 
 // Mock spaced-repetition service
 vi.mock('../../../src/services/spaced-repetition', () => ({
@@ -17,6 +18,13 @@ vi.mock('../../../src/services/spaced-repetition', () => ({
   scheduleReview: vi.fn(),
 }))
 
+// Mock config to provide a test JWT secret
+vi.mock('../../../src/config/env', () => ({
+  config: {
+    jwtSecret: 'test-secret-key-for-testing-only',
+  }
+}))
+
 import {
   getDueReviews,
   getAllReviews,
@@ -25,6 +33,7 @@ import {
   deleteReviewSchedule,
 } from '../../../src/services/spaced-repetition'
 import { reviewRoutes } from '../../../src/core/routes/reviews'
+import { config } from '../../../src/config/env'
 
 // ---------------------------------------------------------------------------
 // Mock app helper
@@ -33,13 +42,13 @@ import { reviewRoutes } from '../../../src/core/routes/reviews'
 type Handler = (req: any, res: any) => any
 
 function createApp() {
-  const routes: Record<string, Handler> = {}
+  const routes: Record<string, Handler[]> = {}
   return {
     routes,
-    get: (path: string, handler: Handler) => { routes[`GET ${path}`] = handler },
-    post: (path: string, handler: Handler) => { routes[`POST ${path}`] = handler },
-    delete: (path: string, handler: Handler) => { routes[`DELETE ${path}`] = handler },
-    ws: (path: string, handler: Handler) => { routes[`WS ${path}`] = handler },
+    get: (path: string, ...handlers: Handler[]) => { routes[`GET ${path}`] = handlers },
+    post: (path: string, ...handlers: Handler[]) => { routes[`POST ${path}`] = handlers },
+    delete: (path: string, ...handlers: Handler[]) => { routes[`DELETE ${path}`] = handlers },
+    ws: (path: string, handler: Handler) => { routes[`WS ${path}`] = [handler] },
   }
 }
 
@@ -48,15 +57,55 @@ function mockRes() {
     _status: 200,
     _body: undefined,
     statusCode: 200,
-    status: vi.fn(function(code: number) { res._status = code; res.statusCode = code; return res }),
-    send: vi.fn(function(body: any) { res._body = body; return res }),
-    json: vi.fn(function(body: any) { res._body = body; return res }),
+    headersSent: false,
+    status: vi.fn(function(code: number) { res._status = code; res.statusCode = code; res.headersSent = true; return res }),
+    send: vi.fn(function(body: any) { res._body = body; res.headersSent = true; return res }),
+    json: vi.fn(function(body: any) { res._body = body; res.headersSent = true; return res }),
   }
   return res
 }
 
+// Create a valid JWT token for testing
+function createTestToken(userId: string): string {
+  return jwt.sign({ userId }, config.jwtSecret, { algorithm: 'HS256' })
+}
+
+// Create mock request with auth token
 function mockReq(overrides: any = {}) {
-  return { body: {}, params: {}, query: {}, headers: {}, ...overrides }
+  const userId = overrides.userId || 'test-user'
+  const token = createTestToken(userId)
+  return {
+    body: {},
+    params: {},
+    query: {},
+    headers: { authorization: `Bearer ${token}` },
+    user: { id: userId },
+    userId,
+    ...overrides
+  }
+}
+
+// Execute middleware chain and call final handler
+async function exec(req: any, res: any, handlers: Handler[]) {
+  let index = 0
+  const next = () => { index++ }
+  while (index < handlers.length) {
+    const handler = handlers[index]
+    if (handler.length > 2) {
+      await new Promise<void>(resolve => {
+        const nextCb = () => { resolve() }
+        handler(req, res, nextCb)
+        // Safety: if response was sent without calling next, resolve immediately
+        if (res.headersSent) resolve()
+      })
+    } else {
+      await handler(req, res)
+      break
+    }
+    index++
+    // Stop if response was already sent (e.g., auth middleware sent 401)
+    if (res.headersSent) break
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -76,42 +125,40 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('GET /api/reviews/due', () => {
-  it('should return due reviews for default user', async () => {
+  it('should return due reviews for authenticated user', async () => {
     const dueReviews = [{ id: 'fc-1', flashcardId: 'fc-1', dueDate: Date.now() }]
     vi.mocked(getDueReviews).mockResolvedValue(dueReviews as any)
 
-    const req = mockReq({ query: {} })
+    const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /api/reviews/due'](req, res)
+    await exec(req, res, app.routes['GET /api/reviews/due'])
 
     expect(res._body.success).toBe(true)
     expect(res._body.data).toEqual(dueReviews)
     expect(res._body.meta.total).toBe(1)
-    expect(getDueReviews).toHaveBeenCalledWith('default')
-  })
-
-  it('should use userId from query parameter', async () => {
-    vi.mocked(getDueReviews).mockResolvedValue([])
-
-    const req = mockReq({ query: { userId: 'user-123' } })
-    const res = mockRes()
-
-    await app.routes['GET /api/reviews/due'](req, res)
-
-    expect(getDueReviews).toHaveBeenCalledWith('user-123')
+    expect(getDueReviews).toHaveBeenCalledWith('test-user')
   })
 
   it('should return 500 on service error', async () => {
     vi.mocked(getDueReviews).mockRejectedValue(new Error('DB error'))
 
-    const req = mockReq({ query: {} })
+    const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /api/reviews/due'](req, res)
+    await exec(req, res, app.routes['GET /api/reviews/due'])
 
     expect(res._status).toBe(500)
     expect(res._body.success).toBe(false)
+  })
+
+  it('should return 401 when no token provided', async () => {
+    const req = { body: {}, params: {}, query: {}, headers: {} }
+    const res = mockRes()
+
+    await exec(req, res, app.routes['GET /api/reviews/due'])
+
+    expect(res._status).toBe(401)
   })
 })
 
@@ -120,14 +167,14 @@ describe('GET /api/reviews/due', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /api/reviews/all', () => {
-  it('should return all reviews', async () => {
+  it('should return all reviews for authenticated user', async () => {
     const reviews = [{ id: 'r-1', flashcardId: 'fc-1' }, { id: 'r-2', flashcardId: 'fc-2' }]
     vi.mocked(getAllReviews).mockResolvedValue(reviews as any)
 
-    const req = mockReq({ query: {} })
+    const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /api/reviews/all'](req, res)
+    await exec(req, res, app.routes['GET /api/reviews/all'])
 
     expect(res._body.success).toBe(true)
     expect(res._body.data.length).toBe(2)
@@ -137,8 +184,12 @@ describe('GET /api/reviews/all', () => {
   it('should return 500 on service error', async () => {
     vi.mocked(getAllReviews).mockRejectedValue(new Error('Service error'))
 
-    await app.routes['GET /api/reviews/all'](mockReq({ query: {} }), mockRes())
-    // Just verify it doesn't throw - error handling path
+    const req = mockReq()
+    const res = mockRes()
+
+    await exec(req, res, app.routes['GET /api/reviews/all'])
+
+    expect(res._status).toBe(500)
   })
 })
 
@@ -151,7 +202,7 @@ describe('POST /api/reviews/:id/result', () => {
     const req = mockReq({ params: { id: 'fc-1' }, body: { quality: 'bad' } })
     const res = mockRes()
 
-    await app.routes['POST /api/reviews/:id/result'](req, res)
+    await exec(req, res, app.routes['POST /api/reviews/:id/result'])
 
     expect(res._status).toBe(400)
     expect(res._body.success).toBe(false)
@@ -161,7 +212,7 @@ describe('POST /api/reviews/:id/result', () => {
     const req = mockReq({ params: { id: 'fc-1' }, body: { quality: 6 } })
     const res = mockRes()
 
-    await app.routes['POST /api/reviews/:id/result'](req, res)
+    await exec(req, res, app.routes['POST /api/reviews/:id/result'])
 
     expect(res._status).toBe(400)
   })
@@ -170,7 +221,7 @@ describe('POST /api/reviews/:id/result', () => {
     const req = mockReq({ params: { id: 'fc-1' }, body: { quality: -1 } })
     const res = mockRes()
 
-    await app.routes['POST /api/reviews/:id/result'](req, res)
+    await exec(req, res, app.routes['POST /api/reviews/:id/result'])
 
     expect(res._status).toBe(400)
   })
@@ -181,7 +232,7 @@ describe('POST /api/reviews/:id/result', () => {
     const req = mockReq({ params: { id: 'nonexistent' }, body: { quality: 3 } })
     const res = mockRes()
 
-    await app.routes['POST /api/reviews/:id/result'](req, res)
+    await exec(req, res, app.routes['POST /api/reviews/:id/result'])
 
     expect(res._status).toBe(404)
   })
@@ -193,11 +244,11 @@ describe('POST /api/reviews/:id/result', () => {
     const req = mockReq({ params: { id: 'fc-1' }, body: { quality: 4 } })
     const res = mockRes()
 
-    await app.routes['POST /api/reviews/:id/result'](req, res)
+    await exec(req, res, app.routes['POST /api/reviews/:id/result'])
 
     expect(res._body.success).toBe(true)
     expect(res._body.data).toEqual(updatedSchedule)
-    expect(updateReviewResult).toHaveBeenCalledWith('fc-1', 4)
+    expect(updateReviewResult).toHaveBeenCalledWith('fc-1', 4, 'test-user')
   })
 
   it('should accept quality of 0 (valid boundary)', async () => {
@@ -207,7 +258,7 @@ describe('POST /api/reviews/:id/result', () => {
     const req = mockReq({ params: { id: 'fc-1' }, body: { quality: 0 } })
     const res = mockRes()
 
-    await app.routes['POST /api/reviews/:id/result'](req, res)
+    await exec(req, res, app.routes['POST /api/reviews/:id/result'])
 
     expect(res._body.success).toBe(true)
   })
@@ -219,7 +270,7 @@ describe('POST /api/reviews/:id/result', () => {
     const req = mockReq({ params: { id: 'fc-1' }, body: { quality: 5 } })
     const res = mockRes()
 
-    await app.routes['POST /api/reviews/:id/result'](req, res)
+    await exec(req, res, app.routes['POST /api/reviews/:id/result'])
 
     expect(res._body.success).toBe(true)
   })
@@ -230,7 +281,7 @@ describe('POST /api/reviews/:id/result', () => {
     const req = mockReq({ params: { id: 'fc-1' }, body: { quality: 3 } })
     const res = mockRes()
 
-    await app.routes['POST /api/reviews/:id/result'](req, res)
+    await exec(req, res, app.routes['POST /api/reviews/:id/result'])
 
     expect(res._status).toBe(500)
   })
@@ -241,7 +292,7 @@ describe('POST /api/reviews/:id/result', () => {
     const req = mockReq({ params: { id: 'fc-1' }, body: { quality: 3 } })
     const res = mockRes()
 
-    await app.routes['POST /api/reviews/:id/result'](req, res)
+    await exec(req, res, app.routes['POST /api/reviews/:id/result'])
 
     expect(res._status).toBe(500)
     expect(res._body.error).toContain('Failed to update review result')
@@ -253,28 +304,17 @@ describe('POST /api/reviews/:id/result', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /api/reviews/stats', () => {
-  it('should return review stats', async () => {
+  it('should return review stats for authenticated user', async () => {
     const stats = { totalDue: 5, streakDays: 3, totalReviewed: 20 }
     vi.mocked(getReviewStats).mockResolvedValue(stats as any)
 
-    const req = mockReq({ query: {} })
+    const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /api/reviews/stats'](req, res)
+    await exec(req, res, app.routes['GET /api/reviews/stats'])
 
     expect(res._body.success).toBe(true)
     expect(res._body.data).toEqual(stats)
-  })
-
-  it('should use userId from query', async () => {
-    vi.mocked(getReviewStats).mockResolvedValue({} as any)
-
-    const req = mockReq({ query: { userId: 'user-xyz' } })
-    const res = mockRes()
-
-    await app.routes['GET /api/reviews/stats'](req, res)
-
-    expect(getReviewStats).toHaveBeenCalledWith('user-xyz')
   })
 })
 
@@ -286,33 +326,22 @@ describe('DELETE /api/reviews/:id', () => {
   it('should delete review schedule and return success', async () => {
     vi.mocked(deleteReviewSchedule).mockResolvedValue(undefined)
 
-    const req = mockReq({ params: { id: 'fc-1' }, query: {} })
+    const req = mockReq({ params: { id: 'fc-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /api/reviews/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /api/reviews/:id'])
 
     expect(res._body.success).toBe(true)
-    expect(deleteReviewSchedule).toHaveBeenCalledWith('fc-1', 'default')
-  })
-
-  it('should use userId from query parameter', async () => {
-    vi.mocked(deleteReviewSchedule).mockResolvedValue(undefined)
-
-    const req = mockReq({ params: { id: 'fc-2' }, query: { userId: 'user-del' } })
-    const res = mockRes()
-
-    await app.routes['DELETE /api/reviews/:id'](req, res)
-
-    expect(deleteReviewSchedule).toHaveBeenCalledWith('fc-2', 'user-del')
+    expect(deleteReviewSchedule).toHaveBeenCalledWith('fc-1', 'test-user')
   })
 
   it('should return 500 on service error', async () => {
     vi.mocked(deleteReviewSchedule).mockRejectedValue(new Error('Cannot delete'))
 
-    const req = mockReq({ params: { id: 'fc-1' }, query: {} })
+    const req = mockReq({ params: { id: 'fc-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /api/reviews/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /api/reviews/:id'])
 
     expect(res._status).toBe(500)
     expect(res._body.success).toBe(false)

@@ -6,15 +6,17 @@ import {
   deleteReviewSchedule,
   ReviewSchedule,
 } from '../../services/spaced-repetition'
+import { requireAuth } from '../middleware/auth'
+import { getUserId } from '../middleware/auth-keyv'
 
 export function reviewRoutes(app: any) {
   /**
    * GET /api/reviews/due
    * Get today's due reviews
    */
-  app.get('/api/reviews/due', async (req: any, res: any) => {
+  app.get('/api/reviews/due', requireAuth, async (req: any, res: any) => {
     try {
-      const userId = req.query.userId || 'default'
+      const userId = getUserId(req)
       const dueReviews = await getDueReviews(userId)
 
       res.send({
@@ -37,9 +39,9 @@ export function reviewRoutes(app: any) {
    * GET /api/reviews/all
    * Get all review schedules for user
    */
-  app.get('/api/reviews/all', async (req: any, res: any) => {
+  app.get('/api/reviews/all', requireAuth, async (req: any, res: any) => {
     try {
-      const userId = req.query.userId || 'default'
+      const userId = getUserId(req)
       const reviews = await getAllReviews(userId)
 
       res.send({
@@ -63,8 +65,9 @@ export function reviewRoutes(app: any) {
    * Submit review result
    * Body: { quality: number } // 0-5
    */
-  app.post('/api/reviews/:id/result', async (req: any, res: any) => {
+  app.post('/api/reviews/:id/result', requireAuth, async (req: any, res: any) => {
     try {
+      const userId = getUserId(req)
       const { id } = req.params
       const { quality } = req.body
 
@@ -76,7 +79,7 @@ export function reviewRoutes(app: any) {
         })
       }
 
-      const updatedSchedule = await updateReviewResult(id, quality)
+      const updatedSchedule = await updateReviewResult(id, quality, userId)
 
       if (!updatedSchedule) {
         return res.status(404).send({
@@ -102,9 +105,9 @@ export function reviewRoutes(app: any) {
    * GET /api/reviews/stats
    * Get review statistics
    */
-  app.get('/api/reviews/stats', async (req: any, res: any) => {
+  app.get('/api/reviews/stats', requireAuth, async (req: any, res: any) => {
     try {
-      const userId = req.query.userId || 'default'
+      const userId = getUserId(req)
       const stats = await getReviewStats(userId)
 
       res.send({
@@ -124,10 +127,10 @@ export function reviewRoutes(app: any) {
    * DELETE /api/reviews/:id
    * Delete a review schedule
    */
-  app.delete('/api/reviews/:id', async (req: any, res: any) => {
+  app.delete('/api/reviews/:id', requireAuth, async (req: any, res: any) => {
     try {
+      const userId = getUserId(req)
       const { id } = req.params
-      const userId = req.query.userId || 'default'
 
       await deleteReviewSchedule(id, userId)
 
