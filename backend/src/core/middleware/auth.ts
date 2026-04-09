@@ -27,17 +27,10 @@ interface ExpressResponse {
 
 /**
  * Extract JWT token from request
- * Checks: Authorization header, query parameter, cookie
+ * Checks: Authorization header (Bearer), cookie
  */
 export function extractToken(req: IncomingMessage): string | null {
-  // Check query parameter
-  const query = (req as any).query;
-  const tokenFromQuery = query?.token || query?.jwt;
-  if (tokenFromQuery && typeof tokenFromQuery === 'string') {
-    return tokenFromQuery;
-  }
-
-  // Check Authorization header
+  // Check Authorization header (Bearer scheme)
   const authHeader = req.headers?.authorization;
   if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
