@@ -206,6 +206,12 @@ if (config.embeddings_provider === 'gemini' && !config.gemini) {
   console.warn('[env] Embeddings functionality may not work correctly.')
 }
 
+if (!config.jwtSecret) {
+  console.warn('[env] WARNING: JWT_SECRET is not set!')
+  console.warn('[env] WebSocket connections will NOT be authenticated. This is a security risk.')
+  console.warn('[env] Set JWT_SECRET environment variable for production deployments.')
+}
+
 // 导出调试信息函数
 export function getEnvDebugInfo() {
   return {
