@@ -270,8 +270,15 @@ export function plannerRoutes(app: any) {
 
     app.post("/sessions/start", requireAuth, async (req: any, res: any) => {
         try {
+            const userId = getUserId(req)
             const { taskId, slotId } = req.body
             if (!taskId) return res.status(400).send({ ok: false, error: "taskId required" })
+
+            // IDOR protection: verify task ownership
+            const task = await plannerService.getTask(taskId, userId)
+            if (!task) {
+                return res.status(404).send({ ok: false, error: "Task not found" })
+            }
 
             const session = {
                 id: crypto.randomUUID(),
@@ -310,9 +317,18 @@ export function plannerRoutes(app: any) {
 
     app.post("/reminders/schedule", requireAuth, async (req: any, res: any) => {
         try {
+            const userId = getUserId(req)
             const { text, scheduledFor, taskId } = req.body
             if (!text || !scheduledFor) {
                 return res.status(400).send({ ok: false, error: "text and scheduledFor required" })
+            }
+
+            // IDOR protection: if taskId provided, verify ownership
+            if (taskId) {
+                const task = await plannerService.getTask(taskId, userId)
+                if (!task) {
+                    return res.status(404).send({ ok: false, error: "Task not found" })
+                }
             }
 
             const reminder = {

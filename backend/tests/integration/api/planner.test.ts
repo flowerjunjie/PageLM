@@ -924,6 +924,7 @@ describe('POST /sessions/start', () => {
   })
 
   it('should return session with id and startedAt', async () => {
+    vi.mocked(plannerService.getTask).mockResolvedValue(sampleTask as any)
     const req = mockReq({ body: { taskId: 'task-1' } })
     const res = mockRes()
 
@@ -946,6 +947,7 @@ describe('POST /sessions/start', () => {
   })
 
   it('should include slotId when provided', async () => {
+    vi.mocked(plannerService.getTask).mockResolvedValue(sampleTask as any)
     const req = mockReq({ body: { taskId: 'task-1', slotId: 'slot-1' } })
     const res = mockRes()
 
@@ -1040,6 +1042,7 @@ describe('POST /reminders/schedule', () => {
       timeoutCallbacks.push(() => callback())
       return 1 as any
     }) as typeof setTimeout)
+    vi.mocked(plannerService.getTask).mockResolvedValue(sampleTask as any)
 
     const req = mockReq({ body: { text: 'Study reminder', scheduledFor, taskId: 'task-1' } })
     const res = mockRes()
