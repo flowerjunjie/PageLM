@@ -206,10 +206,10 @@ describe('SM-2 Algorithm', () => {
   })
 
   describe('scheduleReview', () => {
-    it('should create new review schedule with default user', async () => {
+    it('should create new review schedule with explicit default user', async () => {
       const flashcardId = 'fc-test-123'
 
-      const result = await scheduleReview(flashcardId)
+      const result = await scheduleReview(flashcardId, 'default')
 
       expect(result).toMatchObject({
         flashcardId,
@@ -234,7 +234,7 @@ describe('SM-2 Algorithm', () => {
     it('should save schedule to database', async () => {
       const flashcardId = 'fc-test-789'
 
-      await scheduleReview(flashcardId)
+      await scheduleReview(flashcardId, 'default')
 
       expect(db.set).toHaveBeenCalledWith(
         `review:${flashcardId}`,
@@ -380,7 +380,7 @@ describe('SM-2 Algorithm', () => {
 
       vi.mocked(db.get).mockResolvedValueOnce(existingSchedule)
 
-      const result = await updateReviewResult(flashcardId, 5)
+      const result = await updateReviewResult(flashcardId, 5, 'default')
 
       expect(result).not.toBeNull()
       expect(result!.repetition).toBe(2)
@@ -403,7 +403,7 @@ describe('SM-2 Algorithm', () => {
 
       vi.mocked(db.get).mockResolvedValueOnce(existingSchedule)
 
-      const result = await updateReviewResult(flashcardId, 1)
+      const result = await updateReviewResult(flashcardId, 1, 'default')
 
       expect(result!.repetition).toBe(0)
       expect(result!.interval).toBe(1)
@@ -423,7 +423,7 @@ describe('SM-2 Algorithm', () => {
 
       vi.mocked(db.get).mockResolvedValueOnce(existingSchedule)
 
-      const result = await updateReviewResult(flashcardId, 10)
+      const result = await updateReviewResult(flashcardId, 10, 'default')
 
       expect(result!.reviewHistory[0].quality).toBe(5)
     })
@@ -444,7 +444,7 @@ describe('SM-2 Algorithm', () => {
 
       vi.mocked(db.get).mockResolvedValueOnce(existingSchedule)
 
-      await updateReviewResult(flashcardId, 4)
+      await updateReviewResult(flashcardId, 4, 'default')
 
       expect(db.set).toHaveBeenCalledWith(
         `review:${flashcardId}`,
@@ -584,6 +584,9 @@ describe('SM-2 Algorithm', () => {
       const flashcardId = 'fc-delete'
       const userId = 'user-delete'
 
+      // First call: get schedule for ownership check
+      vi.mocked(db.get).mockResolvedValueOnce({ flashcardId, userId })
+      // Second call: get user-reviews list
       vi.mocked(db.get).mockResolvedValueOnce([flashcardId])
 
       await deleteReviewSchedule(flashcardId, userId)
@@ -595,6 +598,9 @@ describe('SM-2 Algorithm', () => {
       const flashcardId = 'fc-remove'
       const userId = 'user-remove'
 
+      // First call: get schedule for ownership check
+      vi.mocked(db.get).mockResolvedValueOnce({ flashcardId, userId })
+      // Second call: get user-reviews list
       vi.mocked(db.get).mockResolvedValueOnce([flashcardId, 'fc-other'])
 
       await deleteReviewSchedule(flashcardId, userId)
@@ -609,6 +615,9 @@ describe('SM-2 Algorithm', () => {
       const flashcardId = 'fc-success'
       const userId = 'user-success'
 
+      // First call: get schedule for ownership check
+      vi.mocked(db.get).mockResolvedValueOnce({ flashcardId, userId })
+      // Second call: get user-reviews list
       vi.mocked(db.get).mockResolvedValueOnce([flashcardId])
 
       const result = await deleteReviewSchedule(flashcardId, userId)

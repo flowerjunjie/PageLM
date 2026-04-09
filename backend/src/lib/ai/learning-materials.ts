@@ -135,7 +135,7 @@ async function callLLM(systemPrompt: string, userPrompt: string): Promise<string
 }
 
 // Generate flashcards from answer
-export async function generateFlashcards(answer: string): Promise<FlashCard[]> {
+export async function generateFlashcards(answer: string, userId: string = 'system'): Promise<FlashCard[]> {
   const systemPrompt = `
 You are an educational AI assistant. Extract 3-5 key knowledge points from the provided content and generate flashcards in Q&A format.
 
@@ -183,7 +183,7 @@ Generate 3-5 flashcards in the specified JSON format.`
 
     // Automatically create review schedules for each flashcard
     for (const card of flashcards) {
-      await scheduleReview(card.id)
+      await scheduleReview(card.id, userId)
     }
 
     return flashcards
@@ -363,14 +363,16 @@ Generate questions in the specified JSON format.`
 }
 
 // Generate all learning materials at once
+// Note: userId is for associating review schedules with the user who requested the generation
 export async function generateAllMaterials(
   question: string,
-  answer: string
+  answer: string,
+  userId: string = 'system'
 ): Promise<LearningMaterials> {
   console.log("[learning-materials] Generating materials for:", question.slice(0, 50))
 
   const [flashcards, notes, quiz] = await Promise.all([
-    generateFlashcards(answer),
+    generateFlashcards(answer, userId),
     generateNotesSummary(answer),
     generateQuizQuestions(question, answer),
   ])

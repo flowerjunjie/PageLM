@@ -58,7 +58,7 @@ export function extractToken(req: IncomingMessage): string | null {
 /**
  * Verify JWT token and return decoded payload
  */
-function verifyToken(token: string): { userId: string; user: any } | null {
+export function verifyToken(token: string): { userId: string; user: any } | null {
   try {
     const decoded = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] }) as any;
     const userId = decoded.userId || decoded.sub;

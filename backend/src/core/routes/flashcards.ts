@@ -1,8 +1,8 @@
 import crypto from 'crypto'
 import db from '../../utils/database/keyv'
 import { scheduleReview, deleteReviewSchedule } from '../../services/spaced-repetition'
-import { requireAuth, getUserId } from '../middleware/auth'
-import { userKey, userKeyPrefix } from '../middleware/auth-keyv'
+import { requireAuth } from '../middleware/auth'
+import { userKey, userKeyPrefix, getUserId } from '../middleware/auth-keyv'
 
 export function flashcardRoutes(app: any) {
   // Input validation constants
@@ -65,7 +65,7 @@ export function flashcardRoutes(app: any) {
       await db.set(cardsKey, cards)
 
       // Automatically create review schedule for the new flashcard
-      await scheduleReview(id)
+      await scheduleReview(id, userId)
 
       res.send({ ok: true, flashcard: card })
     } catch (e: any) {

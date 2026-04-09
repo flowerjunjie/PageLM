@@ -219,20 +219,20 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
       expect(result.nextReviewAt).toBeGreaterThan(Date.now())
     })
 
-    it('should default to userId="default" when not supplied', async () => {
+    it('should require userId parameter', async () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      const result = await scheduleReview('fc-002')
+      const result = await scheduleReview('fc-002', 'test-user')
 
-      expect(result.userId).toBe('default')
+      expect(result.userId).toBe('test-user')
     })
 
     it('should persist the schedule under key review:<id>', async () => {
       mockGet.mockResolvedValue([])
       mockSet.mockResolvedValue(undefined)
 
-      await scheduleReview('fc-003')
+      await scheduleReview('fc-003', 'test-user')
 
       expect(mockSet).toHaveBeenCalledWith(
         'review:fc-003',
@@ -393,7 +393,7 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
     it('should return null for non-existent schedule', async () => {
       mockGet.mockResolvedValue(undefined)
 
-      const result = await updateReviewResult('fc-ghost', 4)
+      const result = await updateReviewResult('fc-ghost', 4, 'user-default')
 
       expect(result).toBeNull()
     })
@@ -403,7 +403,7 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
       mockGet.mockResolvedValue(schedule)
       mockSet.mockResolvedValue(undefined)
 
-      const result = await updateReviewResult('fc-ok', 4)
+      const result = await updateReviewResult('fc-ok', 4, 'user-default')
 
       expect(result?.repetition).toBe(2)
       expect(result?.interval).toBe(6)
@@ -414,7 +414,7 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
       mockGet.mockResolvedValue(schedule)
       mockSet.mockResolvedValue(undefined)
 
-      const result = await updateReviewResult('fc-fail', 2)
+      const result = await updateReviewResult('fc-fail', 2, 'user-default')
 
       expect(result?.repetition).toBe(0)
       expect(result?.interval).toBe(1)
@@ -426,7 +426,7 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
       mockSet.mockResolvedValue(undefined)
 
       const now = Date.now()
-      const result = await updateReviewResult('fc-hist', 5)
+      const result = await updateReviewResult('fc-hist', 5, 'user-default')
 
       expect(result?.reviewHistory).toHaveLength(1)
       expect(result?.reviewHistory[0].quality).toBe(5)
@@ -438,7 +438,7 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
       mockGet.mockResolvedValue(schedule)
       mockSet.mockResolvedValue(undefined)
 
-      const result = await updateReviewResult('fc-clamp', 10)
+      const result = await updateReviewResult('fc-clamp', 10, 'user-default')
 
       expect(result?.reviewHistory[0].quality).toBe(5)
     })
@@ -448,7 +448,7 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
       mockGet.mockResolvedValue(schedule)
       mockSet.mockResolvedValue(undefined)
 
-      const result = await updateReviewResult('fc-neg', -3)
+      const result = await updateReviewResult('fc-neg', -3, 'user-default')
 
       expect(result?.reviewHistory[0].quality).toBe(0)
     })
@@ -458,7 +458,7 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
       mockGet.mockResolvedValue(schedule)
       mockSet.mockResolvedValue(undefined)
 
-      await updateReviewResult('fc-save', 4)
+      await updateReviewResult('fc-save', 4, 'user-default')
 
       expect(mockSet).toHaveBeenCalledWith(
         'review:fc-save',
@@ -472,7 +472,7 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
       mockGet.mockResolvedValue(schedule)
       mockSet.mockResolvedValue(undefined)
 
-      const result = await updateReviewResult('fc-ts', 4)
+      const result = await updateReviewResult('fc-ts', 4, 'user-default')
 
       expect(result?.updatedAt).toBeGreaterThanOrEqual(Date.now())
     })
@@ -480,7 +480,15 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
     it('should propagate database errors', async () => {
       mockGet.mockRejectedValue(new Error('Update failed'))
 
-      await expect(updateReviewResult('fc-err', 4)).rejects.toThrow('Update failed')
+      await expect(updateReviewResult('fc-err', 4, 'user-default')).rejects.toThrow('Update failed')
+    })
+
+    it('should throw Unauthorized for wrong userId', async () => {
+      const schedule = makeSchedule({ flashcardId: 'fc-auth' })
+      mockGet.mockResolvedValue(schedule)
+      mockSet.mockResolvedValue(undefined)
+
+      await expect(updateReviewResult('fc-auth', 4, 'wrong-user')).rejects.toThrow('Unauthorized')
     })
   })
 
@@ -624,44 +632,53 @@ describe('FlashcardService (SM-2 spaced-repetition)', () => {
   // ─────────────────────────────────────────────────────────────────────────────
   describe('deleteReviewSchedule', () => {
     it('should delete the schedule record', async () => {
-      mockGet.mockResolvedValue(['fc-del', 'fc-keep'])
+      mockGet.mockResolvedValueOnce(makeSchedule({ flashcardId: 'fc-del' })) // review lookup
+      mockGet.mockResolvedValueOnce(['fc-del', 'fc-keep']) // user reviews lookup
       mockDelete.mockResolvedValue(undefined)
       mockSet.mockResolvedValue(undefined)
 
-      await deleteReviewSchedule('fc-del', 'user-del')
+      await deleteReviewSchedule('fc-del', 'user-default')
 
       expect(mockDelete).toHaveBeenCalledWith('review:fc-del')
     })
 
     it('should remove the card from the user review list', async () => {
-      // db.get is called twice: once for review:fc-del, once for user-reviews:user-rem
-      mockGet.mockResolvedValue(['fc-del', 'fc-keep'])
+      mockGet.mockResolvedValueOnce(makeSchedule({ flashcardId: 'fc-del' })) // review lookup
+      mockGet.mockResolvedValueOnce(['fc-del', 'fc-keep']) // user reviews lookup
       mockDelete.mockResolvedValue(undefined)
       mockSet.mockResolvedValue(undefined)
 
-      await deleteReviewSchedule('fc-del', 'user-rem')
+      await deleteReviewSchedule('fc-del', 'user-default')
 
-      expect(mockSet).toHaveBeenCalledWith('user-reviews:user-rem', ['fc-keep'])
+      expect(mockSet).toHaveBeenCalledWith('user-reviews:user-default', ['fc-keep'])
     })
 
     it('should return true on success', async () => {
-      mockGet.mockResolvedValue(['fc-ok'])
+      mockGet.mockResolvedValueOnce(makeSchedule({ flashcardId: 'fc-ok' })) // review lookup
+      mockGet.mockResolvedValueOnce(['fc-ok']) // user reviews lookup
       mockDelete.mockResolvedValue(undefined)
       mockSet.mockResolvedValue(undefined)
 
-      const result = await deleteReviewSchedule('fc-ok', 'user-ok')
+      const result = await deleteReviewSchedule('fc-ok', 'user-default')
 
       expect(result).toBe(true)
     })
 
     it('should handle empty user list gracefully', async () => {
-      mockGet.mockResolvedValue([])
+      mockGet.mockResolvedValueOnce(makeSchedule({ flashcardId: 'fc-none' })) // review lookup
+      mockGet.mockResolvedValueOnce([]) // user reviews lookup
       mockDelete.mockResolvedValue(undefined)
       mockSet.mockResolvedValue(undefined)
 
-      const result = await deleteReviewSchedule('fc-none', 'user-none')
+      const result = await deleteReviewSchedule('fc-none', 'user-default')
 
       expect(result).toBe(true)
+    })
+
+    it('should throw Unauthorized for wrong userId', async () => {
+      mockGet.mockResolvedValueOnce(makeSchedule({ flashcardId: 'fc-auth', userId: 'other-user' }))
+
+      await expect(deleteReviewSchedule('fc-auth', 'wrong-user')).rejects.toThrow('Unauthorized')
     })
   })
 

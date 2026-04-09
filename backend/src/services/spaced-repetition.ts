@@ -106,10 +106,12 @@ export function calculateNextReviewTime(
 
 /**
  * Create a new review schedule for a flashcard
+ * @param flashcardId - The flashcard ID
+ * @param userId - The user ID (required, no default)
  */
 export async function scheduleReview(
   flashcardId: string,
-  userId: string = 'default'
+  userId: string
 ): Promise<ReviewSchedule> {
   const schedule: ReviewSchedule = {
     flashcardId,
@@ -177,16 +179,23 @@ export async function getAllReviews(userId: string = 'default'): Promise<ReviewS
  * Update review result after user reviews a card
  * @param flashcardId - The flashcard ID
  * @param quality - Quality rating (0-5)
+ * @param userId - The user ID (for authorization)
  * @returns Updated schedule
  */
 export async function updateReviewResult(
   flashcardId: string,
-  quality: number
+  quality: number,
+  userId: string
 ): Promise<ReviewSchedule | null> {
   const schedule: ReviewSchedule | undefined = await db.get(`review:${flashcardId}`)
 
   if (!schedule) {
     return null
+  }
+
+  // Verify ownership to prevent IDOR
+  if (schedule.userId !== userId) {
+    throw new Error('Unauthorized access to review schedule')
   }
 
   // Clamp quality to valid range
@@ -329,6 +338,13 @@ export async function deleteReviewSchedule(
   flashcardId: string,
   userId: string = 'default'
 ): Promise<boolean> {
+  const schedule: ReviewSchedule | undefined = await db.get(`review:${flashcardId}`)
+
+  // Verify ownership to prevent IDOR
+  if (schedule && schedule.userId !== userId) {
+    throw new Error('Unauthorized access to review schedule')
+  }
+
   await db.delete(`review:${flashcardId}`)
 
   // Remove from user's review list

@@ -10,6 +10,7 @@ import {
   type Quiz,
 } from "../../lib/ai/learning-materials"
 import { requireAuth } from "../middleware/auth"
+import { getUserId } from "../middleware/auth-keyv"
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -122,8 +123,11 @@ export function materialsRoutes(app: any) {
 
       console.log("[materials] Manual generation requested for chat:", chatId)
 
+      // Get authenticated userId
+      const userId = getUserId(req)
+
       // Generate materials
-      const materials = await generateAllMaterials(question, answer)
+      const materials = await generateAllMaterials(question, answer, userId)
 
       // Save if chatId provided
       let stored: StoredMaterials | undefined

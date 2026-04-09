@@ -192,7 +192,7 @@ describe('POST /api/materials/generate', () => {
 
     expect(res._body.ok).toBe(true)
     expect(res._body.materials).toBeDefined()
-    expect(generateAllMaterials).toHaveBeenCalledWith('What is AI?', 'AI is artificial intelligence')
+    expect(generateAllMaterials).toHaveBeenCalledWith('What is AI?', 'AI is artificial intelligence', 'test-user')
   })
 
   it('should save materials when chatId is provided', async () => {
@@ -248,7 +248,7 @@ describe('POST /api/materials/generate', () => {
 
     await exec(req, res, app.routes['POST /api/materials/generate'])
 
-    expect(generateAllMaterials).toHaveBeenCalledWith('What is AI?', 'Artificial intelligence')
+    expect(generateAllMaterials).toHaveBeenCalledWith('What is AI?', 'Artificial intelligence', 'test-user')
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Persist error' })
   })

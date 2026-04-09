@@ -246,7 +246,7 @@ describe('POST /tasks/ingest', () => {
     const req = mockReq({ body: {} })
     const res = mockRes()
 
-    await app.routes['POST /tasks/ingest'](req, res)
+    await exec(req, res, app.routes['POST /tasks/ingest'])
 
     expect(res._status).toBe(400)
     expect(res._body.ok).toBe(false)
@@ -257,7 +257,7 @@ describe('POST /tasks/ingest', () => {
     const req = mockReq({ body: { text: '   ' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/ingest'](req, res)
+    await exec(req, res, app.routes['POST /tasks/ingest'])
 
     expect(res._status).toBe(400)
   })
@@ -268,7 +268,7 @@ describe('POST /tasks/ingest', () => {
     const req = mockReq({ body: { text: 'Math homework due Friday' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/ingest'](req, res)
+    await exec(req, res, app.routes['POST /tasks/ingest'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.task).toBeDefined()
@@ -282,7 +282,7 @@ describe('POST /tasks/ingest', () => {
     const req = mockReq({ body: { text: 'Some homework text' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/ingest'](req, res)
+    await exec(req, res, app.routes['POST /tasks/ingest'])
 
     expect(res._status).toBe(500)
     expect(res._body.ok).toBe(false)
@@ -300,7 +300,7 @@ describe('GET /tasks/:id', () => {
     const req = mockReq({ params: { id: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['GET /tasks/:id'](req, res)
+    await exec(req, res, app.routes['GET /tasks/:id'])
 
     expect(res._status).toBe(404)
     expect(res._body.ok).toBe(false)
@@ -313,7 +313,7 @@ describe('GET /tasks/:id', () => {
     const req = mockReq({ params: { id: 'task-1' } })
     const res = mockRes()
 
-    await app.routes['GET /tasks/:id'](req, res)
+    await exec(req, res, app.routes['GET /tasks/:id'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.task.id).toBe('task-1')
@@ -325,7 +325,7 @@ describe('GET /tasks/:id', () => {
     const req = mockReq({ params: { id: 'task-1' } })
     const res = mockRes()
 
-    await app.routes['GET /tasks/:id'](req, res)
+    await exec(req, res, app.routes['GET /tasks/:id'])
 
     expect(res._status).toBe(500)
   })
@@ -342,7 +342,7 @@ describe('POST /tasks/:id/replan', () => {
     const req = mockReq({ params: { id: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/replan'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/replan'])
 
     expect(res._status).toBe(404)
   })
@@ -353,7 +353,7 @@ describe('POST /tasks/:id/replan', () => {
     const req = mockReq({ params: { id: 'task-1' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/replan'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/replan'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.task).toBeDefined()
@@ -366,7 +366,7 @@ describe('POST /tasks/:id/replan', () => {
     const req = mockReq({ params: { id: 'task-1' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/replan'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/replan'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'failed' })
@@ -385,7 +385,7 @@ describe('POST /tasks/:id/plan', () => {
     const req = mockReq({ params: { id: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/plan'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/plan'])
 
     expect(res._status).toBe(404)
   })
@@ -397,7 +397,7 @@ describe('POST /tasks/:id/plan', () => {
     const req = mockReq({ params: { id: 'task-1' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/plan'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/plan'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.task.steps).toBeDefined()
@@ -409,7 +409,7 @@ describe('POST /tasks/:id/plan', () => {
     const req = mockReq({ params: { id: 'task-1' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/plan'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/plan'])
 
     expect(res._status).toBe(500)
   })
@@ -427,7 +427,7 @@ describe('POST /planner/weekly', () => {
     const req = mockReq({ body: {} })
     const res = mockRes()
 
-    await app.routes['POST /planner/weekly'](req, res)
+    await exec(req, res, app.routes['POST /planner/weekly'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.plan).toBeDefined()
@@ -440,7 +440,7 @@ describe('POST /planner/weekly', () => {
     const req = mockReq({ body: {} })
     const res = mockRes()
 
-    await app.routes['POST /planner/weekly'](req, res)
+    await exec(req, res, app.routes['POST /planner/weekly'])
 
     expect(res._status).toBe(500)
     expect(res._body.ok).toBe(false)
@@ -458,7 +458,7 @@ describe('GET /planner/today', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /planner/today'](req, res)
+    await exec(req, res, app.routes['GET /planner/today'])
 
     expect(res._body.ok).toBe(true)
     expect(Array.isArray(res._body.sessions)).toBe(true)
@@ -470,7 +470,7 @@ describe('GET /planner/today', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /planner/today'](req, res)
+    await exec(req, res, app.routes['GET /planner/today'])
 
     expect(res._status).toBe(500)
   })
@@ -487,7 +487,7 @@ describe('GET /planner/deadlines', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /planner/deadlines'](req, res)
+    await exec(req, res, app.routes['GET /planner/deadlines'])
 
     expect(res._body.ok).toBe(true)
   })
@@ -498,7 +498,7 @@ describe('GET /planner/deadlines', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /planner/deadlines'](req, res)
+    await exec(req, res, app.routes['GET /planner/deadlines'])
 
     expect(res._status).toBe(500)
   })
@@ -515,7 +515,7 @@ describe('GET /planner/stats', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /planner/stats'](req, res)
+    await exec(req, res, app.routes['GET /planner/stats'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.stats).toBeDefined()
@@ -527,7 +527,7 @@ describe('GET /planner/stats', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /planner/stats'](req, res)
+    await exec(req, res, app.routes['GET /planner/stats'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'failed' })
@@ -545,7 +545,7 @@ describe('GET /tasks', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /tasks'](req, res)
+    await exec(req, res, app.routes['GET /tasks'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.tasks).toHaveLength(1)
@@ -557,7 +557,7 @@ describe('GET /tasks', () => {
     const req = mockReq({ query: { status: 'done' } })
     const res = mockRes()
 
-    await app.routes['GET /tasks'](req, res)
+    await exec(req, res, app.routes['GET /tasks'])
 
     expect(plannerService.listTasks).toHaveBeenCalledWith(expect.objectContaining({ status: 'done' }))
   })
@@ -569,7 +569,7 @@ describe('GET /tasks', () => {
     const req = mockReq({ query: { dueBefore } })
     const res = mockRes()
 
-    await app.routes['GET /tasks'](req, res)
+    await exec(req, res, app.routes['GET /tasks'])
 
     expect(plannerService.listTasks).toHaveBeenCalledWith(expect.objectContaining({ dueBefore }))
   })
@@ -580,7 +580,7 @@ describe('GET /tasks', () => {
     const req = mockReq({ query: { course: 'math' } })
     const res = mockRes()
 
-    await app.routes['GET /tasks'](req, res)
+    await exec(req, res, app.routes['GET /tasks'])
 
     expect(plannerService.listTasks).toHaveBeenCalledWith(expect.objectContaining({ course: 'math' }))
   })
@@ -591,7 +591,7 @@ describe('GET /tasks', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /tasks'](req, res)
+    await exec(req, res, app.routes['GET /tasks'])
 
     expect(res._status).toBe(500)
   })
@@ -608,7 +608,7 @@ describe('PATCH /tasks/:id', () => {
     const req = mockReq({ params: { id: 'nonexistent' }, body: { title: 'Updated' } })
     const res = mockRes()
 
-    await app.routes['PATCH /tasks/:id'](req, res)
+    await exec(req, res, app.routes['PATCH /tasks/:id'])
 
     expect(res._status).toBe(404)
   })
@@ -620,7 +620,7 @@ describe('PATCH /tasks/:id', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: { title: 'Updated Task' } })
     const res = mockRes()
 
-    await app.routes['PATCH /tasks/:id'](req, res)
+    await exec(req, res, app.routes['PATCH /tasks/:id'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.task.title).toBe('Updated Task')
@@ -633,7 +633,7 @@ describe('PATCH /tasks/:id', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: {} })
     const res = mockRes()
 
-    await app.routes['PATCH /tasks/:id'](req, res)
+    await exec(req, res, app.routes['PATCH /tasks/:id'])
 
     expect(res._status).toBe(500)
   })
@@ -650,7 +650,7 @@ describe('DELETE /tasks/:id', () => {
     const req = mockReq({ params: { id: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['DELETE /tasks/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /tasks/:id'])
 
     expect(res._status).toBe(404)
   })
@@ -661,7 +661,7 @@ describe('DELETE /tasks/:id', () => {
     const req = mockReq({ params: { id: 'task-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /tasks/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /tasks/:id'])
 
     expect(res._body.ok).toBe(true)
     expect(vi.mocked(emitToAll)).toHaveBeenCalledWith(undefined, { type: 'task.deleted', taskId: 'task-1' })
@@ -673,7 +673,7 @@ describe('DELETE /tasks/:id', () => {
     const req = mockReq({ params: { id: 'task-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /tasks/:id'](req, res)
+    await exec(req, res, app.routes['DELETE /tasks/:id'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'failed' })
@@ -693,7 +693,7 @@ describe('POST /tasks/:id/files', () => {
     })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/files'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/files'])
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('multipart/form-data required')
@@ -708,7 +708,7 @@ describe('POST /tasks/:id/files', () => {
     })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/files'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/files'])
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('no files uploaded')
@@ -725,7 +725,7 @@ describe('POST /tasks/:id/files', () => {
     })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/files'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/files'])
 
     expect(res._body).toEqual({ ok: true, files })
     expect(plannerService.addFilesToTask).toHaveBeenCalledWith('task-1', files)
@@ -746,7 +746,7 @@ describe('POST /tasks/:id/files', () => {
     })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/files'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/files'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'upload failed' })
@@ -765,7 +765,7 @@ describe('POST /tasks/:id/files', () => {
     })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/files'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/files'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'parse failed' })
@@ -783,7 +783,7 @@ describe('DELETE /tasks/:id/files/:fileId', () => {
     const req = mockReq({ params: { id: 'task-1', fileId: 'nonexistent' } })
     const res = mockRes()
 
-    await app.routes['DELETE /tasks/:id/files/:fileId'](req, res)
+    await exec(req, res, app.routes['DELETE /tasks/:id/files/:fileId'])
 
     expect(res._status).toBe(404)
   })
@@ -794,7 +794,7 @@ describe('DELETE /tasks/:id/files/:fileId', () => {
     const req = mockReq({ params: { id: 'task-1', fileId: 'file-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /tasks/:id/files/:fileId'](req, res)
+    await exec(req, res, app.routes['DELETE /tasks/:id/files/:fileId'])
 
     expect(res._body.ok).toBe(true)
     expect(vi.mocked(emitToAll)).toHaveBeenCalledWith(undefined, { type: 'task.file.removed', taskId: 'task-1', fileId: 'file-1' })
@@ -806,7 +806,7 @@ describe('DELETE /tasks/:id/files/:fileId', () => {
     const req = mockReq({ params: { id: 'task-1', fileId: 'file-1' } })
     const res = mockRes()
 
-    await app.routes['DELETE /tasks/:id/files/:fileId'](req, res)
+    await exec(req, res, app.routes['DELETE /tasks/:id/files/:fileId'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'failed' })
@@ -822,7 +822,7 @@ describe('POST /tasks/:id/materials', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: { type: 'summary' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/materials'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/materials'])
 
     expect(vi.mocked(emitToAll)).toHaveBeenNthCalledWith(1, undefined, { type: 'phase', value: 'assist' })
     expect(vi.mocked(plannerService.generateMaterials)).toHaveBeenCalledWith('task-1', { type: 'summary' })
@@ -842,7 +842,7 @@ describe('POST /tasks/:id/materials', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: {} })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/materials'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/materials'])
 
     expect(vi.mocked(plannerService.generateMaterials)).toHaveBeenCalledWith('task-1', { type: 'summary' })
   })
@@ -854,7 +854,7 @@ describe('POST /tasks/:id/materials', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: { type: 'flashcards' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/materials'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/materials'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'emit failed' })
@@ -874,7 +874,7 @@ describe('PATCH /slots/:taskId/:slotId', () => {
     const req = mockReq({ params: { taskId: 'task-1', slotId: 'slot-x' }, body: { done: true } })
     const res = mockRes()
 
-    await app.routes['PATCH /slots/:taskId/:slotId'](req, res)
+    await exec(req, res, app.routes['PATCH /slots/:taskId/:slotId'])
 
     expect(res._status).toBe(404)
   })
@@ -886,7 +886,7 @@ describe('PATCH /slots/:taskId/:slotId', () => {
     const req = mockReq({ params: { taskId: 'task-1', slotId: 'slot-1' }, body: { done: true } })
     const res = mockRes()
 
-    await app.routes['PATCH /slots/:taskId/:slotId'](req, res)
+    await exec(req, res, app.routes['PATCH /slots/:taskId/:slotId'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.task).toBeDefined()
@@ -900,7 +900,7 @@ describe('PATCH /slots/:taskId/:slotId', () => {
     const req = mockReq({ params: { taskId: 'task-1', slotId: 'slot-1' }, body: { done: true } })
     const res = mockRes()
 
-    await app.routes['PATCH /slots/:taskId/:slotId'](req, res)
+    await exec(req, res, app.routes['PATCH /slots/:taskId/:slotId'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'failed' })
@@ -917,7 +917,7 @@ describe('POST /sessions/start', () => {
     const req = mockReq({ body: {} })
     const res = mockRes()
 
-    await app.routes['POST /sessions/start'](req, res)
+    await exec(req, res, app.routes['POST /sessions/start'])
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('taskId required')
@@ -927,7 +927,7 @@ describe('POST /sessions/start', () => {
     const req = mockReq({ body: { taskId: 'task-1' } })
     const res = mockRes()
 
-    await app.routes['POST /sessions/start'](req, res)
+    await exec(req, res, app.routes['POST /sessions/start'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.session.id).toBeDefined()
@@ -949,7 +949,7 @@ describe('POST /sessions/start', () => {
     const req = mockReq({ body: { taskId: 'task-1', slotId: 'slot-1' } })
     const res = mockRes()
 
-    await app.routes['POST /sessions/start'](req, res)
+    await exec(req, res, app.routes['POST /sessions/start'])
 
     expect(res._body.session.slotId).toBe('slot-1')
   })
@@ -964,7 +964,7 @@ describe('POST /sessions/:id/stop', () => {
     const req = mockReq({ params: { id: 'session-1' }, body: { minutesWorked: 45, completed: true } })
     const res = mockRes()
 
-    await app.routes['POST /sessions/:id/stop'](req, res)
+    await exec(req, res, app.routes['POST /sessions/:id/stop'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.session.id).toBe('session-1')
@@ -989,7 +989,7 @@ describe('POST /sessions/:id/stop', () => {
     const req = mockReq({ params: { id: 'session-2' }, body: {} })
     const res = mockRes()
 
-    await app.routes['POST /sessions/:id/stop'](req, res)
+    await exec(req, res, app.routes['POST /sessions/:id/stop'])
 
     expect(res._body.session.minutesWorked).toBe(0)
     expect(res._body.session.completed).toBe(false)
@@ -1005,7 +1005,7 @@ describe('POST /reminders/schedule', () => {
     const req = mockReq({ body: { scheduledFor: new Date().toISOString() } })
     const res = mockRes()
 
-    await app.routes['POST /reminders/schedule'](req, res)
+    await exec(req, res, app.routes['POST /reminders/schedule'])
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('text and scheduledFor required')
@@ -1015,7 +1015,7 @@ describe('POST /reminders/schedule', () => {
     const req = mockReq({ body: { text: 'Study reminder' } })
     const res = mockRes()
 
-    await app.routes['POST /reminders/schedule'](req, res)
+    await exec(req, res, app.routes['POST /reminders/schedule'])
 
     expect(res._status).toBe(400)
   })
@@ -1025,7 +1025,7 @@ describe('POST /reminders/schedule', () => {
     const req = mockReq({ body: { text: 'Study reminder', scheduledFor } })
     const res = mockRes()
 
-    await app.routes['POST /reminders/schedule'](req, res)
+    await exec(req, res, app.routes['POST /reminders/schedule'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.reminder.id).toBeDefined()
@@ -1044,7 +1044,7 @@ describe('POST /reminders/schedule', () => {
     const req = mockReq({ body: { text: 'Study reminder', scheduledFor, taskId: 'task-1' } })
     const res = mockRes()
 
-    await app.routes['POST /reminders/schedule'](req, res)
+    await exec(req, res, app.routes['POST /reminders/schedule'])
 
     expect(res._body.ok).toBe(true)
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1)
@@ -1072,7 +1072,7 @@ describe('POST /reminders/schedule', () => {
     const req = mockReq({ body: { text: 'Late reminder', scheduledFor } })
     const res = mockRes()
 
-    await app.routes['POST /reminders/schedule'](req, res)
+    await exec(req, res, app.routes['POST /reminders/schedule'])
 
     expect(res._body.ok).toBe(true)
     expect(setTimeoutSpy).not.toHaveBeenCalled()
@@ -1094,7 +1094,7 @@ describe('POST /reminders/test', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['POST /reminders/test'](req, res)
+    await exec(req, res, app.routes['POST /reminders/test'])
 
     expect(res._body.ok).toBe(true)
     expect(vi.mocked(emitToAll)).toHaveBeenCalledWith(undefined, expect.objectContaining({ type: 'reminder', text: 'Test reminder' }))
@@ -1110,7 +1110,7 @@ describe('POST /planner/parse-homework', () => {
     const req = mockReq({ body: {} })
     const res = mockRes()
 
-    await app.routes['POST /planner/parse-homework'](req, res)
+    await exec(req, res, app.routes['POST /planner/parse-homework'])
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('text or imageText required')
@@ -1120,7 +1120,7 @@ describe('POST /planner/parse-homework', () => {
     const req = mockReq({ body: { text: 123 } })
     const res = mockRes()
 
-    await app.routes['POST /planner/parse-homework'](req, res)
+    await exec(req, res, app.routes['POST /planner/parse-homework'])
 
     expect(res._status).toBe(400)
   })
@@ -1132,7 +1132,7 @@ describe('POST /planner/parse-homework', () => {
     const req = mockReq({ body: { text: 'Math homework due tomorrow' } })
     const res = mockRes()
 
-    await app.routes['POST /planner/parse-homework'](req, res)
+    await exec(req, res, app.routes['POST /planner/parse-homework'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.tasks).toBeDefined()
@@ -1145,7 +1145,7 @@ describe('POST /planner/parse-homework', () => {
     const req = mockReq({ body: { imageText: 'OCR-extracted homework text' } })
     const res = mockRes()
 
-    await app.routes['POST /planner/parse-homework'](req, res)
+    await exec(req, res, app.routes['POST /planner/parse-homework'])
 
     expect(parseHomework).toHaveBeenCalledWith('OCR-extracted homework text')
   })
@@ -1156,7 +1156,7 @@ describe('POST /planner/parse-homework', () => {
     const req = mockReq({ body: { text: 'Some homework' } })
     const res = mockRes()
 
-    await app.routes['POST /planner/parse-homework'](req, res)
+    await exec(req, res, app.routes['POST /planner/parse-homework'])
 
     expect(res._status).toBe(500)
   })
@@ -1173,7 +1173,7 @@ describe('POST /tasks/:id/complete', () => {
     const req = mockReq({ params: { id: 'nonexistent' }, body: {} })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/complete'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/complete'])
 
     expect(res._status).toBe(404)
   })
@@ -1186,7 +1186,7 @@ describe('POST /tasks/:id/complete', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: {} })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/complete'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/complete'])
 
     expect(plannerService.updateTask).toHaveBeenCalledWith(
       'task-1',
@@ -1213,7 +1213,7 @@ describe('POST /tasks/:id/complete', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: { actualMinutes: 50 } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/complete'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/complete'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.task.status).toBe('done')
@@ -1228,7 +1228,7 @@ describe('POST /tasks/:id/complete', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: { notes: 'Great work done!' } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/complete'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/complete'])
 
     expect(plannerService.updateTask).toHaveBeenCalledWith(
       'task-1',
@@ -1243,7 +1243,7 @@ describe('POST /tasks/:id/complete', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: { actualMinutes: 50 } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/complete'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/complete'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'update failed' })
@@ -1262,7 +1262,7 @@ describe('POST /tasks/:id/complete', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: { actualMinutes: 50 } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/complete'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/complete'])
 
     expect(res._status).toBe(404)
     expect(res._body).toEqual({ ok: false, error: 'Task not found' })
@@ -1282,7 +1282,7 @@ describe('GET /planner/stats/detailed', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /planner/stats/detailed'](req, res)
+    await exec(req, res, app.routes['GET /planner/stats/detailed'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.stats.overall.totalTasks).toBe(0)
@@ -1300,7 +1300,7 @@ describe('GET /planner/stats/detailed', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /planner/stats/detailed'](req, res)
+    await exec(req, res, app.routes['GET /planner/stats/detailed'])
 
     expect(res._body.stats.overall.completedTasks).toBe(2)
     expect(res._body.stats.overall.totalTasks).toBe(3)
@@ -1319,7 +1319,7 @@ describe('GET /planner/stats/detailed', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /planner/stats/detailed'](req, res)
+    await exec(req, res, app.routes['GET /planner/stats/detailed'])
 
     expect(res._body.stats.overall.overdueTasks).toBe(1)
     expect(res._body.stats.procrastination.overdueCount).toBe(1)
@@ -1331,7 +1331,7 @@ describe('GET /planner/stats/detailed', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /planner/stats/detailed'](req, res)
+    await exec(req, res, app.routes['GET /planner/stats/detailed'])
 
     expect(res._status).toBe(500)
   })
@@ -1349,7 +1349,7 @@ describe('GET /notifications', () => {
     const req = mockReq()
     const res = mockRes()
 
-    await app.routes['GET /notifications'](req, res)
+    await exec(req, res, app.routes['GET /notifications'])
 
     expect(res._body.ok).toBe(true)
     expect(Array.isArray(res._body.notifications)).toBe(true)
@@ -1367,7 +1367,7 @@ describe('POST /tasks/:id/reminders', () => {
     const req = mockReq({ params: { id: 'nonexistent' }, body: {} })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/reminders'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/reminders'])
 
     expect(res._status).toBe(404)
   })
@@ -1386,7 +1386,7 @@ describe('POST /tasks/:id/reminders', () => {
     })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/reminders'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/reminders'])
 
     expect(vi.mocked(scheduleTaskReminders)).toHaveBeenCalledWith(
       'default',
@@ -1421,7 +1421,7 @@ describe('POST /tasks/:id/reminders', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: { reminderHoursBefore: [24] } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/reminders'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/reminders'])
 
     expect(res._body.ok).toBe(true)
     expect(Array.isArray(res._body.reminders)).toBe(true)
@@ -1434,7 +1434,7 @@ describe('POST /tasks/:id/reminders', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: { reminderHoursBefore: [24] } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/reminders'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/reminders'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'schedule failed' })
@@ -1451,7 +1451,7 @@ describe('POST /tasks/:id/reminders', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: { reminderHoursBefore: [24] } })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/reminders'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/reminders'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'persist failed' })
@@ -1469,7 +1469,7 @@ describe('POST /tasks/:id/reminders', () => {
     const req = mockReq({ params: { id: 'task-1' }, body: {} })
     const res = mockRes()
 
-    await app.routes['POST /tasks/:id/reminders'](req, res)
+    await exec(req, res, app.routes['POST /tasks/:id/reminders'])
 
     expect(vi.mocked(scheduleTaskReminders)).toHaveBeenCalledWith(
       'default',

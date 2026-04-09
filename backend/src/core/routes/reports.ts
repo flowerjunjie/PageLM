@@ -4,7 +4,8 @@ import {
   getWeeklyReportByToken,
   cleanupExpiredTokens
 } from '../../services/reports'
-import { requireAuth, getUserId } from '../middleware/auth'
+import { requireAuth } from '../middleware/auth'
+import { getUserId } from '../middleware/auth-keyv'
 
 export function reportRoutes(app: any) {
   // GET /api/reports/weekly - Generate weekly report data

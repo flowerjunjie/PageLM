@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import jwt from 'jsonwebtoken'
 
 // Mock reports service
 vi.mock('../../../src/services/reports', () => ({
@@ -15,6 +16,12 @@ vi.mock('../../../src/services/reports', () => ({
   cleanupExpiredTokens: vi.fn(),
 }))
 
+vi.mock('../../../src/config/env', () => ({
+  config: {
+    jwtSecret: 'test-secret-key-for-testing-only',
+  }
+}))
+
 import {
   generateWeeklyReport,
   createShareToken,
@@ -22,19 +29,20 @@ import {
   cleanupExpiredTokens,
 } from '../../../src/services/reports'
 import { reportRoutes } from '../../../src/core/routes/reports'
+import { config } from '../../../src/config/env'
 
 // ---------------------------------------------------------------------------
 // Mock helpers
 // ---------------------------------------------------------------------------
 
-type Handler = (req: any, res: any) => any
+type Handler = (req: any, res: any, next?: any) => any
 
 function createApp() {
-  const routes: Record<string, Handler> = {}
+  const routes: Record<string, Handler[]> = {}
   return {
     routes,
-    get: (path: string, handler: Handler) => { routes[`GET ${path}`] = handler },
-    post: (path: string, handler: Handler) => { routes[`POST ${path}`] = handler },
+    get: (path: string, ...handlers: Handler[]) => { routes[`GET ${path}`] = handlers },
+    post: (path: string, ...handlers: Handler[]) => { routes[`POST ${path}`] = handlers },
   }
 }
 
@@ -43,15 +51,58 @@ function mockRes() {
     _status: 200,
     _body: undefined,
     statusCode: 200,
-    status: vi.fn(function(code: number) { res._status = code; res.statusCode = code; return res }),
-    send: vi.fn(function(body: any) { res._body = body; return res }),
-    json: vi.fn(function(body: any) { res._body = body; return res }),
+    headersSent: false,
+    status: vi.fn(function(code: number) { res._status = code; res.statusCode = code; res.headersSent = true; return res }),
+    send: vi.fn(function(body: any) { res._body = body; res.headersSent = true; return res }),
+    json: vi.fn(function(body: any) { res._body = body; res.headersSent = true; return res }),
   }
   return res
 }
 
+// Create a valid JWT token for testing
+function createTestToken(userId: string): string {
+  return jwt.sign({ userId }, config.jwtSecret, { algorithm: 'HS256' })
+}
+
+// Create mock request with auth token
 function mockReq(overrides: any = {}) {
-  return { body: {}, params: {}, query: {}, user: undefined, ...overrides }
+  const userId = overrides.userId || 'test-user'
+  const token = createTestToken(userId)
+  const headers = { authorization: `Bearer ${token}`, ...overrides.headers }
+  return {
+    body: {},
+    params: {},
+    query: {},
+    headers,
+    user: { id: userId },
+    userId,
+    ...overrides,
+    headers,
+  }
+}
+
+// Execute middleware chain and call final handler
+async function exec(req: any, res: any, handlers: Handler[]) {
+  let index = 0
+  const next = () => { index++ }
+  while (index < handlers.length) {
+    const handler = handlers[index]
+    if (handler.length > 2) {
+      await new Promise<void>(resolve => {
+        const nextCb = () => { resolve() }
+        const result = handler(req, res, nextCb)
+        if (result && typeof result.then === 'function') {
+          result.then(() => { if (res.headersSent) resolve() })
+        }
+        if (res.headersSent) resolve()
+      })
+    } else {
+      await handler(req, res)
+      break
+    }
+    index++
+    if (res.headersSent) break
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -94,11 +145,11 @@ describe('GET /api/reports/weekly', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/weekly'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/weekly'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.report).toBeDefined()
-    expect(generateWeeklyReport).toHaveBeenCalledWith('default-user', undefined)
+    expect(generateWeeklyReport).toHaveBeenCalledWith('test-user', undefined)
   })
 
   it('should pass week query parameter to service', async () => {
@@ -107,18 +158,18 @@ describe('GET /api/reports/weekly', () => {
     const req = mockReq({ query: { week: '2025-W10' } })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/weekly'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/weekly'])
 
-    expect(generateWeeklyReport).toHaveBeenCalledWith('default-user', '2025-W10')
+    expect(generateWeeklyReport).toHaveBeenCalledWith('test-user', '2025-W10')
   })
 
-  it('should use req.user.id when authenticated', async () => {
+  it('should use authenticated userId from token', async () => {
     vi.mocked(generateWeeklyReport).mockResolvedValue(mockReport as any)
 
-    const req = mockReq({ query: {}, user: { id: 'user-auth-123' } })
+    const req = mockReq({ query: {}, userId: 'user-auth-123' })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/weekly'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/weekly'])
 
     expect(generateWeeklyReport).toHaveBeenCalledWith('user-auth-123', undefined)
   })
@@ -129,7 +180,7 @@ describe('GET /api/reports/weekly', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/weekly'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/weekly'])
 
     expect(res._status).toBe(500)
     expect(res._body.ok).toBe(false)
@@ -141,7 +192,7 @@ describe('GET /api/reports/weekly', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/weekly'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/weekly'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to generate weekly report' })
@@ -157,7 +208,7 @@ describe('POST /api/reports/share', () => {
     const req = mockReq({ body: {} })
     const res = mockRes()
 
-    await app.routes['POST /api/reports/share'](req, res)
+    await exec(req, res, app.routes['POST /api/reports/share'])
 
     expect(res._status).toBe(400)
     expect(res._body.ok).toBe(false)
@@ -167,7 +218,7 @@ describe('POST /api/reports/share', () => {
     const req = mockReq({ body: { week: '2025-03-01' } }) // wrong format
     const res = mockRes()
 
-    await app.routes['POST /api/reports/share'](req, res)
+    await exec(req, res, app.routes['POST /api/reports/share'])
 
     expect(res._status).toBe(400)
     expect(res._body.error).toContain('Invalid week format')
@@ -177,7 +228,7 @@ describe('POST /api/reports/share', () => {
     const req = mockReq({ body: { week: '2025-11' } })
     const res = mockRes()
 
-    await app.routes['POST /api/reports/share'](req, res)
+    await exec(req, res, app.routes['POST /api/reports/share'])
 
     expect(res._status).toBe(400)
   })
@@ -188,7 +239,7 @@ describe('POST /api/reports/share', () => {
     const req = mockReq({ body: { week: '2025-W03' } })
     const res = mockRes()
 
-    await app.routes['POST /api/reports/share'](req, res)
+    await exec(req, res, app.routes['POST /api/reports/share'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.token).toBe('test-share-token-abc')
@@ -199,21 +250,18 @@ describe('POST /api/reports/share', () => {
   it('should call cleanupExpiredTokens before creating token', async () => {
     vi.mocked(createShareToken).mockResolvedValue('token')
 
-    await app.routes['POST /api/reports/share'](
-      mockReq({ body: { week: '2025-W03' } }),
-      mockRes()
-    )
+    await exec(mockReq({ body: { week: '2025-W03' } }), mockRes(), app.routes['POST /api/reports/share'])
 
     expect(cleanupExpiredTokens).toHaveBeenCalled()
   })
 
-  it('should use authenticated user id when creating share token', async () => {
+  it('should use authenticated userId from token when creating share token', async () => {
     vi.mocked(createShareToken).mockResolvedValue('auth-token')
 
-    const req = mockReq({ body: { week: '2025-W03' }, user: { id: 'user-auth-123' } })
+    const req = mockReq({ body: { week: '2025-W03' }, userId: 'user-auth-123' })
     const res = mockRes()
 
-    await app.routes['POST /api/reports/share'](req, res)
+    await exec(req, res, app.routes['POST /api/reports/share'])
 
     expect(createShareToken).toHaveBeenCalledWith('user-auth-123', '2025-W03')
   })
@@ -227,7 +275,7 @@ describe('POST /api/reports/share', () => {
       const req = mockReq({ body: { week: '2025-W03' } })
       const res = mockRes()
 
-      await app.routes['POST /api/reports/share'](req, res)
+      await exec(req, res, app.routes['POST /api/reports/share'])
 
       expect(res._body.shareUrl).toBe('https://frontend.example.com/report/share/env-token')
     } finally {
@@ -241,7 +289,7 @@ describe('POST /api/reports/share', () => {
     const req = mockReq({ body: { week: '2025-W03' } })
     const res = mockRes()
 
-    await app.routes['POST /api/reports/share'](req, res)
+    await exec(req, res, app.routes['POST /api/reports/share'])
 
     expect(res._status).toBe(500)
     expect(res._body.ok).toBe(false)
@@ -253,7 +301,7 @@ describe('POST /api/reports/share', () => {
     const req = mockReq({ body: { week: '2025-W03' } })
     const res = mockRes()
 
-    await app.routes['POST /api/reports/share'](req, res)
+    await exec(req, res, app.routes['POST /api/reports/share'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to create share link' })
@@ -269,7 +317,7 @@ describe('GET /api/reports/share/:token', () => {
     const req = mockReq({ params: { token: '' } })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/share/:token'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/share/:token'])
 
     expect(res._status).toBe(400)
   })
@@ -280,7 +328,7 @@ describe('GET /api/reports/share/:token', () => {
     const req = mockReq({ params: { token: 'invalid-token' } })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/share/:token'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/share/:token'])
 
     expect(res._status).toBe(404)
     expect(res._body.ok).toBe(false)
@@ -292,7 +340,7 @@ describe('GET /api/reports/share/:token', () => {
     const req = mockReq({ params: { token: 'valid-token-123' } })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/share/:token'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/share/:token'])
 
     expect(res._body.ok).toBe(true)
     expect(res._body.report.week).toBe('2025-W03')
@@ -306,7 +354,7 @@ describe('GET /api/reports/share/:token', () => {
     const req = mockReq({ params: { token: 'some-token' } })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/share/:token'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/share/:token'])
 
     expect(res._status).toBe(500)
   })
@@ -317,7 +365,7 @@ describe('GET /api/reports/share/:token', () => {
     const req = mockReq({ params: { token: 'some-token' } })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/share/:token'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/share/:token'])
 
     expect(res._status).toBe(500)
     expect(res._body).toEqual({ ok: false, error: 'Failed to retrieve shared report' })
@@ -333,7 +381,7 @@ describe('GET /api/reports/available-weeks', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/available-weeks'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/available-weeks'])
 
     expect(res._body.ok).toBe(true)
     expect(Array.isArray(res._body.weeks)).toBe(true)
@@ -344,7 +392,7 @@ describe('GET /api/reports/available-weeks', () => {
     const req = mockReq({ query: {} })
     const res = mockRes()
 
-    await app.routes['GET /api/reports/available-weeks'](req, res)
+    await exec(req, res, app.routes['GET /api/reports/available-weeks'])
 
     for (const week of res._body.weeks) {
       expect(week).toMatch(/^\d{4}-W\d{2}$/)
@@ -360,7 +408,7 @@ describe('GET /api/reports/available-weeks', () => {
       const req = mockReq({ query: {} })
       const res = mockRes()
 
-      await app.routes['GET /api/reports/available-weeks'](req, res)
+      await exec(req, res, app.routes['GET /api/reports/available-weeks'])
 
       expect(res._status).toBe(500)
       expect(res._body).toEqual({ ok: false, error: 'date failure' })
@@ -378,7 +426,7 @@ describe('GET /api/reports/available-weeks', () => {
       const req = mockReq({ query: {} })
       const res = mockRes()
 
-      await app.routes['GET /api/reports/available-weeks'](req, res)
+      await exec(req, res, app.routes['GET /api/reports/available-weeks'])
 
       expect(res._status).toBe(500)
       expect(res._body).toEqual({ ok: false, error: 'Failed to retrieve available weeks' })
