@@ -91,8 +91,10 @@ function mockRes() {
     _status: 200,
     _body: undefined,
     statusCode: 200,
-    status: vi.fn(function (code: number) { res._status = code; res.statusCode = code; return res }),
-    send: vi.fn(function (body: any) { res._body = body; return res }),
+    headersSent: false,
+    status: vi.fn(function (code: number) { res._status = code; res.statusCode = code; res.headersSent = true; return res }),
+    send: vi.fn(function (body: any) { res._body = body; res.headersSent = true; return res }),
+    json: vi.fn(function (body: any) { res._body = body; res.headersSent = true; return res }),
   }
   return res
 }
