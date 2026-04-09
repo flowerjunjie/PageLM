@@ -1,6 +1,6 @@
 {
   "name": "pagelm-backend",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "dependencies": {
     "@types/compression": "^1.8.1",
     "@types/jsonwebtoken": "^9.0.10",
