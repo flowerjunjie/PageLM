@@ -3,26 +3,42 @@ import db from '../../utils/database/keyv'
 import { scheduleReview, deleteReviewSchedule } from '../../services/spaced-repetition'
 
 export function flashcardRoutes(app: any) {
+  // Input validation constants
+  const MAX_QUESTION_LENGTH = 5000
+  const MAX_ANSWER_LENGTH = 10000
+  const MAX_TAG_LENGTH = 100
+
   app.post('/flashcards', async (req: any, res: any) => {
     try {
       // Check if req.body exists (JSON parsing might fail)
       if (!req.body || typeof req.body !== 'object') {
         return res.status(400).send({ ok: false, error: 'Invalid request body' })
       }
-      
+
       const { question, answer, tag } = req.body
       if (!question || !answer || !tag) {
         return res.status(400).send({ ok: false, error: 'question, answer, tag required' })
       }
-      
+
       // Validate input types
       if (typeof question !== 'string' || typeof answer !== 'string' || typeof tag !== 'string') {
         return res.status(400).send({ ok: false, error: 'question, answer, tag must be strings' })
       }
-      
+
       // Validate input length
       if (question.trim().length === 0 || answer.trim().length === 0 || tag.trim().length === 0) {
         return res.status(400).send({ ok: false, error: 'question, answer, tag cannot be empty' })
+      }
+
+      // Validate input length limits to prevent DoS
+      if (question.length > MAX_QUESTION_LENGTH) {
+        return res.status(400).send({ ok: false, error: `question too long (max ${MAX_QUESTION_LENGTH} chars)` })
+      }
+      if (answer.length > MAX_ANSWER_LENGTH) {
+        return res.status(400).send({ ok: false, error: `answer too long (max ${MAX_ANSWER_LENGTH} chars)` })
+      }
+      if (tag.length > MAX_TAG_LENGTH) {
+        return res.status(400).send({ ok: false, error: `tag too long (max ${MAX_TAG_LENGTH} chars)` })
       }
       
       const id = crypto.randomUUID()
