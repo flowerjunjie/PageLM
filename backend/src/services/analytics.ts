@@ -1,4 +1,5 @@
 import db from '../utils/database/keyv'
+import { userKey } from '../core/middleware/auth-keyv'
 
 export type { Subject } from '../types/subject'
 import type { Subject } from '../types/subject'
@@ -166,10 +167,12 @@ function calculatePositions(nodes: KnowledgeNode[]): KnowledgeNode[] {
   return positioned
 }
 
-export async function getLearningStats(): Promise<LearningStats> {
-  const flashcards = (await db.get('flashcards')) || []
-  const chats = (await db.get('chats')) || []
-  const quizResults = (await db.get('quiz_results')) || []
+export async function getLearningStats(userId: string): Promise<LearningStats> {
+  const flashcardsKey = userKey(userId, 'flashcards')
+  const chatsKey = userKey(userId, 'chats')
+  const flashcards = (await db.get(flashcardsKey)) || []
+  const chats = (await db.get(chatsKey)) || []
+  const quizResults = (await db.get('quiz_results')) || []  // quiz_results may still be global
 
   const now = Date.now()
   const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000
@@ -226,8 +229,9 @@ export async function getLearningStats(): Promise<LearningStats> {
   }
 }
 
-export async function getKnowledgeMapData(): Promise<{ nodes: KnowledgeNode[]; edges: KnowledgeEdge[] }> {
-  const flashcards = (await db.get('flashcards')) || []
+export async function getKnowledgeMapData(userId: string): Promise<{ nodes: KnowledgeNode[]; edges: KnowledgeEdge[] }> {
+  const flashcardsKey = userKey(userId, 'flashcards')
+  const flashcards = (await db.get(flashcardsKey)) || []
 
   if (flashcards.length === 0) {
     const demoNodes: KnowledgeNode[] = [
@@ -263,9 +267,10 @@ export async function getKnowledgeMapData(): Promise<{ nodes: KnowledgeNode[]; e
   return { nodes, edges }
 }
 
-export async function getSubjectStats(): Promise<SubjectStats[]> {
-  const flashcards = (await db.get('flashcards')) || []
-  const quizResults = (await db.get('quiz_results')) || []
+export async function getSubjectStats(userId: string): Promise<SubjectStats[]> {
+  const flashcardsKey = userKey(userId, 'flashcards')
+  const flashcards = (await db.get(flashcardsKey)) || []
+  const quizResults = (await db.get('quiz_results')) || []  // quiz_results may still be global
 
   const subjects: Subject[] = ['physics', 'chemistry', 'biology', 'math', 'history', 'english', 'other']
 
@@ -293,10 +298,12 @@ export async function getSubjectStats(): Promise<SubjectStats[]> {
   }).filter(s => s.flashcardCount > 0 || s.quizAccuracy > 0)
 }
 
-export async function getRecentActivity(limit = 10): Promise<ActivityItem[]> {
-  const flashcards = (await db.get('flashcards')) || []
-  const chats = (await db.get('chats')) || []
-  const quizResults = (await db.get('quiz_results')) || []
+export async function getRecentActivity(userId: string, limit = 10): Promise<ActivityItem[]> {
+  const flashcardsKey = userKey(userId, 'flashcards')
+  const chatsKey = userKey(userId, 'chats')
+  const flashcards = (await db.get(flashcardsKey)) || []
+  const chats = (await db.get(chatsKey)) || []
+  const quizResults = (await db.get('quiz_results')) || []  // quiz_results may still be global
 
   const activities: ActivityItem[] = []
 
@@ -333,11 +340,11 @@ export async function getRecentActivity(limit = 10): Promise<ActivityItem[]> {
   return activities.slice(0, limit)
 }
 
-export async function getLearningProfile(): Promise<LearningProfile> {
+export async function getLearningProfile(userId: string): Promise<LearningProfile> {
   const [stats, subjects, recentActivity] = await Promise.all([
-    getLearningStats(),
-    getSubjectStats(),
-    getRecentActivity()
+    getLearningStats(userId),
+    getSubjectStats(userId),
+    getRecentActivity(userId)
   ])
 
   return {
@@ -347,8 +354,8 @@ export async function getLearningProfile(): Promise<LearningProfile> {
   }
 }
 
-export async function identifyWeakAreas(): Promise<Array<{ subject: Subject; topic: string; score: number }>> {
-  const quizResults = (await db.get('quiz_results')) || []
+export async function identifyWeakAreas(userId: string): Promise<Array<{ subject: Subject; topic: string; score: number }>> {
+  const quizResults = (await db.get('quiz_results')) || []  // quiz_results may still be global
   const weakAreas: Array<{ subject: Subject; topic: string; score: number }> = []
 
   for (const quiz of quizResults) {
@@ -365,10 +372,12 @@ export async function identifyWeakAreas(): Promise<Array<{ subject: Subject; top
   return weakAreas.sort((a, b) => a.score - b.score).slice(0, 5)
 }
 
-export async function calculateLearningTrend(days = 30): Promise<Array<{ date: string; studyTime: number; flashcardsReviewed: number; quizScore: number }>> {
+export async function calculateLearningTrend(userId: string, days = 30): Promise<Array<{ date: string; studyTime: number; flashcardsReviewed: number; quizScore: number }>> {
+  const chatsKey = userKey(userId, 'chats')
+  const flashcardsKey = userKey(userId, 'flashcards')
   const [chats, flashcards, quizResults] = await Promise.all([
-    db.get('chats') as Promise<any[]>,
-    db.get('flashcards') as Promise<any[]>,
+    db.get(chatsKey) as Promise<any[]>,
+    db.get(flashcardsKey) as Promise<any[]>,
     db.get('quiz_results') as Promise<any[]>,
   ])
 

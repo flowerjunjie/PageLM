@@ -777,7 +777,7 @@ describe('Analytics Service', () => {
     it('should return array of trend data points', async () => {
       vi.mocked(db.get).mockResolvedValue([])
 
-      const trend = await calculateLearningTrend(7)
+      const trend = await calculateLearningTrend('test-user', 7)
 
       expect(Array.isArray(trend)).toBe(true)
     })
@@ -785,7 +785,7 @@ describe('Analytics Service', () => {
     it('should return data for requested number of days', async () => {
       vi.mocked(db.get).mockResolvedValue([])
 
-      const trend = await calculateLearningTrend(7)
+      const trend = await calculateLearningTrend('test-user', 7)
 
       expect(trend.length).toBeLessThanOrEqual(7)
     })
@@ -804,7 +804,7 @@ describe('Analytics Service', () => {
         .mockResolvedValueOnce([])          // flashcards reviews
         .mockResolvedValueOnce(quizResults) // quiz_results
 
-      const trend = await calculateLearningTrend(7)
+      const trend = await calculateLearningTrend('test-user', 7)
 
       for (const point of trend) {
         expect(point).toHaveProperty('date')
@@ -817,7 +817,7 @@ describe('Analytics Service', () => {
     it('should use default of 30 days when not specified', async () => {
       vi.mocked(db.get).mockResolvedValue([])
 
-      const trend = await calculateLearningTrend()
+      const trend = await calculateLearningTrend('test-user')
 
       expect(trend.length).toBeLessThanOrEqual(30)
     })
@@ -825,7 +825,7 @@ describe('Analytics Service', () => {
     it('should handle empty database gracefully', async () => {
       vi.mocked(db.get).mockResolvedValue([])
 
-      const trend = await calculateLearningTrend(5)
+      const trend = await calculateLearningTrend('test-user', 5)
 
       expect(Array.isArray(trend)).toBe(true)
       // All study times and scores should be 0 or minimal when no data
@@ -862,7 +862,7 @@ describe('Analytics Service', () => {
         .mockResolvedValueOnce(quizResults)
 
       try {
-        const trend = await calculateLearningTrend(1)
+        const trend = await calculateLearningTrend('test-user', 1)
 
         expect(trend).toEqual([
           {

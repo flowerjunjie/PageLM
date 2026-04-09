@@ -341,7 +341,7 @@ describe('GET /api/learning/activity', () => {
     const res = mockRes()
     await exec(req, res, app.routes['GET /api/learning/activity'])
 
-    expect(getRecentActivity).toHaveBeenCalledWith(5)
+    expect(getRecentActivity).toHaveBeenCalledWith('test-user', 5)
   })
 
   it('should use default limit of 10 when not provided', async () => {
@@ -351,7 +351,7 @@ describe('GET /api/learning/activity', () => {
     const res = mockRes()
     await exec(req, res, app.routes['GET /api/learning/activity'])
 
-    expect(getRecentActivity).toHaveBeenCalledWith(10)
+    expect(getRecentActivity).toHaveBeenCalledWith('test-user', 10)
   })
 
   it('should use default limit when query limit is invalid NaN', async () => {
@@ -361,7 +361,7 @@ describe('GET /api/learning/activity', () => {
     const res = mockRes()
     await exec(req, res, app.routes['GET /api/learning/activity'])
 
-    expect(getRecentActivity).toHaveBeenCalledWith(10)
+    expect(getRecentActivity).toHaveBeenCalledWith('test-user', 10)
   })
 
   it('should use default limit when query limit is 0', async () => {
@@ -371,7 +371,7 @@ describe('GET /api/learning/activity', () => {
     const res = mockRes()
     await exec(req, res, app.routes['GET /api/learning/activity'])
 
-    expect(getRecentActivity).toHaveBeenCalledWith(10)
+    expect(getRecentActivity).toHaveBeenCalledWith('test-user', 10)
   })
 
   it('should return 500 on service error', async () => {
@@ -470,7 +470,7 @@ describe('GET /api/learning/trend', () => {
     const res = mockRes()
     await exec(req, res, app.routes['GET /api/learning/trend'])
 
-    expect(calculateLearningTrend).toHaveBeenCalledWith(14)
+    expect(calculateLearningTrend).toHaveBeenCalledWith('test-user', 14)
   })
 
   it('should use default of 30 days when not provided', async () => {
@@ -480,7 +480,7 @@ describe('GET /api/learning/trend', () => {
     const res = mockRes()
     await exec(req, res, app.routes['GET /api/learning/trend'])
 
-    expect(calculateLearningTrend).toHaveBeenCalledWith(30)
+    expect(calculateLearningTrend).toHaveBeenCalledWith('test-user', 30)
   })
 
   it('should use default days when query days is invalid NaN', async () => {
@@ -490,7 +490,7 @@ describe('GET /api/learning/trend', () => {
     const res = mockRes()
     await exec(req, res, app.routes['GET /api/learning/trend'])
 
-    expect(calculateLearningTrend).toHaveBeenCalledWith(30)
+    expect(calculateLearningTrend).toHaveBeenCalledWith('test-user', 30)
   })
 
   it('should use default days when query days is 0', async () => {
@@ -500,7 +500,7 @@ describe('GET /api/learning/trend', () => {
     const res = mockRes()
     await exec(req, res, app.routes['GET /api/learning/trend'])
 
-    expect(calculateLearningTrend).toHaveBeenCalledWith(30)
+    expect(calculateLearningTrend).toHaveBeenCalledWith('test-user', 30)
   })
 
   it('should return 500 on service error', async () => {
