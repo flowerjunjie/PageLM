@@ -71,8 +71,8 @@ export function chatRoutes(app: any) {
       const ct = String(req.headers["content-type"] || "");
       const isMp = ct.includes("multipart/form-data");
 
-      // Input validation constants
-      const MAX_QUESTION_LENGTH = 10000;
+      // Input validation constants (aligned with ask.ts MAX_QUESTION_LENGTH)
+      const MAX_QUESTION_LENGTH = 2000;
       const CHAT_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
 
       let q = "";

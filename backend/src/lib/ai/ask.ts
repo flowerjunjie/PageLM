@@ -474,8 +474,6 @@ export async function askWithContext(opts: AskWithContextOptions): Promise<AskPa
       console.log('[chat] Rate limit detected, trying next model...')
       const nextModel = getNextModel()
       reinitLLM(nextModel)
-      // 重新获取 llm 引用，因为 reinitLLM() 更新了模块级别的 llm 变量
-      llm = llm
       // 使用新模型重试一次
       try {
         const res = await Promise.race([
