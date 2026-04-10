@@ -27,6 +27,12 @@ export interface AppServer {
 }
 
 export function registerRoutes(app: AppServer) {
+  // Health check endpoint
+  app.get("/health", (_req: IncomingMessage, res: ServerResponse) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok", timestamp: new Date().toISOString() }));
+  });
+
   chatRoutes(app);
   quizRoutes(app);
   examRoutes(app);
