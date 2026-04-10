@@ -29,8 +29,21 @@ export interface AppServer {
 export function registerRoutes(app: AppServer) {
   // Health check endpoint
   app.get("/health", (_req: IncomingMessage, res: ServerResponse) => {
+    const uptime = process.uptime();
+    const memory = process.memoryUsage();
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "ok", timestamp: new Date().toISOString() }));
+    res.end(JSON.stringify({
+      status: "ok",
+      version: process.env.npm_package_version || "1.0.13",
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(uptime),
+      memory: {
+        used: Math.round(memory.heapUsed / 1024 / 1024),
+        total: Math.round(memory.heapTotal / 1024 / 1024),
+        unit: "MB"
+      },
+      node: process.version
+    }));
   });
 
   chatRoutes(app);
