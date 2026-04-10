@@ -12,6 +12,7 @@ import { materialsRoutes } from "./routes/materials";
 import { learningRoutes } from "./routes/learning";
 import { reviewRoutes } from "./routes/reviews";
 import { reportRoutes } from "./routes/reports";
+import { requestMetrics } from "./middleware/metrics";
 import type { IncomingMessage, ServerResponse } from 'http';
 
 type RouteHandler = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void;
@@ -43,6 +44,22 @@ export function registerRoutes(app: AppServer) {
         unit: "MB"
       },
       node: process.version
+    }));
+  });
+
+  // Metrics endpoint for monitoring
+  app.get("/metrics", (_req: IncomingMessage, res: ServerResponse) => {
+    // Increment request counter for this request too
+    requestMetrics.requests++;
+    const avgResponseTime = requestMetrics.responseTimes.length > 0
+      ? Math.round(requestMetrics.responseTimes.reduce((a, b) => a + b, 0) / requestMetrics.responseTimes.length)
+      : 0;
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({
+      requests: requestMetrics.requests,
+      errors: requestMetrics.errors,
+      avgResponseTime,
+      responseTimeHistory: requestMetrics.responseTimes.slice(-100), // Last 100 response times
     }));
   });
 
