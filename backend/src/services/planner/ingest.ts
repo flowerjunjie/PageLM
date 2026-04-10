@@ -40,7 +40,7 @@ function parseDue(s: string): number | null {
     return null
 }
 
-export function ingestText(input: string): Omit<Task, "id" | "createdAt" | "updatedAt"> {
+export function ingestText(input: string): Omit<Task, "id" | "createdAt" | "updatedAt" | "userId"> {
     const t = String(input || "").trim()
     const estMins = parseEstMins(t) ?? 60
     const dueAtMs = parseDue(t) ?? (Date.now() + 24 * 3600 * 1000)

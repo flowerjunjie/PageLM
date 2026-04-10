@@ -7,6 +7,7 @@ import { normalizeTopic } from "../../utils/text/normalize"
 import { config } from "../../config/env"
 import { generateAllMaterials } from "./learning-materials"
 import { saveLearningMaterials } from "../../core/routes/materials"
+import { getChat } from "../../utils/chat/chat"
 
 // Input validation constants for security
 const MAX_QUESTION_LENGTH = 2000
@@ -592,7 +593,10 @@ export async function handleAsk(
     try {
       console.log('[chat] Auto-generating learning materials for chat:', chatId)
       const materials = await generateAllMaterials(safeQ, result.answer)
-      const stored = await saveLearningMaterials(chatId, materials)
+      // Look up chat to get userId for materials storage
+      const chat = await getChat(chatId)
+      const userId = chat?.userId || 'anonymous'
+      const stored = await saveLearningMaterials(userId, chatId, materials)
 
       // Add materials reference to result
       result.materials = {
