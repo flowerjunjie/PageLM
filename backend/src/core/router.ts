@@ -27,7 +27,57 @@ export interface AppServer {
   ws: (path: string, handler: (ws: unknown, req: IncomingMessage) => void) => void;
 }
 
+// API Documentation
+const API_DOCS = {
+  name: "PageLM API",
+  description: "AI-powered education platform API",
+  version: "1.0.16",
+  baseUrl: "/api",
+  endpoints: {
+    "Health & Monitoring": [
+      { method: "GET", path: "/health", description: "Health check with system stats" },
+      { method: "GET", path: "/metrics", description: "Request metrics and performance data" },
+    ],
+    "Chat": [
+      { method: "POST", path: "/chat", description: "Start chat with AI" },
+      { method: "GET", path: "/chats", description: "List chat history" },
+      { method: "GET", path: "/chats/:id", description: "Get specific chat" },
+      { method: "WS", path: "/ws/chat", description: "WebSocket for real-time chat" },
+    ],
+    "Learning": [
+      { method: "GET", path: "/api/learning/profile", description: "Get learning profile" },
+      { method: "GET", path: "/api/learning/stats", description: "Get learning statistics" },
+      { method: "GET", path: "/api/reviews/due", description: "Get due reviews" },
+      { method: "POST", path: "/flashcards", description: "Create flashcard" },
+      { method: "GET", path: "/flashcards", description: "List flashcards" },
+    ],
+    "Planner": [
+      { method: "POST", path: "/tasks", description: "Create task" },
+      { method: "GET", path: "/tasks", description: "List tasks" },
+      { method: "GET", path: "/tasks/:id", description: "Get task details" },
+      { method: "PATCH", path: "/tasks/:id", description: "Update task" },
+      { method: "DELETE", path: "/tasks/:id", description: "Delete task" },
+    ],
+    "Tools": [
+      { method: "POST", path: "/quiz", description: "Generate quiz" },
+      { method: "POST", path: "/podcast", description: "Generate podcast" },
+      { method: "POST", path: "/smartnotes", description: "Generate smart notes" },
+      { method: "POST", path: "/transcriber", description: "Transcribe audio" },
+    ],
+    "Reports": [
+      { method: "GET", path: "/api/reports/weekly", description: "Get weekly report" },
+      { method: "POST", path: "/api/reports/share", description: "Create share link" },
+    ],
+  }
+};
+
 export function registerRoutes(app: AppServer) {
+  // API Documentation endpoint
+  app.get("/", (_req: IncomingMessage, res: ServerResponse) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(API_DOCS, null, 2));
+  });
+
   // Health check endpoint
   app.get("/health", (_req: IncomingMessage, res: ServerResponse) => {
     const uptime = process.uptime();
@@ -35,7 +85,7 @@ export function registerRoutes(app: AppServer) {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({
       status: "ok",
-      version: process.env.npm_package_version || "1.0.13",
+      version: API_DOCS.version,
       timestamp: new Date().toISOString(),
       uptime: Math.floor(uptime),
       memory: {
